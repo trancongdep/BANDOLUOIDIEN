@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.8</title>
+    <title>Hệ Thống Lưới Điện - Version 1.9</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* GIỮ NGUYÊN GIAO DIỆN CŨ */
+        /* GIỮ NGUYÊN GIAO DIỆN V1.8 */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
@@ -69,7 +69,7 @@
         
         <div class="content">
             <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
-                <label>1. Cập nhật Dữ liệu (v1.8 Debug):</label>
+                <label>1. Cập nhật Dữ liệu (v1.9 Fix MC):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
                 <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & Sửa lỗi</button>
@@ -102,7 +102,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.8<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.9<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -180,28 +180,19 @@
         function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
-                // Xóa ký tự lạ (BOM, khoảng trắng...), viết hoa
-                // QUAN TRỌNG: Giữ lại ký tự chữ cái và số, xóa hết ký tự đặc biệt
                 let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
                 
-                // MAP KEY THÔNG MINH
                 let standardKey = cleanKey;
-                
                 if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
                 if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
-                
-                // Fix lỗi quan trọng: MADOAN vs MA_DOAN
                 if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADOANTUYEN")) standardKey = "MA_DOAN";
-                
                 if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
                 
-                // Lưu cả key chuẩn và key gốc đã làm sạch
                 n[standardKey] = obj[k];
                 n[cleanKey] = obj[k];
             });
             
-            // Xử lý logic nghiệp vụ
             if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
             if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
 
@@ -249,9 +240,9 @@
             const sSegs = findS("DM_DOAN");
             const sCircs = findS("CAU_HINH");
 
-            if(!sPoles) return log("❌ Lỗi: Không tìm thấy file TOA_DO", 'err');
-            if(!sSegs) return log("❌ Lỗi: Không tìm thấy file DM_DOAN", 'err');
-            if(!sCircs) return log("❌ Lỗi: Không tìm thấy file CAU_HINH", 'err');
+            if(!sPoles) return log("❌ Thiếu file 'TOA_DO' (Tọa độ trụ)", 'err');
+            if(!sSegs) return log("❌ Thiếu file 'DM_DOAN' (Danh mục đoạn)", 'err');
+            if(!sCircs) return log("❌ Thiếu file 'CAU_HINH' (Cấu hình mạch)", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {} };
             let errors = 0;
@@ -263,11 +254,7 @@
                 let n = String(row.TEN_TRU || row.TRU_TU).trim();
                 let type = String(row.LOAI_DIEM || "TRU_DO").trim().toUpperCase(); 
 
-                // DEBUG LOG NẾU THIẾU TÊN TRỤ
-                if(!n) {
-                    // console.log("Row Pole Error:", r);
-                    return;
-                }
+                if(!n) return;
 
                 if(!data.poles[l]) data.poles[l]=[];
                 let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
@@ -285,15 +272,12 @@
                 if(!id) return; 
 
                 let t_tu = row.TUYEN_TU;
-                let tr_tu = row.TRU_TU;
+                let tr_tu = String(row.TRU_TU).trim();
                 let t_den = row.TUYEN_DEN;
-                let tr_den = row.TRU_DEN;
+                let tr_den = String(row.TRU_DEN).trim();
 
-                // LOG CHI TIẾT LỖI
                 if(!t_tu || !tr_tu || !tr_den) {
                     log(`⚠️ Đoạn ${id}: Thiếu dữ liệu (Tuyến Từ: ${t_tu}, Trụ Từ: ${tr_tu}, Đến: ${tr_den})`, 'warn');
-                    // In ra các key hiện có để debug
-                    // log(`   Keys nhận được: ${Object.keys(row).join(", ")}`, 'warn');
                     errors++;
                     return;
                 }
@@ -328,16 +312,19 @@
 
             stagingData = data;
             
-            log(`✅ Kết quả: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
-            if(errors > 0) log(`⚠️ Có ${errors} cảnh báo (xem trên).`, 'warn');
-            
-            document.getElementById('upload-actions').style.display = "block";
+            if(errors > 0) {
+                log(`🚫 CÓ ${errors} LỖI DỮ LIỆU. Vui lòng sửa file Excel theo thông báo trên.`, 'err');
+                document.getElementById('btnUpload').disabled = true;
+            } else {
+                log(`✅ Dữ liệu hoàn hảo! Sẵn sàng upload.`, 'success');
+                document.getElementById('btnUpload').disabled = false;
+            }
         }
 
-        // ... (CÁC HÀM UPLOAD, DISPLAY GIỮ NGUYÊN V1.1 PATCH 2) ...
-        
+        // --- UPLOAD (MERGE/REPLACE) ---
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
+
             if(mode === 'replace') {
                 if(!confirm("CẢNH BÁO: XÓA HẾT dữ liệu cũ trên Cloud?")) return;
                 log("Đang xóa cũ và ghi mới...", 'warn');
@@ -351,12 +338,14 @@
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
+
                 window.update(window.ref(window.db), updates)
                     .then(() => log("✅ Đã gộp thành công!", 'success'))
                     .catch(e => log("Lỗi Merge: " + e.message, 'err'));
             }
         }
 
+        // --- 3. HIỂN THỊ ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
@@ -379,11 +368,13 @@
             let className = 'my-icon icon-tru-do'; 
             let size = [12, 12];
             let html = '';
+
             if(type === 'MC') { className = 'my-icon icon-mc'; size = [16, 16]; html = 'MC'; }
             else if(type === 'TRU_NEO') { className = 'my-icon icon-tru-neo'; size = [12, 12]; }
             else if(type === 'MOC') { className = 'my-icon icon-moc'; size = [8, 8]; }
             else if(type === 'COT_MOC') { className = 'my-icon icon-cot-moc'; size = [10, 14]; }
             else if(type === 'HAM_CAP') { className = 'my-icon icon-ham-cap'; size = [14, 10]; html = 'H'; }
+            
             return L.divIcon({ className: className, html: html, iconSize: size, iconAnchor: [size[0]/2, size[1]/2] });
         }
 
@@ -391,9 +382,15 @@
             layers.bg.clearLayers();
             layers.bgPoints.clearLayers();
             layers.mc.clearLayers();
+
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
-                if(pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
+                
+                // *** LOGIC MỚI V1.9: NẾU LÀ TUYẾN "MAYCAT" THÌ KHÔNG VẼ DÂY NỐI ***
+                if(l !== 'MAYCAT' && pts.length>1) {
+                    L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
+                }
+                
                 appData.poles[l].forEach(p => {
                     let layer = (p.type === 'MC') ? layers.mc : layers.bgPoints;
                     L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
@@ -406,26 +403,51 @@
             layers.main.clearLayers(); layers.fault.clearLayers();
             currentPath = []; 
             document.getElementById('circuit-info').innerText = "";
+
             if(!id || !appData.circuits[id]) return;
+
             const segs = appData.circuits[id];
             let totalDist = 0;
+
             segs.forEach((item, idx) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
+                
                 let pts = [];
                 let p1 = getPolePos(def.lineFrom, def.poleFrom);
                 let p2 = getPolePos(def.lineTo, def.poleTo);
-                if(!p1 || !p2) { console.warn(`Thiếu tọa độ ${item.segId}`); return; }
-                if(def.lineFrom !== def.lineTo) { pts = [p1, p2]; } else { pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo); }
+
+                if(!p1 || !p2) {
+                    console.warn(`Thiếu tọa độ cho đoạn ${item.segId}`);
+                    return;
+                }
+
+                if(def.lineFrom !== def.lineTo) {
+                     pts = [p1, p2];
+                } else {
+                     pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
+                }
+
                 if(pts.length) {
                     let isCable = (def.type === 'NGAM');
                     let color = isCable ? '#7b1fa2' : '#1565c0';
                     let dash = isCable ? "5,5" : null;
+
                     L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:3, dashArray:dash}).addTo(layers.main);
-                    pts.forEach(p => { if(p.type !== 'MC') L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name); });
-                    pts.forEach((p, i) => { if(i>0) totalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng); currentPath.push({ ...p, line: def.lineFrom, accDist: totalDist }); });
+                    
+                    pts.forEach(p => {
+                        if(p.type !== 'MC') {
+                            L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name);
+                        }
+                    });
+
+                    pts.forEach((p, i) => {
+                        if(i>0) totalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                        currentPath.push({ ...p, line: def.lineFrom, accDist: totalDist });
+                    });
                 }
             });
+            
             document.getElementById('circuit-info').innerText = `Tổng dài: ${(totalDist/1000).toFixed(2)} km`;
             if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
         }
