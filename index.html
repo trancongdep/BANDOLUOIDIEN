@@ -3,42 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.17</title>
+    <title>Hệ Thống Lưới Điện - Version 1.21</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* GIỮ NGUYÊN GIAO DIỆN */
+        /* CSS CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
-        #sidebar { width: 450px; background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        
+        #sidebar { 
+            width: 450px; background: white; border-right: 1px solid #ccc; 
+            display: flex; flex-direction: column; z-index: 2000; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
+        }
+
+        .header { background: #b71c1c; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 1.1rem; }
+
         .content { padding: 15px; overflow-y: auto; flex: 1; background: #fafafa; }
-        .footer { background: #263238; color: #eceff1; padding: 10px; text-align: center; font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0; line-height: 1.4; }
+
+        .footer { background: #212121; color: #eceff1; padding: 10px; text-align: center; font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0; line-height: 1.4; }
         .footer strong { color: #ffca28; }
+
         .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
+        
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
         .btn-check { background: #00796b; color: white; }
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
+        .btn-toggle { background: #546e7a; color: white; margin-bottom: 10px; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 150px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
+        
+        #admin-panel { display: none; border-left: 4px solid #ff6f00; background: #fff3e0; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 140px; }
-        .legend h4 { margin: 0 0 8px 0; color: #004d40; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
+
+        /* LEGEND */
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 150px; }
+        .legend h4 { margin: 0 0 8px 0; color: #b71c1c; font-size: 0.9rem; border-bottom: 2px solid #ffcdd2; padding-bottom: 4px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
-        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; }
+        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+
+        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
+        
+        /* ĐỔI MÀU ĐỎ TƯƠI TẠI ĐÂY */
+        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; } /* Đỏ Tươi */
+        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; } /* Xanh */
+        
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
-        .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
+        .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; } 
+
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
     </style>
 </head>
@@ -50,28 +74,26 @@
         </div>
         
         <div class="content">
-            <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
-                <label>1. Cập nhật Dữ liệu (v1.17 Strict):</label>
+            <button class="btn-toggle" onclick="toggleAdmin()">
+                <i class="fas fa-database"></i> 1. Cập nhật Dữ liệu (Ẩn/Hiện)
+            </button>
+
+            <div id="admin-panel" class="card">
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                
-                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra Cấu trúc</button>
+                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
                 <div id="console">Chờ file...</div>
-                
                 <div id="upload-actions">
-                    <button class="btn-merge" onclick="window.confirmUpload('merge')">
-                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU
-                    </button>
-                    <button class="btn-replace" onclick="window.confirmUpload('replace')">
-                        <i class="fas fa-trash-alt"></i> XÓA CŨ & GHI MỚI
-                    </button>
+                    <button class="btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU</button>
+                    <button class="btn-replace" onclick="window.confirmUpload('replace')">XÓA CŨ & GHI MỚI</button>
                 </div>
             </div>
 
             <div class="card">
-                <label>2. Chọn Mạch:</label>
+                <label>2. Vận hành (Click MC để Đóng/Cắt):</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
-                    <option value="">-- Đang tải dữ liệu --</option>
+                    <option value="">-- Chọn mạch --</option>
                 </select>
+                <div id="circuit-status" style="margin-top:5px; font-weight:bold;">Trạng thái: <span id="status-text">---</span></div>
                 <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px; font-style:italic;"></div>
             </div>
 
@@ -84,7 +106,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.17<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.21<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -130,23 +152,35 @@
             main: L.layerGroup().addTo(map), 
             fault: L.layerGroup().addTo(map) 
         };
-        let appData = { poles: {}, segments: {}, circuits: {} };
+        let appData = { poles: {}, segments: {}, circuits: {}, states: {} }; 
         let stagingData = null;
         let currentPath = [];
 
+        // --- LEGEND ---
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
             div.innerHTML = `
-                <div style="font-weight:bold; margin-bottom:5px; color:#004d40;">CHÚ THÍCH</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border:1px solid white;"></span> Máy Cắt</div>
+                <h4>TRẠNG THÁI SCADA</h4>
+                <div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện (Đỏ)</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (An toàn)</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#000;"></span> Mất điện/Chưa rõ</div>
+                <hr style="margin:5px 0;">
+                <div class="legend-item"><span class="legend-icon" style="background:#ff0000; border-radius:2px;"></span> MC Đóng</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#388e3c; border-radius:2px;"></span> MC Mở (An toàn)</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span> Mốc Cáp</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span> Hầm Cáp</div>
             `;
             return div;
         };
         legend.addTo(map);
+
+        window.toggleAdmin = function() {
+            let p = document.getElementById('admin-panel');
+            p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'block' : 'none';
+        }
 
         function log(msg, type='info') {
             const c = document.getElementById('console');
@@ -155,32 +189,21 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA: CHỈ BỎ KHOẢNG TRẮNG ĐẦU/CUỐI, VIẾT HOA ---
-        // Giữ nguyên dấu gạch dưới, gạch ngang
-        function simpleNorm(obj) {
+        function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
-                let cleanKey = String(k).trim().toUpperCase(); 
-                // Fix lỗi BOM ở đầu file
-                cleanKey = cleanKey.replace(/^\uFEFF/, '');
-                
-                // MAP CỘT THỦ CÔNG (Đúng như bạn yêu cầu)
-                if (cleanKey === "MATUYEN" || cleanKey === "TUYENTU") cleanKey = "TUYEN_TU";
-                if (cleanKey === "TENTRU" || cleanKey === "TRUTU" || cleanKey === "VITRI") cleanKey = "TRU_TU";
-                if (cleanKey === "TUYENDEN") cleanKey = "TUYEN_DEN";
-                if (cleanKey === "TRUDEN" || cleanKey === "DENTRU") cleanKey = "TRU_DEN";
-                if (cleanKey === "MADOAN") cleanKey = "MA_DOAN";
-                if (cleanKey === "MADUONGDAY" || cleanKey === "MAMACH") cleanKey = "MA_DUONG_DAY";
-                
-                // Giữ lại cả key có dấu gạch dưới nếu file gốc đã đúng
-                if (cleanKey === "MA_TUYEN") cleanKey = "TUYEN_TU"; 
-                if (cleanKey === "TEN_TRU") cleanKey = "TRU_TU";
-                
+                let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
+                let standardKey = cleanKey;
+                if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
+                if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
+                if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
+                if (cleanKey.includes("MADOANTUYEN")) standardKey = "MA_DOAN";
+                if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
+                n[standardKey] = obj[k];
                 n[cleanKey] = obj[k];
             });
-            // Default
-            if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU;
-            // Nếu TRU_DEN chưa có, không gán bậy bạ
+            if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
+            if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
             return n;
         }
 
@@ -190,7 +213,6 @@
             document.getElementById('upload-actions').style.display = "none";
 
             if(!input.files.length) return log("Chưa chọn file", 'err');
-            
             Promise.all(Array.from(input.files).map(readFile)).then(res => {
                 let combinedSheets = Object.assign({}, ...res);
                 processSheets(combinedSheets);
@@ -223,18 +245,17 @@
             const sSegs = findS("DM_DOAN");
             const sCircs = findS("CAU_HINH");
 
-            if(!sPoles) return log("❌ Thiếu file TOA_DO", 'err');
-            if(!sSegs) return log("❌ Thiếu file DM_DOAN", 'err');
-            if(!sCircs) return log("❌ Thiếu file CAU_HINH", 'err');
+            if(!sPoles) return log("❌ Lỗi: Thiếu TOA_DO", 'err');
+            if(!sSegs) return log("❌ Lỗi: Thiếu DM_DOAN", 'err');
+            if(!sCircs) return log("❌ Lỗi: Thiếu CAU_HINH", 'err');
 
-            let data = { poles: {}, segments: {}, circuits: {} };
+            let data = { poles: {}, segments: {}, circuits: {}, states: {} };
             let errors = 0;
 
-            // 1. POLES
             sheets[sPoles].forEach((r) => {
-                let row = simpleNorm(r);
-                let l = row.TUYEN_TU; // Đã map từ MA_TUYEN
-                let n = String(row.TRU_TU).trim(); // Đã map từ TEN_TRU
+                let row = flexibleNorm(r);
+                let l = row.MA_TUYEN || row.TUYEN_TU; 
+                let n = String(row.TEN_TRU || row.TRU_TU).trim();
                 let type = String(row.LOAI_DIEM || "TRU_DO").trim().toUpperCase(); 
 
                 if(l && row.LAT) {
@@ -247,9 +268,8 @@
             });
             for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
-            // 2. SEGMENTS
             sheets[sSegs].forEach((r) => {
-                let row = simpleNorm(r);
+                let row = flexibleNorm(r);
                 let id = row.MA_DOAN; 
                 if(!id) return; 
 
@@ -258,29 +278,21 @@
                 let t_den = row.TUYEN_DEN;
                 let tr_den = String(row.TRU_DEN).trim();
 
-                // KIỂM TRA CHÍNH XÁC: Tìm đúng trụ trong đúng tuyến
                 let p1 = getPoleExact(t_tu, tr_tu, data.poles);
                 let p2 = getPoleExact(t_den, tr_den, data.poles);
 
-                if(!p1) {
-                    log(`⚠️ Đoạn ${id}: Không tìm thấy trụ '${tr_tu}' thuộc tuyến '${t_tu}'`, 'warn');
-                    errors++;
-                }
-                if(!p2) {
-                    log(`⚠️ Đoạn ${id}: Không tìm thấy trụ '${tr_den}' thuộc tuyến '${t_den}'`, 'warn');
-                    errors++;
-                }
+                if(!p1) { log(`⚠️ Đoạn ${id}: Không tìm thấy trụ '${tr_tu}' thuộc tuyến '${t_tu}'`, 'warn'); errors++; }
+                if(!p2) { log(`⚠️ Đoạn ${id}: Không tìm thấy trụ '${tr_den}' thuộc tuyến '${t_den}'`, 'warn'); errors++; }
 
                 data.segments[id] = { 
                     id, 
-                    type: (String(row.LOAI_DIEM).includes("NGAM") ? "NGAM" : "NOI"), 
+                    type: (String(row.LOAI).includes("NGAM") ? "NGAM" : "NOI"), 
                     lineFrom: t_tu, poleFrom: tr_tu, lineTo: t_den, poleTo: tr_den 
                 };
             });
 
-            // 3. CIRCUITS
             sheets[sCircs].forEach((r) => {
-                let row = simpleNorm(r);
+                let row = flexibleNorm(r);
                 let cid = row.MA_DUONG_DAY;
                 let sid = row.MA_DOAN; 
                 if(!sid) return;
@@ -288,6 +300,8 @@
                 if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} thiếu đoạn ${sid}`, 'warn'); errors++; }
                 if(!data.circuits[cid]) data.circuits[cid]=[];
                 data.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
+                // Mặc định mạch mới là MỞ (OFF)
+                data.states[cid] = false;
             });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
@@ -299,23 +313,7 @@
             document.getElementById('upload-actions').style.display = "block";
         }
 
-        // --- HÀM TÌM CHÍNH XÁC (Exact Match) ---
-        function getPoleExact(line, name, sourceData) {
-            let data = sourceData || appData.poles;
-            if(!data || !data[line]) return null;
-            // So sánh chuỗi (có thể bỏ qua hoa thường, nhưng giữ nguyên ký tự)
-            return data[line].find(p => p.name.toUpperCase() === name.toUpperCase());
-        }
-
-        function getPoleRange(line, from, to) {
-            if(!appData.poles[line]) return [];
-            const lData = appData.poles[line];
-            let i1 = lData.findIndex(p=>p.name.toUpperCase()===String(from).toUpperCase());
-            let i2 = lData.findIndex(p=>p.name.toUpperCase()===String(to).toUpperCase());
-            if(i1<0 || i2<0) return [];
-            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
-        }
-
+        // --- UPLOAD ---
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
             if(mode === 'replace') {
@@ -327,37 +325,56 @@
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
+                // Merge states cẩn thận
+                if(stagingData.states) {
+                    Object.keys(stagingData.states).forEach(k => updates[`he_thong_luoi_dien/states/${k}`] = false);
+                }
+                
                 window.update(window.ref(window.db), updates)
                     .then(() => log("✅ Gộp thành công!", 'success'));
             }
         }
 
+        // --- DISPLAY & SCADA ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
-                    appData = snap.val() || {poles:{}, segments:{}, circuits:{}};
-                    updateUI();
-                    drawBg();
+                    let val = snap.val();
+                    if(val) {
+                        appData = val;
+                        if(!appData.states) appData.states = {};
+                        updateUI();
+                        drawBg();
+                        let currentCircuit = document.getElementById('circuitSelect').value;
+                        if(currentCircuit) window.drawCircuit();
+                    }
                 });
             }
         }
 
         function updateUI() {
             const s = document.getElementById('circuitSelect');
+            let current = s.value;
             s.innerHTML = '<option value="">-- Chọn mạch --</option>';
             if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
                 let o = document.createElement('option'); o.value=k; o.text=k; s.add(o);
             });
+            s.value = current;
         }
 
-        function createIcon(type, name) {
-            let className = 'my-icon icon-tru-do'; let size = [12, 12]; let html = '';
-            // Chuẩn hóa type để so sánh
-            let t = type ? type.toUpperCase() : "";
+        function createIcon(type, name, isClosed=true) {
+            let className = 'my-icon icon-tru-do'; 
+            let size = [12, 12]; let html = '';
+
+            if(type.includes('MC')) { 
+                className = isClosed ? 'my-icon icon-mc-on' : 'my-icon icon-mc-off'; 
+                size = [16, 16]; html = 'MC'; 
+            }
+            else if(type.includes('NEO')) { className = 'my-icon icon-tru-neo'; size = [12, 12]; }
+            else if(type.includes('MOC')) { className = 'my-icon icon-moc'; size = [8, 8]; }
+            else if(type.includes('COT')) { className = 'my-icon icon-cot-moc'; size = [10, 14]; }
+            else if(type.includes('HAM')) { className = 'my-icon icon-ham-cap'; size = [14, 10]; html = 'H'; }
             
-            if(t.includes('MC')) { className = 'my-icon icon-mc'; size = [16, 16]; html = 'MC'; }
-            else if(t.includes('NEO')) { className = 'my-icon icon-tru-neo'; size = [12, 12]; }
-            else if(t.includes('MOC')) { className = 'my-icon icon-moc'; size = [8, 8]; }
             return L.divIcon({ className: className, html: html, iconSize: size, iconAnchor: [size[0]/2, size[1]/2] });
         }
 
@@ -366,23 +383,57 @@
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
                 if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
+                
                 appData.poles[l].forEach(p => {
                     let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
-                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
+                    let icon = createIcon(p.type, p.name, true); 
+                    L.marker([p.lat, p.lng], { icon: icon }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
                 });
             }
         }
 
+        function getPoleExact(line, name, sourceData) {
+            let data = sourceData || appData.poles;
+            if(!data || !data[line]) return null;
+            return data[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
+        }
+
+        function getPoleRange(line, from, to) {
+            if(!appData.poles[line]) return [];
+            const lData = appData.poles[line];
+            let i1 = lData.findIndex(p=>p.name.toUpperCase()===String(from).toUpperCase());
+            let i2 = lData.findIndex(p=>p.name.toUpperCase()===String(to).toUpperCase());
+            if(i1<0 || i2<0) return [];
+            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+        }
+
+        // --- TOGGLE STATE ---
+        window.toggleCircuitState = function() {
+            let cid = document.getElementById('circuitSelect').value;
+            if(!cid) return;
+            let newState = !appData.states[cid];
+            window.update(window.ref(window.db, 'he_thong_luoi_dien/states'), { [cid]: newState });
+        }
+
         window.drawCircuit = function() {
             const id = document.getElementById('circuitSelect').value;
-            layers.main.clearLayers(); layers.fault.clearLayers();
+            layers.main.clearLayers(); layers.fault.clearLayers(); layers.mc.clearLayers();
             currentPath = []; 
             document.getElementById('circuit-info').innerText = "";
 
-            if(!id || !appData.circuits[id]) return;
+            if(!id || !appData.circuits[id]) {
+                document.getElementById('status-text').innerText = "---";
+                return;
+            }
 
             const segs = appData.circuits[id];
             let totalDist = 0;
+            
+            let isClosed = appData.states[id] === true; 
+            let statusColor = isClosed ? '#ff0000' : '#388e3c'; // ĐỎ TƯƠI nếu đóng
+            let statusText = isClosed ? 'ĐANG ĐÓNG ĐIỆN (CÓ ĐIỆN)' : 'ĐANG CẮT ĐIỆN (AN TOÀN)';
+            
+            document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${statusText}</span>`;
 
             segs.forEach((item, idx) => {
                 const def = appData.segments[item.segId];
@@ -392,27 +443,27 @@
                 let p1 = getPoleExact(def.lineFrom, def.poleFrom);
                 let p2 = getPoleExact(def.lineTo, def.poleTo);
 
-                if(!p1 || !p2) {
-                    console.warn(`Thiếu tọa độ đoạn ${item.segId}`);
-                    return;
-                }
+                if(!p1 || !p2) return;
 
-                if(def.lineFrom !== def.lineTo) {
-                     pts = [p1, p2]; 
-                } else {
-                     pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
-                }
+                if(def.lineFrom !== def.lineTo) pts = [p1, p2]; 
+                else pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
 
                 if(pts.length) {
                     let isCable = (def.type.includes('NGAM'));
-                    let color = isCable ? '#7b1fa2' : '#1565c0';
+                    let color = statusColor;
+                    if (isCable) color = isClosed ? '#7b1fa2' : '#000'; // Cáp: Tím (Có) / Đen (Mất)
+                    
                     let dash = isCable ? "5,5" : null;
 
-                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:3, dashArray:dash}).addTo(layers.main);
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray:dash}).addTo(layers.main);
                     
                     pts.forEach(p => {
-                        if(!p.type.includes('MC')) {
-                            L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name);
+                        let icon = createIcon(p.type, p.name, isClosed);
+                        if(p.type.includes('MC')) {
+                            let marker = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(layers.main);
+                            marker.bindPopup(`<b>${p.name}</b><br>Click để Đóng/Cắt`).on('click', window.toggleCircuitState);
+                        } else {
+                            L.marker([p.lat, p.lng], { icon: icon }).addTo(layers.main).bindPopup(p.name);
                         }
                     });
 
