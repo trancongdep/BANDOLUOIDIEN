@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.1 (Patch 2)</title>
+    <title>Hệ Thống Lưới Điện - Version 1.5</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CẤU TRÚC LAYOUT (GIỮ NGUYÊN v1.1) */
+        /* CẤU TRÚC LAYOUT */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
-            width: 450px; 
+            width: 420px; 
             background: white; 
             border-right: 1px solid #ccc; 
             display: flex; flex-direction: column; 
@@ -21,35 +21,61 @@
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { background: #283593; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .header h2 { margin: 0; font-size: 1.1rem; }
+        .header { background: #00695c; color: white; padding: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+        .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
 
-        .content { padding: 15px; overflow-y: auto; flex: 1; background: #f5f5f5; }
+        .content { padding: 15px; overflow-y: auto; flex: 1; background: #fafafa; }
 
-        .footer { background: #263238; color: #eceff1; padding: 10px; text-align: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; flex-shrink: 0; line-height: 1.4; }
+        .footer {
+            background: #263238; color: #cfd8dc; padding: 10px; text-align: center;
+            font-size: 0.7rem; border-top: 3px solid #ff8f00; flex-shrink: 0;
+        }
         .footer strong { color: #ffca28; }
 
         /* UI ELEMENTS */
-        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .card-header { font-weight: bold; color: #00695c; border-bottom: 2px solid #b2dfdb; padding-bottom: 5px; margin-bottom: 10px; font-size: 0.9rem; }
+        
+        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #455a64; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .btn-check { background: #5c6bc0; color: white; }
-        .btn-merge { background: #2e7d32; color: white; } /* Nút Gộp */
-        .btn-replace { background: #d32f2f; color: white; } /* Nút Thay thế */
+        
+        .btn-check { background: #455a64; color: white; }
+        /* Nút Gộp và Thay thế */
+        .btn-merge { background: #2e7d32; color: white; }
+        .btn-replace { background: #c62828; color: white; }
+        
         .btn-find { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; } button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background: #cfd8dc; color: #90a4ae; cursor: not-allowed; transform: none; }
 
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-top: 5px; }
+        #console { background: #263238; color: #80cbc4; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
         
-        /* Hidden actions area */
+        /* Area chứa 2 nút upload ẩn */
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
-        /* ICONS */
-        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc { background: #d32f2f; border-radius: 3px; font-size: 10px; }
+        /* --- LEGEND ON MAP (Góc dưới phải) --- */
+        .legend {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            line-height: 20px;
+            color: #333;
+            font-size: 0.8rem;
+            min-width: 140px;
+        }
+        .legend h4 { margin: 0 0 8px 0; color: #00695c; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
+        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; box-shadow: 1px 1px 2px rgba(0,0,0,0.3); vertical-align: middle; }
+
+        /* --- ICONS --- */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        
+        .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
@@ -57,54 +83,46 @@
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
-        
-        .legend-item { display: flex; align-items: center; margin-right: 10px; font-size: 0.75rem; margin-bottom: 4px; }
-        .legend-icon { width: 12px; height: 12px; margin-right: 4px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <div class="header">
-            <h2><i class="fas fa-map-marked-alt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
+            <h2><i class="fas fa-bolt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
         </div>
         
         <div class="content">
-            <div class="card" style="font-size: 0.8rem;">
-                <b>Chú thích:</b>
-                <div style="display:flex; flex-wrap:wrap; margin-top:5px;">
-                    <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span>MC</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span>Trụ Néo</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span>Trụ Đỡ</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span>Mốc Cáp</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span>Cột Mốc</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span>Hầm</div>
-                </div>
-            </div>
-
-            <div class="card" style="background:#e3f2fd;">
-                <label>1. Upload Dữ liệu (Excel/CSV):</label>
+            <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
+                <div class="card-header">1. Cập nhật Dữ liệu</div>
+                <label>Chọn file Excel/CSV:</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
-                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
+                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra Cấu trúc</button>
                 <div id="console">Sẵn sàng...</div>
 
                 <div id="upload-actions">
-                    <button class="btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU (Giữ cũ + Thêm mới)</button>
-                    <button class="btn-replace" onclick="window.confirmUpload('replace')">XÓA CŨ - THAY MỚI</button>
+                    <button class="btn-merge" onclick="window.confirmUpload('merge')">
+                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU (Giữ cũ + Thêm mới)
+                    </button>
+                    <button class="btn-replace" onclick="window.confirmUpload('replace')">
+                        <i class="fas fa-trash-alt"></i> XÓA CŨ & GHI MỚI
+                    </button>
                 </div>
             </div>
 
             <div class="card">
-                <label>2. Chọn Mạch:</label>
+                <div class="card-header">2. Vận hành</div>
+                <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
                     <option value="">-- Đang tải dữ liệu --</option>
                 </select>
-                <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px;"></div>
+                <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px; font-style:italic;"></div>
             </div>
 
             <div class="card">
-                <label>3. Tìm Sự Cố:</label>
+                <div class="card-header">3. Tìm Sự Cố</div>
+                <label>Khoảng cách từ đầu nguồn (km):</label>
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <button class="btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result"></div>
@@ -112,7 +130,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.1 (Patch 2)<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.5<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -139,7 +157,7 @@
         const app = initializeApp(firebaseConfig);
         window.db = getDatabase(app); 
         window.set = set; 
-        window.update = update;
+        window.update = update; // Cần dùng update cho chức năng Gộp
         window.ref = ref; 
         window.onValue = onValue;
         
@@ -154,12 +172,30 @@
         let layers = { 
             bg: L.layerGroup().addTo(map), 
             bgPoints: L.layerGroup().addTo(map),
+            mc: L.layerGroup().addTo(map), 
             main: L.layerGroup().addTo(map), 
             fault: L.layerGroup().addTo(map) 
         };
         let appData = { poles: {}, segments: {}, circuits: {} };
         let stagingData = null;
         let currentPath = [];
+
+        // --- LEGEND ON MAP (Góc dưới phải) ---
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Chú Thích</h4>
+                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border:1px solid white;"></span> Máy Cắt (MC)</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span> Mốc Cáp</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span> Cột Mốc</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span> Hầm Cáp</div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
 
         function log(msg, type='info') {
             const c = document.getElementById('console');
@@ -168,18 +204,17 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        function norm(obj) {
+        // --- 1. CHUẨN HÓA CỨNG ---
+        function strictNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
-                let key = String(k).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-                if(key==='MA_TUYEN') key='TUYEN_TU'; if(key==='TU_TRU') key='TRU_TU'; if(key==='DEN_TRU') key='TRU_DEN'; if(key==='MADOAN') key='MA_DOAN';
+                let key = String(k).trim().toUpperCase(); 
                 n[key] = obj[k];
             });
-            if(n.TUYEN_TU && !n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU;
             return n;
         }
 
-        // --- 1. XỬ LÝ FILE (KHÔI PHỤC LOGIC SMART UPLOAD) ---
+        // --- 2. XỬ LÝ FILE ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
@@ -214,96 +249,116 @@
         }
 
         function processSheets(sheets) {
-            const findS = k => Object.keys(sheets).find(n => k.some(x => n.includes(x)));
-            const sPoles = findS(["TRU", "TOA"]);
-            const sSegs = findS(["DOAN", "SEG", "DM"]);
-            const sCircs = findS(["MACH", "CAU", "HINH"]);
+            const findS = k => Object.keys(sheets).find(n => n.includes(k));
+            
+            const sPoles = findS("TOA_DO");
+            const sSegs = findS("DM_DOAN");
+            const sCircs = findS("CAU_HINH_MACH");
 
-            if(!sPoles || !sSegs || !sCircs) return log("❌ Thiếu 1 trong 3 file dữ liệu!", 'err');
+            if(!sPoles) return log("❌ Lỗi: Không tìm thấy file 'TOA_DO'", 'err');
+            if(!sSegs) return log("❌ Lỗi: Không tìm thấy file 'DM_DOAN'", 'err');
+            if(!sCircs) return log("❌ Lỗi: Không tìm thấy file 'CAU_HINH_MACH'", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {} };
+            let errors = 0;
 
             // 1. POLES
-            sheets[sPoles].forEach(r => {
-                let row = norm(r);
-                let l = row.TUYEN_TU || row.TUYEN || row.MA_TUYEN;
-                let n = row.TRU_TU || row.TEN_TRU || row.TEN_DIEM || row.VI_TRI;
-                let typeRaw = (row.LOAI_DIEM || row.LOAI || "TRU_DO").toUpperCase().trim();
-                
-                let type = "TRU_DO"; 
-                if(typeRaw.includes("MC") || typeRaw.includes("MAY")) type = "MC";
-                else if(typeRaw.includes("NEO")) type = "TRU_NEO";
-                else if(typeRaw.includes("COT_MOC")) type = "COT_MOC";
-                else if(typeRaw.includes("MOC")) type = "MOC";
-                else if(typeRaw.includes("HAM")) type = "HAM_CAP";
+            sheets[sPoles].forEach((r, idx) => {
+                let row = strictNorm(r);
+                if(!row.MA_TUYEN || !row.TEN_TRU || !row.LAT || !row.LONG) return;
 
-                if(l && row.LAT) {
-                    if(!data.poles[l]) data.poles[l]=[];
-                    let sNum = parseInt((String(n).match(/\d+/)||[9999])[0]);
-                    data.poles[l].push({
-                        name:String(n).trim(), lat:row.LAT, lng:row.LONG, sort:sNum, type: type 
-                    });
-                }
+                let l = row.MA_TUYEN;
+                let n = String(row.TEN_TRU).trim();
+                let type = (row.LOAI_DIEM || "TRU_DO").trim().toUpperCase(); 
+
+                if(!data.poles[l]) data.poles[l]=[];
+                let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
+                data.poles[l].push({
+                    name: n, lat: parseFloat(row.LAT), lng: parseFloat(row.LONG), sort: sNum, type: type 
+                });
             });
             for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
             // 2. SEGMENTS
-            sheets[sSegs].forEach(r => {
-                let row = norm(r); let id = row.MA_DOAN;
-                if(id) data.segments[id] = { id, type:(row.LOAI||'NOI').toUpperCase(), lineFrom:row.TUYEN_TU, poleFrom:String(row.TRU_TU).trim(), lineTo:row.TUYEN_DEN, poleTo:String(row.TRU_DEN).trim() };
+            sheets[sSegs].forEach((r, idx) => {
+                let row = strictNorm(r);
+                if(!row.MA_DOAN) return;
+
+                let id = row.MA_DOAN;
+                if(!row.TUYEN_TU || !row.TRU_TU || !row.TUYEN_DEN || !row.TRU_DEN) {
+                    log(`⚠️ Dòng ${idx+2} (DM_DOAN): Thiếu dữ liệu`, 'warn');
+                    errors++;
+                    return;
+                }
+
+                data.segments[id] = { 
+                    id, 
+                    type: (row.LOAI || "NOI").toUpperCase(), 
+                    lineFrom: row.TUYEN_TU, 
+                    poleFrom: String(row.TRU_TU).trim(), 
+                    lineTo: row.TUYEN_DEN, 
+                    poleTo: String(row.TRU_DEN).trim() 
+                };
             });
 
             // 3. CIRCUITS
-            sheets[sCircs].forEach(r => {
-                let row = norm(r); let cid = row.MA_DUONG_DAY||row.MA_MACH;
-                if(cid && row.MA_DOAN) {
-                    if(!data.circuits[cid]) data.circuits[cid]=[];
-                    data.circuits[cid].push({ segId:row.MA_DOAN, order:parseInt(row.STT||999) });
+            sheets[sCircs].forEach((r, idx) => {
+                let row = strictNorm(r);
+                if(!row.MA_DUONG_DAY) return;
+
+                let cid = row.MA_DUONG_DAY;
+                let sid = row.MA_DOAN;
+                
+                if(!sid) {
+                    log(`⚠️ Dòng ${idx+2} (CAU_HINH): Thiếu Mã Đoạn`, 'warn');
+                    errors++;
+                    return;
                 }
+
+                if(!data.circuits[cid]) data.circuits[cid]=[];
+                data.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
             });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
             
-            // Hiện các nút hành động
-            log(`✅ Phân tích xong. Tìm thấy: ${Object.keys(data.circuits).length} mạch.`);
-            log(`👉 Hãy chọn GỘP hoặc THAY MỚI.`);
+            if(errors > 0) log(`⚠️ Có ${errors} cảnh báo.`, 'warn');
+            
+            log(`✅ Đã đọc: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
+            log(`👉 Hãy chọn GỘP hoặc THAY MỚI bên dưới.`);
+            
+            // HIỆN 2 NÚT CHỌN
             document.getElementById('upload-actions').style.display = "block";
         }
 
-        // --- HÀM UPLOAD (LOGIC MỚI: MERGE HOẶC REPLACE) ---
+        // --- HÀM UPLOAD (MERGE / REPLACE) ---
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
 
             if(mode === 'replace') {
-                if(!confirm("CẢNH BÁO: Bạn có chắc chắn muốn XÓA TOÀN BỘ dữ liệu cũ trên Cloud và thay thế bằng file này không?")) return;
+                if(!confirm("CẢNH BÁO: Bạn có chắc chắn muốn XÓA HẾT dữ liệu cũ trên Cloud?")) return;
                 log("Đang xóa cũ và ghi mới...", 'warn');
                 window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
-                    .then(() => log("✅ Đã thay thế thành công!", 'success'));
+                    .then(() => log("✅ Đã thay thế thành công!", 'success'))
+                    .catch(e => log("Lỗi: " + e.message, 'err'));
             } 
             else if (mode === 'merge') {
                 log("Đang gộp dữ liệu...", 'info');
-                
-                // Logic Merge: Dùng update() để chèn/ghi đè từng node con
                 let updates = {};
 
-                // Merge Poles
-                Object.keys(stagingData.poles).forEach(key => {
-                    updates[`he_thong_luoi_dien/poles/${key}`] = stagingData.poles[key];
+                // Tạo danh sách update từng node con để không mất dữ liệu khác
+                Object.keys(stagingData.poles).forEach(k => {
+                    updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k];
                 });
-
-                // Merge Segments
-                Object.keys(stagingData.segments).forEach(key => {
-                    updates[`he_thong_luoi_dien/segments/${key}`] = stagingData.segments[key];
+                Object.keys(stagingData.segments).forEach(k => {
+                    updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k];
                 });
-
-                // Merge Circuits
-                Object.keys(stagingData.circuits).forEach(key => {
-                    updates[`he_thong_luoi_dien/circuits/${key}`] = stagingData.circuits[key];
+                Object.keys(stagingData.circuits).forEach(k => {
+                    updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k];
                 });
 
                 window.update(window.ref(window.db), updates)
-                    .then(() => log("✅ Đã gộp thành công! Dữ liệu cũ vẫn còn.", 'success'))
+                    .then(() => log("✅ Đã gộp thành công!", 'success'))
                     .catch(e => log("Lỗi Merge: " + e.message, 'err'));
             }
         }
@@ -344,12 +399,15 @@
         function drawBg() {
             layers.bg.clearLayers();
             layers.bgPoints.clearLayers();
+            layers.mc.clearLayers();
 
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
                 if(pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
+                
                 appData.poles[l].forEach(p => {
-                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.bgPoints).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
+                    let layer = (p.type === 'MC') ? layers.mc : layers.bgPoints;
+                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
                 });
             }
         }
@@ -386,7 +444,9 @@
                     L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:3, dashArray:dash}).addTo(layers.main);
                     
                     pts.forEach(p => {
-                        L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name);
+                        if(p.type !== 'MC') {
+                            L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name);
+                        }
                     });
 
                     pts.forEach((p, i) => {
