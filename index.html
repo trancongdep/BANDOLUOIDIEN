@@ -3,80 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sơ Đồ Lưới Điện Phân Đoạn v11.0</title>
+    <title>Hệ Thống Lưới Điện v14.0 (Chẩn Đoán Lỗi)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f4f6f8; }
         
         #sidebar {
-            width: 420px; background: white; border-right: 1px solid #ddd;
-            display: flex; flex-direction: column; z-index: 1000;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+            width: 450px; background: white; border-right: 1px solid #ccc;
+            display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
         
-        .header { background: #1a237e; color: white; padding: 15px 20px; }
-        .header h2 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .header { background: #2c3e50; color: white; padding: 15px; }
+        .header h2 { margin: 0; font-size: 1.1rem; }
         
-        .content { padding: 20px; overflow-y: auto; flex: 1; }
+        .content { padding: 15px; overflow-y: auto; flex: 1; }
         
-        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .panel-header { font-weight: 700; color: #1a237e; margin-bottom: 12px; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; display: flex; justify-content: space-between; }
-        
-        label { font-size: 0.9rem; color: #555; font-weight: 600; margin-bottom: 6px; display: block; }
-        input, select, button { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        
-        button.primary { background: #3949ab; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button.primary:hover { background: #303f9f; }
-        button.danger { background: #d32f2f; color: white; border: none; font-weight: bold; cursor: pointer; }
-        
-        /* List segments style */
-        #segment-list { font-size: 0.85rem; background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; max-height: 200px; overflow-y: auto; }
-        .seg-item { padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
-        .seg-idx { background: #1a237e; color: white; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; font-size: 0.7rem; margin-right: 10px; flex-shrink: 0; }
-        .seg-info { flex: 1; }
-        .seg-conn { padding: 4px 12px 4px 42px; color: #f57c00; font-size: 0.8rem; font-style: italic; background: #fff3e0; }
+        /* Debug Console Style */
+        #debug-console {
+            background: #212121; color: #00e676; font-family: 'Consolas', monospace;
+            padding: 10px; border-radius: 4px; font-size: 0.8rem;
+            max-height: 200px; overflow-y: auto; margin-bottom: 15px;
+            white-space: pre-wrap; border: 1px solid #444;
+        }
+        .log-err { color: #ff5252; font-weight: bold; }
+        .log-warn { color: #ffab40; }
+        .log-info { color: #40c4ff; }
 
-        #result { display: none; margin-top: 15px; padding: 15px; background: #e8f5e9; border-left: 5px solid #2e7d32; border-radius: 4px; }
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; }
+        label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 5px; }
+        
+        button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
+        .btn-check { background: #607d8b; color: white; }
+        .btn-upload { background: #e65100; color: white; }
+        .btn-view { background: #0277bd; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        #segment-list { font-size: 0.8rem; border: 1px solid #eee; height: 150px; overflow-y: auto; }
+        .seg-row { padding: 5px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <div class="header">
-            <h2><i class="fas fa-random"></i> Quản Lý Sơ Đồ Sợi</h2>
+            <h2><i class="fas fa-tools"></i> Admin & Debugger</h2>
         </div>
 
         <div class="content">
-            <div class="panel">
-                <div class="panel-header">1. Dữ Liệu Nguồn</div>
-                <label>File Excel (3 Sheets: Tru, Doan, CauHinh):</label>
-                <input type="file" id="excelFile" accept=".xlsx" onchange="processFile()" />
-                <div id="status" style="font-size:0.85rem; color:#666;">Vui lòng chọn file...</div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">2. Chọn Đường Dây</div>
-                <select id="circuitSelect" onchange="drawCircuit()" disabled>
-                    <option value="">-- Danh sách trống --</option>
-                </select>
+            <div class="card">
+                <label>1. Kiểm tra & Upload Dữ liệu:</label>
+                <input type="file" id="excelFile" accept=".xlsx" style="margin-bottom:10px; width:100%"/>
                 
-                <label>Chi tiết các đoạn thành phần:</label>
-                <div id="segment-list">
-                    <div style="padding:10px; text-align:center; color:#999;">Chưa chọn đường dây</div>
-                </div>
+                <button class="btn-check" onclick="analyzeFile()">
+                    <i class="fas fa-stethoscope"></i> Phân Tích Tìm Lỗi
+                </button>
+                
+                <div id="debug-console">Trạng thái: Chờ file...</div>
+
+                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> Dữ liệu OK -> Upload ngay
+                </button>
             </div>
 
-            <div class="panel">
-                <div class="panel-header">3. Tìm Sự Cố</div>
-                <label>Khoảng cách từ đầu nguồn (km):</label>
-                <input type="number" id="faultKm" step="0.01" placeholder="Nhập số liệu rơ-le..." disabled />
-                <button class="danger" id="btnFind" onclick="findFault()" disabled>
-                    <i class="fas fa-bolt"></i> XÁC ĐỊNH VỊ TRÍ
+            <div style="font-size:0.8rem; color:green; margin-bottom:10px;" id="cloud-status">
+                <i class="fas fa-wifi"></i> Đang kết nối Firebase...
+            </div>
+
+            <div class="card">
+                <label>2. Xem Bản Đồ:</label>
+                <button class="btn-view" onclick="drawAll()">
+                    <i class="fas fa-map"></i> Vẽ Tất Cả Mạch
                 </button>
-                <div id="result"></div>
+                
+                <label style="margin-top:10px">Hoặc xem từng mạch:</label>
+                <select id="circuitSelect" onchange="drawSingle()">
+                    <option value="">-- Chọn mạch --</option>
+                </select>
+                <div id="segment-list"></div>
             </div>
         </div>
     </div>
@@ -84,26 +90,35 @@
     <div id="map" style="flex:1;"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
+            authDomain: "tavietnam-78ae8.firebaseapp.com",
+            projectId: "tavietnam-78ae8",
+            storageBucket: "tavietnam-78ae8.firebasestorage.app",
+            messagingSenderId: "670121705534",
+            appId: "1:670121705534:web:1027ad98550573ad37116f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        window.db = db; window.set = set; window.ref = ref; window.onValue = onValue;
+
+        listenCloud();
+    </script>
 
     <script>
         let map;
-        // Data Store
-        let db = {
-            poles: {},      // Sheet 1: { "AKHTTN": [pts...] }
-            segments: {},   // Sheet 2: { "D_AK_01": {line, from, to} }
-            circuits: {}    // Sheet 3: { "MC_171": [ "D_AK_01", "D_XL_01" ] }
-        };
-        // Map Layers
-        let layers = {
-            bg: L.layerGroup(),
-            line: L.layerGroup(),
-            fault: L.layerGroup()
-        };
-        // Path Data for Calculation
-        let currentPath = [];
+        let layers = { bg: L.layerGroup(), main: L.layerGroup() };
+        let appData = { poles: {}, segments: {}, circuits: {} };
+        let stagingData = null; // Dữ liệu chờ upload
 
-        // --- INIT ---
         function initMap() {
             map = L.map('map').setView([10.762622, 106.660172], 12);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
@@ -112,282 +127,207 @@
         }
         initMap();
 
-        // --- EXCEL PROCESSING ---
-        function processFile() {
-            const file = document.getElementById('excelFile').files[0];
-            if (!file) return;
+        function log(msg, type='info') {
+            const c = document.getElementById('debug-console');
+            let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':'#00e676');
+            c.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+            c.scrollTop = c.scrollHeight;
+        }
+
+        // --- 1. PHÂN TÍCH FILE (QUAN TRỌNG) ---
+        function analyzeFile() {
+            const input = document.getElementById('excelFile');
+            const consoleBox = document.getElementById('debug-console');
+            consoleBox.innerHTML = ""; // Clear log
+            document.getElementById('btnUpload').disabled = true;
+
+            if(!input.files.length) return log("Chưa chọn file!", 'err');
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                const wb = XLSX.read(e.target.result, {type: 'array'});
-                
-                // Helper: Find sheet by keywords
-                const getSheet = (keys) => {
-                    const name = wb.SheetNames.find(n => keys.some(k => n.toUpperCase().includes(k)));
-                    return name ? XLSX.utils.sheet_to_json(wb.Sheets[name]) : [];
-                };
+                try {
+                    log("Đang đọc file Excel...");
+                    const wb = XLSX.read(e.target.result, {type:'array'});
+                    
+                    // Tìm Sheets
+                    const findS = (k) => wb.SheetNames.find(n => k.some(x => n.toUpperCase().includes(x)));
+                    const sPoles = findS(["TOA_DO","TRU"]);
+                    const sSegs = findS(["DOAN","SEG"]);
+                    const sCircs = findS(["CAU_HINH","MACH","DUONG"]);
 
-                const rawPoles = getSheet(["TOA_DO", "TRU"]);
-                const rawSegments = getSheet(["DOAN", "DM_DOAN"]);
-                const rawCircuits = getSheet(["CAU_HINH", "MACH", "DUONG_DAY"]);
+                    if(!sPoles) log("❌ Thiếu Sheet Tọa độ Trụ (cần tên chứa 'TRU', 'TOA_DO')", 'err');
+                    if(!sSegs) log("❌ Thiếu Sheet Danh mục Đoạn (cần tên chứa 'DOAN', 'SEG')", 'err');
+                    if(!sCircs) log("❌ Thiếu Sheet Cấu hình Mạch (cần tên chứa 'MACH', 'CAU_HINH')", 'err');
 
-                if (rawPoles.length === 0) return alert("Không tìm thấy Sheet Tọa độ!");
+                    if(!sPoles || !sSegs || !sCircs) return;
 
-                parseData(rawPoles, rawSegments, rawCircuits);
-            };
-            reader.readAsArrayBuffer(file);
-        }
+                    const rawPoles = XLSX.utils.sheet_to_json(wb.Sheets[sPoles]);
+                    const rawSegs = XLSX.utils.sheet_to_json(wb.Sheets[sSegs]);
+                    const rawCircs = XLSX.utils.sheet_to_json(wb.Sheets[sCircs]);
 
-        function parseData(poles, segments, circuits) {
-            db = { poles: {}, segments: {}, circuits: {} };
+                    log(`✅ Đã đọc: ${rawPoles.length} dòng Trụ, ${rawSegs.length} dòng Đoạn, ${rawCircs.length} dòng Mạch.`);
 
-            // 1. Parse Poles (Trụ)
-            poles.forEach(r => {
-                let row = normalize(r);
-                let line = row.MA_TUYEN || row.TUYEN;
-                let name = row.TEN_TRU || row.TRU || row.VI_TRI;
-                if (line && row.LAT && row.LONG) {
-                    if (!db.poles[line]) db.poles[line] = [];
-                    // Extract number for sorting: 10A -> 10
-                    let num = parseInt((name.toString().match(/\d+/) || [9999])[0]);
-                    db.poles[line].push({ 
-                        name: name.toString(), 
-                        lat: parseFloat(row.LAT), 
-                        lng: parseFloat(row.LONG), 
-                        sort: num 
+                    // --- KIỂM TRA LOGIC ---
+                    let cleanData = { poles: {}, segments: {}, circuits: {} };
+                    let errors = 0;
+
+                    // 1. Check TRỤ
+                    rawPoles.forEach((r, i) => {
+                        let row = norm(r);
+                        let line = row.MA_TUYEN || row.TUYEN;
+                        let name = row.TEN_TRU || row.VI_TRI;
+                        if(line && name) {
+                            if(!cleanData.poles[line]) cleanData.poles[line] = [];
+                            let sort = parseInt((name.toString().match(/\d+/) || [9999])[0]);
+                            cleanData.poles[line].push({name: name.toString(), lat: row.LAT, lng: row.LONG, sort});
+                        } else {
+                            // log(`⚠️ Sheet Trụ dòng ${i+2}: Thiếu Mã Tuyến hoặc Tên Trụ`, 'warn');
+                        }
                     });
-                }
-            });
-            // Sort poles
-            for (let l in db.poles) db.poles[l].sort((a,b) => a.sort - b.sort);
-
-            // 2. Parse Segments (Đoạn)
-            segments.forEach(r => {
-                let row = normalize(r);
-                let id = row.MA_DOAN || row.MA_DOAN_TUYEN;
-                if (id) {
-                    db.segments[id] = {
-                        id: id,
-                        line: row.MA_TUYEN || row.TUYEN,
-                        from: row.TU_TRU ? row.TU_TRU.toString() : null,
-                        to: row.DEN_TRU ? row.DEN_TRU.toString() : null
-                    };
-                }
-            });
-
-            // 3. Parse Circuits (Đường dây)
-            circuits.forEach(r => {
-                let row = normalize(r);
-                let cId = row.MA_DUONG_DAY || row.MA_MACH;
-                let sId = row.MA_DOAN;
-                let stt = parseInt(row.STT || row.THU_TU || 999);
-
-                if (cId && sId) {
-                    if (!db.circuits[cId]) db.circuits[cId] = [];
-                    db.circuits[cId].push({ segId: sId, order: stt });
-                }
-            });
-            // Sort circuit segments
-            for (let c in db.circuits) db.circuits[c].sort((a,b) => a.order - b.order);
-
-            // Update UI
-            document.getElementById('status').innerHTML = `✅ Đã nạp: ${Object.keys(db.circuits).length} đường dây, ${Object.keys(db.segments).length} đoạn.`;
-            updateDropdown();
-            drawBackground();
-        }
-
-        function normalize(obj) {
-            let n = {};
-            Object.keys(obj).forEach(k => n[k.trim().toUpperCase().replace(/ /g, "_")] = obj[k]);
-            return n;
-        }
-
-        function drawBackground() {
-            layers.bg.clearLayers();
-            for (let l in db.poles) {
-                let pts = db.poles[l].map(p => [p.lat, p.lng]);
-                if (pts.length > 1) L.polyline(pts, {color: '#cfd8dc', weight: 1}).addTo(layers.bg);
-            }
-        }
-
-        function updateDropdown() {
-            const sel = document.getElementById('circuitSelect');
-            sel.innerHTML = '<option value="">-- Chọn đường dây --</option>';
-            sel.disabled = false;
-            Object.keys(db.circuits).forEach(k => {
-                let opt = document.createElement('option');
-                opt.value = k; opt.text = k; sel.add(opt);
-            });
-            document.getElementById('faultKm').disabled = false;
-            document.getElementById('btnFind').disabled = false;
-        }
-
-        // --- DRAWING LOGIC ---
-        function drawCircuit() {
-            const id = document.getElementById('circuitSelect').value;
-            const listDiv = document.getElementById('segment-list');
-            
-            layers.line.clearLayers();
-            layers.fault.clearLayers();
-            currentPath = [];
-            listDiv.innerHTML = "";
-            document.getElementById('result').style.display = 'none';
-
-            if (!id) return;
-
-            const segList = db.circuits[id];
-            let totalDist = 0;
-            let lastPoint = null;
-
-            segList.forEach((item, idx) => {
-                const segDef = db.segments[item.segId];
-                if (!segDef) {
-                    listDiv.innerHTML += `<div class="seg-item" style="color:red">Thiếu định nghĩa đoạn: ${item.segId}</div>`;
-                    return;
-                }
-
-                const lineData = db.poles[segDef.line];
-                if (!lineData) {
-                    listDiv.innerHTML += `<div class="seg-item" style="color:red">Thiếu dữ liệu tuyến: ${segDef.line}</div>`;
-                    return;
-                }
-
-                // Slice Points based on From/To
-                let iStart = lineData.findIndex(p => p.name == segDef.from);
-                let iEnd = lineData.findIndex(p => p.name == segDef.to);
-
-                if (iStart === -1 || iEnd === -1) {
-                    listDiv.innerHTML += `<div class="seg-item" style="color:red">Không tìm thấy trụ ${segDef.from}-${segDef.to}</div>`;
-                    return;
-                }
-
-                // Determine points array
-                let pts = (iStart <= iEnd) 
-                    ? lineData.slice(iStart, iEnd + 1) 
-                    : lineData.slice(iEnd, iStart + 1).reverse();
-
-                // Draw Jumper (Connection from previous segment)
-                if (lastPoint) {
-                    let pStart = pts[0];
-                    let jumpDist = getDist(lastPoint.lat, lastPoint.lng, pStart.lat, pStart.lng);
                     
-                    L.polyline([[lastPoint.lat, lastPoint.lng], [pStart.lat, pStart.lng]], {
-                        color: '#f57c00', weight: 2, dashArray: '5,5'
-                    }).addTo(layers.line);
-                    
-                    totalDist += jumpDist;
-                    
-                    // Add jumper to calculation path (optional, but good for accuracy)
-                    // If jump is significant, we should treat it as distance.
-                    listDiv.innerHTML += `<div class="seg-conn"><i class="fas fa-link"></i> Đấu nối (${jumpDist.toFixed(1)}m)</div>`;
-                }
+                    // Sort Trụ
+                    for(let k in cleanData.poles) cleanData.poles[k].sort((a,b)=>a.sort-b.sort);
 
-                // Draw Segment Line
-                let latLngs = pts.map(p => [p.lat, p.lng]);
-                L.polyline(latLngs, {color: '#1a237e', weight: 4}).addTo(layers.line);
+                    // 2. Check ĐOẠN
+                    rawSegs.forEach((r, i) => {
+                        let row = norm(r);
+                        let id = row.MA_DOAN;
+                        let line = row.MA_TUYEN || row.TUYEN;
+                        
+                        if(!id) return log(`❌ Sheet Đoạn dòng ${i+2}: Thiếu Mã Đoạn`, 'err');
+                        if(!line) return log(`❌ Sheet Đoạn dòng ${i+2} (${id}): Thiếu Mã Tuyến`, 'err');
+                        
+                        // Check link tới Trụ
+                        if(!cleanData.poles[line]) {
+                            log(`⚠️ Sheet Đoạn dòng ${i+2} (${id}): Tuyến '${line}' không có trong Sheet Trụ!`, 'warn');
+                            errors++;
+                        }
+                        
+                        cleanData.segments[id] = { id, line, from: row.TU_TRU, to: row.DEN_TRU };
+                    });
 
-                // Markers
-                L.circleMarker(latLngs[0], {radius:3, color:'green', fillColor:'white', fillOpacity:1}).addTo(layers.line);
-                if (latLngs.length > 1) {
-                    L.circleMarker(latLngs[latLngs.length-1], {radius:3, color:'red', fillColor:'white', fillOpacity:1}).addTo(layers.line);
-                }
+                    // 3. Check MẠCH (QUAN TRỌNG NHẤT)
+                    rawCircs.forEach((r, i) => {
+                        let row = norm(r);
+                        let cid = row.MA_DUONG_DAY || row.MA_MACH;
+                        let sid = row.MA_DOAN;
+                        
+                        if(!cid) return; // Bỏ qua dòng trống
+                        
+                        if(!sid) {
+                            log(`❌ Sheet Mạch dòng ${i+2}: Mạch '${cid}' thiếu Mã Đoạn`, 'err');
+                            errors++;
+                            return;
+                        }
 
-                // Add to Calculation Path
-                pts.forEach((p, i) => {
-                    if (i > 0) {
-                        totalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                        // Check link tới Đoạn
+                        if(!cleanData.segments[sid]) {
+                            log(`❌ Sheet Mạch dòng ${i+2}: Mạch '${cid}' gọi đoạn '${sid}' nhưng đoạn này KHÔNG CÓ trong Sheet Đoạn!`, 'err');
+                            errors++;
+                        } else {
+                            if(!cleanData.circuits[cid]) cleanData.circuits[cid] = [];
+                            cleanData.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
+                        }
+                    });
+
+                    // Tổng kết
+                    if(errors > 0) {
+                        log(`🚫 TÌM THẤY ${errors} LỖI DỮ LIỆU. VUI LÒNG SỬA EXCEL TRƯỚC KHI UPLOAD.`, 'err');
+                    } else {
+                        log(`✨ Dữ liệu sạch sẽ! Sẵn sàng upload.`, 'info');
+                        // Sort circuits
+                        for(let k in cleanData.circuits) cleanData.circuits[k].sort((a,b)=>a.order-b.order);
+                        stagingData = cleanData;
+                        document.getElementById('btnUpload').disabled = false;
                     }
-                    currentPath.push({ 
-                        lat: p.lat, lng: p.lng, 
-                        name: p.name, 
-                        line: segDef.line, 
-                        accDist: totalDist 
-                    });
-                });
 
-                lastPoint = pts[pts.length - 1];
-
-                // UI Item
-                listDiv.innerHTML += `
-                    <div class="seg-item">
-                        <div class="seg-idx">${idx + 1}</div>
-                        <div class="seg-info">
-                            <b>${item.segId}</b> (${segDef.line})<br>
-                            ${segDef.from} &#8594; ${segDef.to}
-                        </div>
-                    </div>`;
-            });
-
-            // Zoom map
-            if (currentPath.length) {
-                map.fitBounds(currentPath.map(p => [p.lat, p.lng]));
-            }
-        }
-
-        // --- FAULT FINDING ---
-        function findFault() {
-            let km = parseFloat(document.getElementById('faultKm').value);
-            let res = document.getElementById('result');
-            
-            if (isNaN(km) || currentPath.length < 2) return;
-            
-            let targetM = km * 1000;
-            let found = false;
-
-            for (let i = 1; i < currentPath.length; i++) {
-                let p1 = currentPath[i-1];
-                let p2 = currentPath[i];
-
-                if (p2.accDist >= targetM) {
-                    let segmentLen = p2.accDist - p1.accDist;
-                    let remaining = targetM - p1.accDist;
-                    let ratio = remaining / segmentLen;
-
-                    let lat = p1.lat + (p2.lat - p1.lat) * ratio;
-                    let lng = p1.lng + (p2.lng - p1.lng) * ratio;
-
-                    showResult(lat, lng, p1, p2, remaining);
-                    found = true;
-                    break;
+                } catch(err) {
+                    log("Crashed: " + err.message, 'err');
                 }
-            }
-
-            if (!found) {
-                res.style.display = 'block';
-                res.innerHTML = `⚠️ <b>Ngoài phạm vi!</b><br>Tổng chiều dài: ${(currentPath[currentPath.length-1].accDist/1000).toFixed(2)} km`;
-            }
+            };
+            reader.readAsArrayBuffer(input.files[0]);
         }
 
-        function showResult(lat, lng, p1, p2, offset) {
-            let res = document.getElementById('result');
-            let icon = L.divIcon({
-                html: '<i class="fas fa-bolt" style="color:red; font-size:30px; filter:drop-shadow(0 0 3px white);"></i>',
-                iconSize: [30,30], iconAnchor: [15,30]
+        // --- UPLOAD ---
+        function uploadToCloud() {
+            if(!stagingData) return;
+            log("Đang đẩy lên Firebase...");
+            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
+                .then(() => log("✅ Upload thành công!", 'info'))
+                .catch(e => log("Lỗi Upload: "+e.message, 'err'));
+        }
+
+        function norm(obj) {
+            let n = {}; Object.keys(obj).forEach(k => n[k.trim().toUpperCase().replace(/ /g,"_")] = obj[k]); return n;
+        }
+
+        // --- VIEW MODE ---
+        function listenCloud() {
+            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), (snap) => {
+                const val = snap.val();
+                if(val) {
+                    appData = val;
+                    document.getElementById('cloud-status').innerHTML = "🟢 Đã kết nối Cloud";
+                    updateUI();
+                }
             });
-
-            L.marker([lat, lng], {icon}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
-            map.setView([lat, lng], 16);
-
-            res.style.display = 'block';
-            let locationDesc = (p1.line === p2.line) ? 
-                `Trên tuyến <b>${p1.line}</b>` : 
-                `Tại vị trí đấu nối đoạn`;
-
-            res.innerHTML = `
-                <div style="font-weight:bold; margin-bottom:5px; color:#2e7d32;">✅ ĐÃ XÁC ĐỊNH VỊ TRÍ</div>
-                ${locationDesc}<br>
-                Giữa trụ <b>${p1.name}</b> và <b>${p2.name}</b><br>
-                Cách trụ ${p1.name}: <b>${offset.toFixed(1)}m</b>
-            `;
         }
 
-        function getDist(lat1, lon1, lat2, lon2) {
-            const R = 6371000;
-            const dLat = (lat2-lat1)*Math.PI/180;
-            const dLon = (lon2-lon1)*Math.PI/180;
-            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        function updateUI() {
+            const s = document.getElementById('circuitSelect');
+            s.innerHTML = '<option value="">-- Chọn mạch --</option>';
+            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
+                let o = document.createElement('option'); o.value=k; o.text=k; s.add(o);
+            });
         }
+
+        function drawAll() {
+            layers.main.clearLayers();
+            if(!appData.circuits) return;
+            let keys = Object.keys(appData.circuits);
+            keys.forEach((cid, idx) => {
+                let pts = getPoints(cid);
+                if(pts.length) {
+                    // Offset để tách dòng
+                    let offset = (idx - keys.length/2) * 5;
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'blue', weight:2, offset: offset}).addTo(layers.main).bindPopup(cid);
+                }
+            });
+            if(keys.length) {
+                let pts = getPoints(keys[0]);
+                if(pts.length) map.fitBounds(pts.map(p=>[p.lat,p.lng]));
+            }
+        }
+
+        function drawSingle() {
+            layers.main.clearLayers();
+            const cid = document.getElementById('circuitSelect').value;
+            const pts = getPoints(cid);
+            if(pts.length) {
+                L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'red', weight:4}).addTo(layers.main);
+                map.fitBounds(pts.map(p=>[p.lat,p.lng]));
+            }
+        }
+
+        function getPoints(cid) {
+            let pts = [];
+            const segs = appData.circuits[cid];
+            if(!segs) return [];
+            segs.forEach(item => {
+                const def = appData.segments[item.segId];
+                if(def && appData.poles[def.line]) {
+                    const lData = appData.poles[def.line];
+                    let i1 = lData.findIndex(p=>p.name==def.from);
+                    let i2 = lData.findIndex(p=>p.name==def.to);
+                    if(i1>=0 && i2>=0) {
+                        let sub = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+                        pts = pts.concat(sub);
+                    }
+                }
+            });
+            return pts;
+        }
+
     </script>
 </body>
 </html>
