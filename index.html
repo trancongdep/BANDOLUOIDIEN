@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.13</title>
+    <title>Hệ Thống Lưới Điện - Version 1.13.1 (Sync Fix)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CSS GIAO DIỆN CHUẨN */
+        /* GIỮ NGUYÊN GIAO DIỆN CHUẨN V1.13 */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
@@ -42,13 +42,11 @@
         
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
-        /* LEGEND */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 140px; }
         .legend h4 { margin: 0 0 8px 0; color: #004d40; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
         .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; }
 
-        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
@@ -69,7 +67,7 @@
         
         <div class="content">
             <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
-                <label>1. Cập nhật Dữ liệu:</label>
+                <label>1. Cập nhật Dữ liệu (v1.13.1):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
                 <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
@@ -102,7 +100,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.13<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.13.1<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -152,7 +150,6 @@
         let stagingData = null;
         let currentPath = [];
 
-        // --- LEGEND ---
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
@@ -174,37 +171,25 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA MỚI (TỐI ƯU CHO CSV & TYPO) ---
         function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
-                
                 let standardKey = cleanKey;
                 if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
                 if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
                 if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADOANTUYEN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
-                
                 n[standardKey] = obj[k];
-                n[cleanKey] = obj[k]; // Giữ key gốc đã clean
+                n[cleanKey] = obj[k];
             });
-            
             if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
             if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
-
             return n;
         }
 
-        // --- HÀM LÀM SẠCH CHUỖI ĐỂ SO SÁNH MỜ (FUZZY MATCH) ---
-        function cleanString(str) {
-            if (!str) return "";
-            return String(str).trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); 
-            // Ví dụ: "LT2_171" -> "LT2171", "TDC-171" -> "TDC171"
-        }
-
-        // --- 1. XỬ LÝ FILE ---
+        // --- 1. XỬ LÝ FILE (SYNC LOGIC) ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
@@ -212,7 +197,9 @@
 
             if(!input.files.length) return log("Chưa chọn file", 'err');
             
+            // Promise.all đảm bảo ĐỌC XONG HẾT mới chạy tiếp
             Promise.all(Array.from(input.files).map(readFile)).then(res => {
+                // Gộp các object sheet lại thành 1
                 let combinedSheets = Object.assign({}, ...res);
                 processSheets(combinedSheets);
             }).catch(e => log(e.message, 'err'));
@@ -252,7 +239,7 @@
             let data = { poles: {}, segments: {}, circuits: {} };
             let errors = 0;
 
-            // 1. POLES
+            // 1. POLES (QUAN TRỌNG: PHẢI XỬ LÝ TRƯỚC TIÊN)
             sheets[sPoles].forEach((r, idx) => {
                 let row = flexibleNorm(r);
                 let l = row.MA_TUYEN || row.TUYEN_TU;
@@ -269,7 +256,7 @@
             });
             for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
-            // 2. SEGMENTS
+            // 2. SEGMENTS (BÂY GIỜ MỚI CHECK TRỤ VÌ ĐÃ CÓ DATA.POLES)
             sheets[sSegs].forEach((r, idx) => {
                 let row = flexibleNorm(r);
                 let id = row.MA_DOAN; 
@@ -287,8 +274,7 @@
                     return;
                 }
 
-                // Kiểm tra liên kết (Soft Check)
-                // Sử dụng hàm tìm kiếm thông minh để check
+                // DÙNG HÀM TÌM KIẾM THÔNG MINH ĐỂ CHECK
                 let p1 = getPolePos(t_tu, tr_tu, data.poles);
                 let p2 = getPolePos(t_den, tr_den, data.poles);
 
@@ -311,7 +297,7 @@
                 if(!sid) return;
 
                 if(!data.segments[sid]) {
-                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY trong DM_DOAN`, 'warn');
+                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY`, 'warn');
                     errors++;
                 }
 
@@ -328,10 +314,8 @@
             document.getElementById('upload-actions').style.display = "block";
         }
 
-        // --- UPLOAD ---
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
-
             if(mode === 'replace') {
                 if(!confirm("CẢNH BÁO: XÓA HẾT dữ liệu cũ trên Cloud?")) return;
                 log("Đang xóa cũ và ghi mới...", 'warn');
@@ -345,14 +329,12 @@
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
-
                 window.update(window.ref(window.db), updates)
                     .then(() => log("✅ Đã gộp thành công!", 'success'))
                     .catch(e => log("Lỗi Merge: " + e.message, 'err'));
             }
         }
 
-        // --- 3. HIỂN THỊ ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
@@ -372,16 +354,12 @@
         }
 
         function createIcon(type, name) {
-            let className = 'my-icon icon-tru-do'; 
-            let size = [12, 12];
-            let html = '';
-
+            let className = 'my-icon icon-tru-do'; let size = [12, 12]; let html = '';
             if(type === 'MC') { className = 'my-icon icon-mc'; size = [16, 16]; html = 'MC'; }
             else if(type === 'TRU_NEO') { className = 'my-icon icon-tru-neo'; size = [12, 12]; }
             else if(type === 'MOC') { className = 'my-icon icon-moc'; size = [8, 8]; }
             else if(type === 'COT_MOC') { className = 'my-icon icon-cot-moc'; size = [10, 14]; }
             else if(type === 'HAM_CAP') { className = 'my-icon icon-ham-cap'; size = [14, 10]; html = 'H'; }
-            
             return L.divIcon({ className: className, html: html, iconSize: size, iconAnchor: [size[0]/2, size[1]/2] });
         }
 
@@ -392,11 +370,7 @@
 
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
-                
-                if(l !== 'MAYCAT' && pts.length>1) {
-                    L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
-                }
-                
+                if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 appData.poles[l].forEach(p => {
                     let layer = (p.type === 'MC') ? layers.mc : layers.bgPoints;
                     L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
@@ -404,20 +378,30 @@
             }
         }
 
-        // --- SMART POLE LOOKUP (TÌM MỜ) ---
+        // --- SMART POLE LOOKUP (TÌM KIẾM CẢ TRONG STAGINGDATA & APPDATA) ---
         function getPolePos(line, name, sourceData) {
+            // Cho phép tìm trong dữ liệu vừa đọc lên (khi Upload) hoặc dữ liệu có sẵn (khi Vẽ)
             let data = sourceData || appData.poles;
-            if(!data[line]) return null;
+            
+            if(!data || !data[line]) return null;
             
             // 1. Tìm chính xác
-            let p = data[line].find(p => p.name.toUpperCase() === String(name).toUpperCase());
+            let p = data[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
             if (p) return p;
 
             // 2. Tìm mờ (Bỏ ký tự lạ): LT2_171 == LT2171
-            let cleanName = cleanString(name);
-            p = data[line].find(item => cleanString(item.name) === cleanName);
+            let cleanName = String(name).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+            p = data[line].find(item => {
+                let cleanItem = String(item.name).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                return cleanItem === cleanName;
+            });
             if (p) return p;
 
+            // 3. Logic MAYCAT
+            if (line === "MAYCAT") {
+                let targetNum = (String(name).match(/\d+/)||[null])[0];
+                if (targetNum) return data[line].find(p => p.name.includes(targetNum));
+            }
             return null;
         }
 
@@ -494,14 +478,12 @@
             let res = document.getElementById('result');
             res.style.display='none';
             if(isNaN(km) || currentPath.length<2) return;
-            
             let target = km * 1000;
             for(let i=1; i<currentPath.length; i++) {
                 let p1 = currentPath[i-1], p2 = currentPath[i];
                 if(p2.accDist >= target) {
                     let r = (target - p1.accDist)/(p2.accDist - p1.accDist);
                     let lat = p1.lat + (p2.lat-p1.lat)*r, lng = p1.lng + (p2.lng-p1.lng)*r;
-                    
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
                     map.setView([lat,lng], 16);
                     res.style.display='block'; res.innerHTML = `<b>TÌM THẤY!</b><br>Đoạn: ${p1.name} -> ${p2.name}<br>Cách điểm trước: ${(target-p1.accDist).toFixed(1)}m`;
