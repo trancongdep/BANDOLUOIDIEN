@@ -3,176 +3,452 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện v14.1 (Fix Lỗi Tiếng Việt)</title>
+    <title>Hệ Thống Lưới Điện (v15.0 - Final Fix)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f4f6f8; }
-        #sidebar { width: 450px; background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .header { background: #2c3e50; color: white; padding: 15px; } .header h2 { margin: 0; font-size: 1.1rem; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; }
+        
+        #sidebar {
+            width: 450px; background: white; border-right: 1px solid #ccc;
+            display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header { background: #1565c0; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 1.1rem; }
+        
         .content { padding: 15px; overflow-y: auto; flex: 1; }
-        #debug-console { background: #212121; color: #00e676; font-family: 'Consolas', monospace; padding: 10px; border-radius: 4px; font-size: 0.8rem; max-height: 250px; overflow-y: auto; margin-bottom: 15px; white-space: pre-wrap; border: 1px solid #444; }
+        
+        /* Debug / Admin Panel */
+        .admin-panel { background: #e3f2fd; border: 1px dashed #2196f3; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+        #console { 
+            background: #212121; color: #00e676; font-family: 'Consolas', monospace; 
+            padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 120px; 
+            overflow-y: auto; margin-top: 5px; white-space: pre-wrap;
+        }
+
+        /* User Panel */
         .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; }
+        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
+        
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
-        .btn-check { background: #607d8b; color: white; } .btn-upload { background: #e65100; color: white; }
+        .btn-check { background: #607d8b; color: white; }
+        .btn-upload { background: #e65100; color: white; }
+        .btn-view { background: #00897b; color: white; }
+        .btn-find { background: #d32f2f; color: white; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+
+        input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+
+        /* Result */
+        #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <div class="header"><h2><i class="fas fa-tools"></i> Admin & Debugger v14.1</h2></div>
+        <div class="header">
+            <h2><i class="fas fa-bolt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
+        </div>
         <div class="content">
+            <div class="admin-panel">
+                <label><i class="fas fa-user-cog"></i> Admin Upload (Chọn 3 file CSV/Excel):</label>
+                <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
+                
+                <button class="btn-check" onclick="analyzeFiles()">
+                    <i class="fas fa-microscope"></i> 1. Kiểm tra Lỗi
+                </button>
+                
+                <div id="console">Sẵn sàng...</div>
+
+                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> 2. Upload lên Cloud
+                </button>
+            </div>
+
+            <div style="font-size:0.8rem; color:green; margin-bottom:10px; text-align:center;" id="cloud-status">
+                <i class="fas fa-circle-notch fa-spin"></i> Đang kết nối Firebase...
+            </div>
+
             <div class="card">
-                <label>1. Kiểm tra & Upload (Hỗ trợ tiếng Việt):</label>
-                <input type="file" id="excelFile" accept=".xlsx" style="margin-bottom:10px; width:100%"/>
-                <button class="btn-check" onclick="analyzeFile()"><i class="fas fa-stethoscope"></i> Phân Tích Tìm Lỗi</button>
-                <div id="debug-console">Sẵn sàng...</div>
-                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled><i class="fas fa-cloud-upload-alt"></i> Upload Firebase</button>
+                <label>Chế độ xem:</label>
+                <button class="btn-view" onclick="drawAll()">
+                    <i class="fas fa-layer-group"></i> Xem Tất Cả (Tách Mạch)
+                </button>
+            </div>
+
+            <div class="card">
+                <label>Chọn Đường Dây:</label>
+                <select id="circuitSelect" onchange="drawSingle()">
+                    <option value="">-- Đang tải dữ liệu --</option>
+                </select>
+
+                <label>Khoảng cách sự cố (km):</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="faultKm" step="0.01" placeholder="Nhập km..." />
+                    <button class="btn-find" onclick="findFault()" style="width:40%">TÌM</button>
+                </div>
+                <div id="result"></div>
             </div>
         </div>
     </div>
+    
     <div id="map" style="flex:1;"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        const firebaseConfig = { apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", authDomain: "tavietnam-78ae8.firebaseapp.com", projectId: "tavietnam-78ae8", storageBucket: "tavietnam-78ae8.firebasestorage.app", messagingSenderId: "670121705534", appId: "1:670121705534:web:1027ad98550573ad37116f" };
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // CẤU HÌNH FIREBASE CỦA BẠN
+        const firebaseConfig = {
+            apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
+            authDomain: "tavietnam-78ae8.firebaseapp.com",
+            projectId: "tavietnam-78ae8",
+            storageBucket: "tavietnam-78ae8.firebasestorage.app",
+            messagingSenderId: "670121705534",
+            appId: "1:670121705534:web:1027ad98550573ad37116f"
+        };
+
         const app = initializeApp(firebaseConfig);
-        window.db = getDatabase(app); window.set = set; window.ref = ref;
+        window.db = getDatabase(app);
+        window.set = set; window.ref = ref; window.onValue = onValue;
+
+        listenCloud();
     </script>
 
     <script>
-        let map = L.map('map').setView([10.762, 106.660], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let map;
+        let layers = { bg: L.layerGroup(), main: L.layerGroup(), fault: L.layerGroup() };
+        let appData = { poles: {}, segments: {}, circuits: {} };
         let stagingData = null;
+        let currentPath = [];
+
+        function initMap() {
+            map = L.map('map').setView([10.762, 106.660], 12);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
+            Object.values(layers).forEach(l => l.addTo(map));
+        }
+        initMap();
 
         function log(msg, type='info') {
-            const c = document.getElementById('debug-console');
+            const c = document.getElementById('console');
             let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':'#00e676');
             c.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA MẠNH MẼ (BỎ DẤU) ---
+        // --- HÀM CHUẨN HÓA THÔNG MINH (FIX LỖI CỦA BẠN Ở ĐÂY) ---
         function norm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
-                // 1. Chuyển thành chuỗi
-                let key = String(k);
-                // 2. Bỏ dấu tiếng Việt (Huyền, sắc, hỏi...)
-                key = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                // 3. Đổi chữ Đ -> D
-                key = key.replace(/đ/g, "d").replace(/Đ/g, "D");
-                // 4. Viết hoa, trim, thay dấu cách bằng _
-                key = key.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_"); // Chỉ giữ lại Chữ và Số
+                let key = String(k).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                          .replace(/đ/g, "d").replace(/Đ/g, "D")
+                          .trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
                 
+                // MAPPING ĐẶC BIỆT: Sửa lỗi MADOAN thành MA_DOAN
+                if(key === 'MADOAN') key = 'MA_DOAN'; 
+                if(key === 'MADOANTUYEN') key = 'MA_DOAN';
+
                 n[key] = obj[k];
             });
             return n;
         }
 
-        function analyzeFile() {
+        // --- 1. PHÂN TÍCH FILE ---
+        function analyzeFiles() {
             const input = document.getElementById('excelFile');
-            document.getElementById('debug-console').innerHTML = "";
+            document.getElementById('console').innerHTML = "";
+            document.getElementById('btnUpload').disabled = true;
+
             if(!input.files.length) return log("Chưa chọn file!", 'err');
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const wb = XLSX.read(e.target.result, {type:'array'});
-                    
-                    const findS = (k) => wb.SheetNames.find(n => k.some(x => n.toUpperCase().includes(x)));
-                    const sCircs = findS(["CAU_HINH","MACH","DUONG"]);
-                    const sPoles = findS(["TOA_DO","TRU"]);
-                    const sSegs = findS(["DOAN","SEG"]);
+            // Hỗ trợ đọc nhiều file CSV cùng lúc hoặc 1 file XLSX
+            const promises = [];
+            for(let f of input.files) {
+                promises.push(readFile(f));
+            }
 
-                    if(!sCircs) return log("❌ Không thấy Sheet Mạch (cần tên 'MACH', 'CAU_HINH')", 'err');
-                    if(!sPoles) return log("❌ Không thấy Sheet Trụ", 'err');
-                    if(!sSegs) return log("❌ Không thấy Sheet Đoạn", 'err');
+            Promise.all(promises).then(results => {
+                // Gộp dữ liệu từ các file (Nếu là CSV rời rạc)
+                let combinedSheets = {};
+                results.forEach(res => {
+                    Object.assign(combinedSheets, res);
+                });
 
-                    const rawCircs = XLSX.utils.sheet_to_json(wb.Sheets[sCircs]);
-                    const rawPoles = XLSX.utils.sheet_to_json(wb.Sheets[sPoles]);
-                    const rawSegs = XLSX.utils.sheet_to_json(wb.Sheets[sSegs]);
-
-                    // DEBUG: In ra các cột tìm thấy để kiểm tra
-                    if(rawCircs.length > 0) {
-                        let sampleRow = norm(rawCircs[0]);
-                        log(`ℹ️ Sheet Mạch có các cột: ${Object.keys(sampleRow).join(", ")}`, 'warn');
-                    }
-
-                    // --- PARSE DATA ---
-                    let cleanData = { poles: {}, segments: {}, circuits: {} };
-                    let errors = 0;
-
-                    // 1. Poles
-                    rawPoles.forEach(r => {
-                        let row = norm(r);
-                        let l = row.MA_TUYEN || row.TUYEN;
-                        let n = row.TEN_TRU || row.VI_TRI;
-                        if(l && row.LAT && row.LONG) {
-                            if(!cleanData.poles[l]) cleanData.poles[l] = [];
-                            let sort = parseInt((String(n).match(/\d+/) || [9999])[0]);
-                            cleanData.poles[l].push({name:String(n), lat:row.LAT, lng:row.LONG, sort});
-                        }
-                    });
-
-                    // 2. Segments
-                    rawSegs.forEach(r => {
-                        let row = norm(r);
-                        let id = row.MA_DOAN || row.MA_DOAN_TUYEN;
-                        if(id) cleanData.segments[id] = { id, line: row.MA_TUYEN || row.TUYEN, from: row.TU_TRU, to: row.DEN_TRU };
-                    });
-
-                    // 3. Circuits (Check Lỗi kỹ hơn)
-                    rawCircs.forEach((r, i) => {
-                        let row = norm(r);
-                        let cid = row.MA_DUONG_DAY || row.MA_MACH || row.TEN_MACH; // Thử nhiều key
-                        let sid = row.MA_DOAN || row.MA_DOAN_TUYEN || row.DOAN;   // Thử nhiều key
-                        
-                        if(!cid) return; // Dòng trống
-
-                        if(!sid) {
-                            log(`❌ Dòng ${i+2}: Mạch '${cid}' thiếu Mã Đoạn.`, 'err');
-                            log(`   -> Cột hiện có: ${Object.keys(row).join(", ")}`, 'warn');
-                            errors++;
-                            return;
-                        }
-                        
-                        // Check link
-                        if(!cleanData.segments[sid]) {
-                            log(`❌ Dòng ${i+2}: Mạch gọi đoạn '${sid}' nhưng không có trong Sheet Đoạn`, 'err');
-                            errors++;
-                        } else {
-                            if(!cleanData.circuits[cid]) cleanData.circuits[cid] = [];
-                            cleanData.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
-                        }
-                    });
-
-                    if(errors > 0) {
-                        log(`🚫 Có ${errors} lỗi. Hãy kiểm tra lại tên cột trong Excel.`, 'err');
-                        log(`💡 Gợi ý: Tên cột phải là 'MA_DOAN' hoặc 'Mã Đoạn'`, 'info');
-                    } else {
-                        log("✨ Dữ liệu OK! Sẵn sàng Upload.", 'info');
-                        stagingData = cleanData;
-                        document.getElementById('btnUpload').disabled = false;
-                    }
-
-                } catch(e) { log(e.message, 'err'); }
-            };
-            reader.readAsArrayBuffer(input.files[0]);
+                processSheets(combinedSheets);
+            }).catch(err => log(err.message, 'err'));
         }
 
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, {type:'array'});
+                        let sheets = {};
+                        wb.SheetNames.forEach(name => {
+                            sheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name]);
+                        });
+                        resolve(sheets);
+                    } catch(err) { reject(err); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processSheets(sheets) {
+            // Tìm sheet theo từ khóa
+            const findS = (k) => Object.keys(sheets).find(n => k.some(x => n.toUpperCase().includes(x)));
+            
+            const sPoles = findS(["TOA_DO","TOA DO","TRU"]);
+            const sSegs = findS(["DM_DOAN","DOAN","SEG"]);
+            const sCircs = findS(["CAU_HINH","MACH","DUONG"]);
+
+            if(!sPoles) return log("❌ Thiếu dữ liệu Trụ (TOA_DO)", 'err');
+            if(!sSegs) return log("❌ Thiếu dữ liệu Đoạn (DM_DOAN)", 'err');
+            if(!sCircs) return log("❌ Thiếu dữ liệu Mạch (CAU_HINH)", 'err');
+
+            const rawPoles = sheets[sPoles];
+            const rawSegs = sheets[sSegs];
+            const rawCircs = sheets[sCircs];
+
+            log(`✅ Đã đọc: ${rawPoles.length} Trụ, ${rawSegs.length} Đoạn, ${rawCircs.length} Mạch.`);
+
+            // PARSE DATA
+            let data = { poles: {}, segments: {}, circuits: {} };
+            let errCount = 0;
+
+            // 1. POLES
+            rawPoles.forEach(r => {
+                let row = norm(r);
+                let l = row.MA_TUYEN || row.TUYEN;
+                let n = row.TEN_TRU || row.VI_TRI;
+                // Nếu cột TEN_TRU không có, thử tách từ VI_TRI (VD: 10_AKHTTN)
+                if(!n && !l && row.VI_TRI && row.VI_TRI.includes('_')) {
+                     let parts = row.VI_TRI.split('_');
+                     n = parts[0]; l = parts[1];
+                }
+
+                if(l && row.LAT && row.LONG) {
+                    if(!data.poles[l]) data.poles[l] = [];
+                    // Sort number logic
+                    let sort = parseInt((String(n).match(/\d+/) || [9999])[0]);
+                    data.poles[l].push({name:String(n).trim(), lat:row.LAT, lng:row.LONG, sort});
+                }
+            });
+            for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
+
+            // 2. SEGMENTS
+            rawSegs.forEach((r, i) => {
+                let row = norm(r);
+                let id = row.MA_DOAN;
+                let line = row.MA_TUYEN;
+                
+                if(!id) return log(`⚠️ Dòng ${i+1} Đoạn: Thiếu Mã Đoạn`, 'warn');
+                
+                // Kiểm tra Tuyến có tồn tại không
+                if(!data.poles[line]) {
+                    // log(`⚠️ Đoạn ${id}: Tuyến ${line} chưa có tọa độ`, 'warn');
+                }
+
+                data.segments[id] = { id, line, from: String(row.TU_TRU).trim(), to: String(row.DEN_TRU).trim() };
+            });
+
+            // 3. CIRCUITS
+            rawCircs.forEach((r, i) => {
+                let row = norm(r);
+                let cid = row.MA_DUONG_DAY || row.MA_MACH;
+                let sid = row.MA_DOAN; // Bây giờ MADOAN đã được norm thành MA_DOAN
+
+                if(!cid) return;
+                
+                if(!sid) {
+                    log(`❌ Dòng ${i+1} Mạch: '${cid}' thiếu Mã Đoạn (Check cột MADOAN/MA_DOAN)`, 'err');
+                    errCount++;
+                    return;
+                }
+
+                if(!data.segments[sid]) {
+                    log(`❌ Mạch '${cid}' gọi đoạn '${sid}' không tồn tại!`, 'err');
+                    errCount++;
+                } else {
+                    if(!data.circuits[cid]) data.circuits[cid] = [];
+                    data.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
+                }
+            });
+
+            if(errCount === 0) {
+                log("✨ Dữ liệu Hoàn hảo! Sẵn sàng Upload.", 'info');
+                // Sort order
+                for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
+                stagingData = data;
+                document.getElementById('btnUpload').disabled = false;
+            } else {
+                log(`🚫 Có ${errCount} lỗi nghiêm trọng.`, 'err');
+            }
+        }
+
+        // --- 2. UPLOAD & VIEW ---
         function uploadToCloud() {
             if(!stagingData) return;
-            log("Đang upload...");
+            log("Đang đẩy lên Firebase...");
             window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
-                .then(() => log("✅ Thành công!", 'info'))
+                .then(() => log("✅ Upload thành công!", 'info'))
                 .catch(e => log(e.message, 'err'));
+        }
+
+        function listenCloud() {
+            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), (snap) => {
+                const val = snap.val();
+                if(val) {
+                    appData = val;
+                    document.getElementById('cloud-status').innerHTML = "🟢 Đã kết nối Cloud";
+                    updateUI();
+                }
+            });
+        }
+
+        function updateUI() {
+            const s = document.getElementById('circuitSelect');
+            s.innerHTML = '<option value="">-- Chọn đường dây --</option>';
+            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
+                let o = document.createElement('option'); o.value=k; o.text=k; s.add(o);
+            });
+        }
+
+        // --- DRAWING ---
+        function drawAll() {
+            layers.main.clearLayers();
+            layers.fault.clearLayers();
+            if(!appData.circuits) return;
+            let keys = Object.keys(appData.circuits);
+            
+            keys.forEach((cid, idx) => {
+                let pts = getPoints(cid);
+                if(pts.length) {
+                    let offset = (idx - keys.length/2) * 5;
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'#1976d2', weight:2, offset: offset}).addTo(layers.main).bindPopup(cid);
+                }
+            });
+            if(keys.length) {
+                let pts = getPoints(keys[0]);
+                if(pts.length) map.fitBounds(pts.map(p=>[p.lat,p.lng]));
+            }
+        }
+
+        function drawSingle() {
+            layers.main.clearLayers();
+            layers.fault.clearLayers();
+            const cid = document.getElementById('circuitSelect').value;
+            currentPath = [];
+            
+            if(!cid || !appData.circuits[cid]) return;
+
+            const segs = appData.circuits[cid];
+            let totalDist = 0;
+            let lastPoint = null;
+
+            segs.forEach(item => {
+                const def = appData.segments[item.segId];
+                if(def && appData.poles[def.line]) {
+                    const lData = appData.poles[def.line];
+                    
+                    // Tìm index bằng chuỗi (String comparison)
+                    let i1 = lData.findIndex(p => p.name === def.from);
+                    let i2 = lData.findIndex(p => p.name === def.to);
+
+                    if(i1>=0 && i2>=0) {
+                        let sub = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+                        
+                        // Jumper
+                        if(lastPoint) {
+                            let pStart = sub[0];
+                            let jump = getDist(lastPoint.lat, lastPoint.lng, pStart.lat, pStart.lng);
+                            L.polyline([[lastPoint.lat, lastPoint.lng], [pStart.lat, pStart.lng]], {color:'orange', dashArray:'5,5'}).addTo(layers.main);
+                            totalDist += jump;
+                        }
+
+                        // Line
+                        L.polyline(sub.map(p=>[p.lat,p.lng]), {color:'red', weight:4}).addTo(layers.main);
+                        
+                        // Calc Path
+                        sub.forEach((p, i) => {
+                            if(i>0) totalDist += getDist(sub[i-1].lat, sub[i-1].lng, p.lat, p.lng);
+                            currentPath.push({...p, line: def.line, accDist: totalDist});
+                        });
+                        lastPoint = sub[sub.length-1];
+                    }
+                }
+            });
+
+            if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
+        }
+
+        function getPoints(cid) {
+            let pts = [];
+            const segs = appData.circuits[cid];
+            segs.forEach(item => {
+                const def = appData.segments[item.segId];
+                if(def && appData.poles[def.line]) {
+                    const lData = appData.poles[def.line];
+                    let i1 = lData.findIndex(p=>p.name===def.from);
+                    let i2 = lData.findIndex(p=>p.name===def.to);
+                    if(i1>=0 && i2>=0) {
+                        let sub = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+                        pts = pts.concat(sub);
+                    }
+                }
+            });
+            return pts;
+        }
+
+        function findFault() {
+            let km = parseFloat(document.getElementById('faultKm').value);
+            let res = document.getElementById('result');
+            res.style.display = 'none';
+            
+            if(isNaN(km) || currentPath.length < 2) return;
+            let target = km * 1000;
+            let found = false;
+
+            for(let i=1; i<currentPath.length; i++) {
+                let p1 = currentPath[i-1];
+                let p2 = currentPath[i];
+                if(p2.accDist >= target) {
+                    let rem = target - p1.accDist;
+                    let len = p2.accDist - p1.accDist;
+                    let r = rem/len;
+                    let lat = p1.lat + (p2.lat-p1.lat)*r;
+                    let lng = p1.lng + (p2.lng-p1.lng)*r;
+                    
+                    let icon = L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:30px"></i>', className:'d'});
+                    L.marker([lat,lng], {icon}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+                    map.setView([lat,lng], 16);
+                    
+                    res.style.display='block';
+                    res.innerHTML = `<b>TÌM THẤY:</b> Cách trụ ${p1.name} khoảng ${rem.toFixed(1)}m`;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                res.style.display='block';
+                res.innerHTML = "Ngoài phạm vi (Tổng dài: "+(currentPath[currentPath.length-1].accDist/1000).toFixed(2)+"km)";
+            }
+        }
+
+        function getDist(lat1,lon1,lat2,lon2) {
+            const R=6371000; const dLat=(lat2-lat1)*Math.PI/180; const dLon=(lon2-lon1)*Math.PI/180;
+            const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
         }
     </script>
 </body>
