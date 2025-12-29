@@ -3,75 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.1 (Patch 1)</title>
+    <title>Hệ Thống Lưới Điện - Version 1.1 (Patch 2)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CẤU TRÚC LAYOUT CHÍNH */
+        /* CẤU TRÚC LAYOUT (GIỮ NGUYÊN v1.1) */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
             width: 450px; 
             background: white; 
             border-right: 1px solid #ccc; 
-            display: flex; 
-            flex-direction: column; 
+            display: flex; flex-direction: column; 
             z-index: 2000; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { 
-            background: #283593; 
-            color: white; 
-            padding: 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            flex-shrink: 0;
-        }
+        .header { background: #283593; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .header h2 { margin: 0; font-size: 1.1rem; }
 
-        /* CONTENT CUỘN ĐƯỢC */
-        .content { 
-            padding: 15px; 
-            overflow-y: auto; 
-            flex: 1; 
-            background: #f5f5f5;
-        }
+        .content { padding: 15px; overflow-y: auto; flex: 1; background: #f5f5f5; }
 
-        /* FOOTER CỐ ĐỊNH */
-        .footer {
-            background: #263238;
-            color: #eceff1;
-            padding: 10px;
-            text-align: center;
-            font-size: 0.75rem;
-            border-top: 3px solid #ff6f00;
-            flex-shrink: 0; 
-            line-height: 1.4;
-        }
+        .footer { background: #263238; color: #eceff1; padding: 10px; text-align: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; flex-shrink: 0; line-height: 1.4; }
         .footer strong { color: #ffca28; }
 
-        /* CÁC PANEL & BUTTON */
+        /* UI ELEMENTS */
         .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
         .btn-check { background: #5c6bc0; color: white; }
-        .btn-upload { background: #ff7043; color: white; }
+        .btn-merge { background: #2e7d32; color: white; } /* Nút Gộp */
+        .btn-replace { background: #d32f2f; color: white; } /* Nút Thay thế */
         .btn-find { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        button:hover { opacity: 0.9; } button:disabled { background: #ccc; cursor: not-allowed; }
 
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-top: 5px; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-top: 5px; }
         
-        /* --- BỘ ICON --- */
+        /* Hidden actions area */
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+
+        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        
         .icon-mc { background: #d32f2f; border-radius: 3px; font-size: 10px; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
@@ -81,7 +58,6 @@
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
         
-        /* Legend */
         .legend-item { display: flex; align-items: center; margin-right: 10px; font-size: 0.75rem; margin-bottom: 4px; }
         .legend-icon { width: 12px; height: 12px; margin-right: 4px; display: inline-block; }
     </style>
@@ -107,17 +83,22 @@
             </div>
 
             <div class="card" style="background:#e3f2fd;">
-                <label>1. Upload Dữ liệu (Chọn tất cả file CSV):</label>
+                <label>1. Upload Dữ liệu (Excel/CSV):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
+                
+                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
                 <div id="console">Sẵn sàng...</div>
-                <button class="btn-upload" id="btnUpload" onclick="window.uploadToCloud()" disabled>Upload Cloud</button>
+
+                <div id="upload-actions">
+                    <button class="btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU (Giữ cũ + Thêm mới)</button>
+                    <button class="btn-replace" onclick="window.confirmUpload('replace')">XÓA CŨ - THAY MỚI</button>
+                </div>
             </div>
 
             <div class="card">
                 <label>2. Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
-                    <option value="">-- Đang tải --</option>
+                    <option value="">-- Đang tải dữ liệu --</option>
                 </select>
                 <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px;"></div>
             </div>
@@ -131,7 +112,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.1<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.1 (Patch 2)<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -144,7 +125,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const firebaseConfig = { 
             apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", 
@@ -158,6 +139,7 @@
         const app = initializeApp(firebaseConfig);
         window.db = getDatabase(app); 
         window.set = set; 
+        window.update = update;
         window.ref = ref; 
         window.onValue = onValue;
         
@@ -181,33 +163,28 @@
 
         function log(msg, type='info') {
             const c = document.getElementById('console');
-            c.innerHTML += `<div style="color:${type=='err'?'#ff5252':'#00e676'}">> ${msg}</div>`;
+            let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':(type=='success'?'#00e676':'#fff'));
+            c.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA (ĐỂ ĐỌC ĐƯỢC CẢ "MA_DOAN" VÀ "MADOAN") ---
         function norm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let key = String(k).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-                
-                // MAPPING CỘT CHO KHỚP VỚI CODE CŨ
-                if(key==='MADOAN') key='MA_DOAN'; // Fix lỗi file Cấu hình mạch
-                if(key==='MA_TUYEN') key='TUYEN_TU'; 
-                if(key==='TU_TRU') key='TRU_TU'; 
-                if(key==='DEN_TRU') key='TRU_DEN';
-                
+                if(key==='MA_TUYEN') key='TUYEN_TU'; if(key==='TU_TRU') key='TRU_TU'; if(key==='DEN_TRU') key='TRU_DEN'; if(key==='MADOAN') key='MA_DOAN';
                 n[key] = obj[k];
             });
-            // Tương thích ngược cho file cũ chỉ có MA_TUYEN
             if(n.TUYEN_TU && !n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU;
             return n;
         }
 
-        // --- 1. XỬ LÝ FILE (FIX CHO NHIỀU FILE CSV) ---
+        // --- 1. XỬ LÝ FILE (KHÔI PHỤC LOGIC SMART UPLOAD) ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
+            document.getElementById('upload-actions').style.display = "none";
+
             if(!input.files.length) return log("Chưa chọn file", 'err');
             
             Promise.all(Array.from(input.files).map(readFile)).then(res => {
@@ -225,11 +202,8 @@
                         const wb = XLSX.read(data, {type:'array'});
                         let sheets = {};
                         wb.SheetNames.forEach(n => {
-                            // QUAN TRỌNG: Lấy tên file làm tên sheet để dễ tìm
                             let finalName = n;
-                            if(file.name.toLowerCase().endsWith(".csv")) {
-                                finalName = file.name.toUpperCase();
-                            }
+                            if(file.name.toLowerCase().endsWith(".csv")) finalName = file.name.toUpperCase();
                             sheets[finalName] = XLSX.utils.sheet_to_json(wb.Sheets[n]);
                         });
                         resolve(sheets);
@@ -240,16 +214,12 @@
         }
 
         function processSheets(sheets) {
-            // Tìm sheet theo tên file
             const findS = k => Object.keys(sheets).find(n => k.some(x => n.includes(x)));
-            
-            const sPoles = findS(["TOA_DO", "TOA DO", "TRU"]);
-            const sSegs = findS(["DM_DOAN", "DOAN", "SEG"]);
-            const sCircs = findS(["CAU_HINH", "MACH", "DUONG"]);
+            const sPoles = findS(["TRU", "TOA"]);
+            const sSegs = findS(["DOAN", "SEG", "DM"]);
+            const sCircs = findS(["MACH", "CAU", "HINH"]);
 
-            if(!sPoles) return log("❌ Thiếu file Tọa độ (TOA_DO)", 'err');
-            if(!sSegs) return log("❌ Thiếu file Danh mục Đoạn (DM_DOAN)", 'err');
-            if(!sCircs) return log("❌ Thiếu file Cấu hình Mạch (CAU_HINH)", 'err');
+            if(!sPoles || !sSegs || !sCircs) return log("❌ Thiếu 1 trong 3 file dữ liệu!", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {} };
 
@@ -258,8 +228,8 @@
                 let row = norm(r);
                 let l = row.TUYEN_TU || row.TUYEN || row.MA_TUYEN;
                 let n = row.TRU_TU || row.TEN_TRU || row.TEN_DIEM || row.VI_TRI;
-                
                 let typeRaw = (row.LOAI_DIEM || row.LOAI || "TRU_DO").toUpperCase().trim();
+                
                 let type = "TRU_DO"; 
                 if(typeRaw.includes("MC") || typeRaw.includes("MAY")) type = "MC";
                 else if(typeRaw.includes("NEO")) type = "TRU_NEO";
@@ -285,27 +255,60 @@
 
             // 3. CIRCUITS
             sheets[sCircs].forEach(r => {
-                let row = norm(r); 
-                let cid = row.MA_DUONG_DAY || row.MA_MACH;
-                let sid = row.MA_DOAN; // Bây giờ đã được norm thành MA_DOAN dù file gốc là MADOAN
-
-                if(cid && sid) {
+                let row = norm(r); let cid = row.MA_DUONG_DAY||row.MA_MACH;
+                if(cid && row.MA_DOAN) {
                     if(!data.circuits[cid]) data.circuits[cid]=[];
-                    data.circuits[cid].push({ segId:sid, order:parseInt(row.STT||999) });
+                    data.circuits[cid].push({ segId:row.MA_DOAN, order:parseInt(row.STT||999) });
                 }
             });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            document.getElementById('btnUpload').disabled = false;
-            log(`✅ Đã đọc thành công: ${Object.keys(data.circuits).length} mạch.`);
+            
+            // Hiện các nút hành động
+            log(`✅ Phân tích xong. Tìm thấy: ${Object.keys(data.circuits).length} mạch.`);
+            log(`👉 Hãy chọn GỘP hoặc THAY MỚI.`);
+            document.getElementById('upload-actions').style.display = "block";
         }
 
-        window.uploadToCloud = function() {
-            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(()=>log("Upload Cloud Thành công!"));
+        // --- HÀM UPLOAD (LOGIC MỚI: MERGE HOẶC REPLACE) ---
+        window.confirmUpload = function(mode) {
+            if(!stagingData) return;
+
+            if(mode === 'replace') {
+                if(!confirm("CẢNH BÁO: Bạn có chắc chắn muốn XÓA TOÀN BỘ dữ liệu cũ trên Cloud và thay thế bằng file này không?")) return;
+                log("Đang xóa cũ và ghi mới...", 'warn');
+                window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
+                    .then(() => log("✅ Đã thay thế thành công!", 'success'));
+            } 
+            else if (mode === 'merge') {
+                log("Đang gộp dữ liệu...", 'info');
+                
+                // Logic Merge: Dùng update() để chèn/ghi đè từng node con
+                let updates = {};
+
+                // Merge Poles
+                Object.keys(stagingData.poles).forEach(key => {
+                    updates[`he_thong_luoi_dien/poles/${key}`] = stagingData.poles[key];
+                });
+
+                // Merge Segments
+                Object.keys(stagingData.segments).forEach(key => {
+                    updates[`he_thong_luoi_dien/segments/${key}`] = stagingData.segments[key];
+                });
+
+                // Merge Circuits
+                Object.keys(stagingData.circuits).forEach(key => {
+                    updates[`he_thong_luoi_dien/circuits/${key}`] = stagingData.circuits[key];
+                });
+
+                window.update(window.ref(window.db), updates)
+                    .then(() => log("✅ Đã gộp thành công! Dữ liệu cũ vẫn còn.", 'success'))
+                    .catch(e => log("Lỗi Merge: " + e.message, 'err'));
+            }
         }
 
-        // --- 3. HIỂN THỊ (LOGIC CŨ V1.1) ---
+        // --- 3. HIỂN THỊ ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
