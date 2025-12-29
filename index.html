@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.9.2</title>
+    <title>Hệ Thống Lưới Điện - Version 1.13</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* GIỮ NGUYÊN GIAO DIỆN */
+        /* CSS GIAO DIỆN CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
@@ -18,7 +18,7 @@
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { background: #0d47a1; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 1.1rem; }
 
         .content { padding: 15px; overflow-y: auto; flex: 1; background: #fafafa; }
@@ -30,7 +30,7 @@
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .btn-check { background: #1976d2; color: white; }
+        .btn-check { background: #00897b; color: white; }
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
@@ -40,18 +40,22 @@
         
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 150px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
         
-        /* Khu vực chứa 2 nút Upload ẩn */
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
-        /* ICONS & LEGEND */
+        /* LEGEND */
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 140px; }
+        .legend h4 { margin: 0 0 8px 0; color: #004d40; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
+        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; }
+
+        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
-        
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; }
-        .legend-icon { width: 14px; height: 14px; margin-right: 8px; display: inline-block; vertical-align: middle; }
+        .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
+        .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
     </style>
@@ -64,7 +68,7 @@
         </div>
         
         <div class="content">
-            <div class="card" style="background:#e3f2fd;">
+            <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
                 <label>1. Cập nhật Dữ liệu:</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
@@ -73,7 +77,7 @@
                 
                 <div id="upload-actions">
                     <button class="btn-merge" onclick="window.confirmUpload('merge')">
-                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU (Giữ cũ + Thêm mới)
+                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU
                     </button>
                     <button class="btn-replace" onclick="window.confirmUpload('replace')">
                         <i class="fas fa-trash-alt"></i> XÓA CŨ & GHI MỚI
@@ -98,7 +102,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.9.2<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.13<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -153,7 +157,7 @@
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
             div.innerHTML = `
-                <div style="font-weight:bold; margin-bottom:5px; color:#0d47a1;">CHÚ THÍCH</div>
+                <div style="font-weight:bold; margin-bottom:5px; color:#004d40;">CHÚ THÍCH</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border:1px solid white;"></span> Máy Cắt</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
@@ -170,30 +174,41 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA ---
+        // --- HÀM CHUẨN HÓA MỚI (TỐI ƯU CHO CSV & TYPO) ---
         function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
+                
                 let standardKey = cleanKey;
                 if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
                 if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
                 if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADOANTUYEN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
+                
                 n[standardKey] = obj[k];
-                n[cleanKey] = obj[k];
+                n[cleanKey] = obj[k]; // Giữ key gốc đã clean
             });
+            
             if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
             if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
+
             return n;
+        }
+
+        // --- HÀM LÀM SẠCH CHUỖI ĐỂ SO SÁNH MỜ (FUZZY MATCH) ---
+        function cleanString(str) {
+            if (!str) return "";
+            return String(str).trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); 
+            // Ví dụ: "LT2_171" -> "LT2171", "TDC-171" -> "TDC171"
         }
 
         // --- 1. XỬ LÝ FILE ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
-            document.getElementById('upload-actions').style.display = "none"; // Ẩn nút cũ đi
+            document.getElementById('upload-actions').style.display = "none";
 
             if(!input.files.length) return log("Chưa chọn file", 'err');
             
@@ -272,13 +287,18 @@
                     return;
                 }
 
+                // Kiểm tra liên kết (Soft Check)
+                // Sử dụng hàm tìm kiếm thông minh để check
+                let p1 = getPolePos(t_tu, tr_tu, data.poles);
+                let p2 = getPolePos(t_den, tr_den, data.poles);
+
+                if(!p1) log(`⚠️ Đoạn ${id}: Không tìm thấy trụ đầu '${tr_tu}' (${t_tu})`, 'warn');
+                if(!p2) log(`⚠️ Đoạn ${id}: Không tìm thấy trụ cuối '${tr_den}' (${t_den})`, 'warn');
+
                 data.segments[id] = { 
                     id, 
                     type: (String(row.LOAI).includes("NGAM") ? "NGAM" : "NOI"), 
-                    lineFrom: t_tu, 
-                    poleFrom: String(tr_tu).trim(), 
-                    lineTo: t_den, 
-                    poleTo: String(tr_den).trim() 
+                    lineFrom: t_tu, poleFrom: tr_tu, lineTo: t_den, poleTo: tr_den 
                 };
             });
 
@@ -291,7 +311,7 @@
                 if(!sid) return;
 
                 if(!data.segments[sid]) {
-                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY`, 'warn');
+                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY trong DM_DOAN`, 'warn');
                     errors++;
                 }
 
@@ -302,18 +322,13 @@
 
             stagingData = data;
             
-            if(errors > 0) {
-                log(`⚠️ Có ${errors} cảnh báo.`, 'warn');
-            }
-            
+            if(errors > 0) log(`⚠️ Có ${errors} cảnh báo.`, 'warn');
             log(`✅ Đã đọc: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
-            log(`👉 Hãy chọn GỘP hoặc THAY MỚI bên dưới.`);
             
-            // KHÔI PHỤC: HIỆN 2 NÚT CHỌN
             document.getElementById('upload-actions').style.display = "block";
         }
 
-        // --- UPLOAD (MERGE/REPLACE) ---
+        // --- UPLOAD ---
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
 
@@ -378,7 +393,6 @@
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
                 
-                // LOGIC V1.9: NẾU TUYẾN "MAYCAT" THÌ KHÔNG VẼ DÂY
                 if(l !== 'MAYCAT' && pts.length>1) {
                     L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 }
@@ -388,6 +402,38 @@
                     L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
                 });
             }
+        }
+
+        // --- SMART POLE LOOKUP (TÌM MỜ) ---
+        function getPolePos(line, name, sourceData) {
+            let data = sourceData || appData.poles;
+            if(!data[line]) return null;
+            
+            // 1. Tìm chính xác
+            let p = data[line].find(p => p.name.toUpperCase() === String(name).toUpperCase());
+            if (p) return p;
+
+            // 2. Tìm mờ (Bỏ ký tự lạ): LT2_171 == LT2171
+            let cleanName = cleanString(name);
+            p = data[line].find(item => cleanString(item.name) === cleanName);
+            if (p) return p;
+
+            return null;
+        }
+
+        function getPoleRange(line, from, to) {
+            if(!appData.poles[line]) return [];
+            const lData = appData.poles[line];
+            
+            let p1 = getPolePos(line, from);
+            let p2 = getPolePos(line, to);
+            
+            if(!p1 || !p2) return [];
+            
+            let i1 = lData.indexOf(p1);
+            let i2 = lData.indexOf(p2);
+            
+            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
         window.drawCircuit = function() {
@@ -410,12 +456,12 @@
                 let p2 = getPolePos(def.lineTo, def.poleTo);
 
                 if(!p1 || !p2) {
-                    console.warn(`Thiếu tọa độ cho đoạn ${item.segId}`);
+                    console.warn(`Thiếu tọa độ đoạn ${item.segId}`);
                     return;
                 }
 
                 if(def.lineFrom !== def.lineTo) {
-                     pts = [p1, p2]; // Jump
+                     pts = [p1, p2]; 
                 } else {
                      pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
                 }
@@ -439,22 +485,8 @@
                     });
                 }
             });
-            
             document.getElementById('circuit-info').innerText = `Tổng dài: ${(totalDist/1000).toFixed(2)} km`;
             if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
-        }
-
-        function getPolePos(line, name) {
-            if(!appData.poles[line]) return null;
-            return appData.poles[line].find(p => p.name.toUpperCase() === String(name).toUpperCase());
-        }
-        function getPoleRange(line, from, to) {
-            if(!appData.poles[line]) return [];
-            const lData = appData.poles[line];
-            let i1 = lData.findIndex(p=>p.name.toUpperCase()===String(from).toUpperCase());
-            let i2 = lData.findIndex(p=>p.name.toUpperCase()===String(to).toUpperCase());
-            if(i1<0 || i2<0) return [];
-            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
         window.findFault = function() {
