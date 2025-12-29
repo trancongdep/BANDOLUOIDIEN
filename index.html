@@ -3,75 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.1</title>
+    <title>Hệ Thống Lưới Điện - Version 1.2</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CẤU TRÚC LAYOUT CHÍNH */
+        /* CẤU TRÚC LAYOUT */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
-            width: 450px; 
+            width: 400px; 
             background: white; 
             border-right: 1px solid #ccc; 
-            display: flex; 
-            flex-direction: column; /* Quan trọng để đẩy footer xuống đáy */
+            display: flex; flex-direction: column; 
             z-index: 2000; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { 
-            background: #283593; 
-            color: white; 
-            padding: 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            flex-shrink: 0;
-        }
-        .header h2 { margin: 0; font-size: 1.1rem; }
+        .header { background: #1a237e; color: white; padding: 15px; flex-shrink: 0; }
+        .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
 
-        /* CONTENT CUỘN ĐƯỢC */
-        .content { 
-            padding: 15px; 
-            overflow-y: auto; 
-            flex: 1; /* Chiếm toàn bộ khoảng trống còn lại */
-            background: #f5f5f5;
-        }
+        .content { padding: 15px; overflow-y: auto; flex: 1; background: #f5f5f5; }
 
-        /* FOOTER CỐ ĐỊNH */
         .footer {
-            background: #263238;
-            color: #eceff1;
-            padding: 10px;
-            text-align: center;
-            font-size: 0.75rem;
-            border-top: 3px solid #ff6f00;
-            flex-shrink: 0; /* Không bị co lại */
-            line-height: 1.4;
+            background: #263238; color: #eceff1; padding: 10px; text-align: center;
+            font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0;
         }
         .footer strong { color: #ffca28; }
 
-        /* CÁC PANEL & BUTTON */
-        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        /* UI ELEMENTS */
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; }
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
         .btn-check { background: #5c6bc0; color: white; }
         .btn-upload { background: #ff7043; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        button:hover { opacity: 0.9; } button:disabled { background: #ccc; cursor: not-allowed; }
 
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-top: 5px; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-top: 5px; }
         
-        /* --- BỘ ICON --- */
+        /* --- LEGEND ON MAP (Góc dưới phải) --- */
+        .legend {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            line-height: 18px;
+            color: #333;
+            font-size: 0.8rem;
+            min-width: 120px;
+        }
+        .legend h4 { margin: 0 0 5px 0; color: #1a237e; font-size: 0.9rem; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
+        .legend-icon { width: 14px; height: 14px; margin-right: 8px; display: inline-block; border: 1px solid #999; }
+
+        /* --- ICONS --- */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        
         .icon-mc { background: #d32f2f; border-radius: 3px; font-size: 10px; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
@@ -80,44 +71,28 @@
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
-        
-        /* Legend */
-        .legend-item { display: flex; align-items: center; margin-right: 10px; font-size: 0.75rem; margin-bottom: 4px; }
-        .legend-icon { width: 12px; height: 12px; margin-right: 4px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <div class="header">
-            <h2><i class="fas fa-map-marked-alt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
+            <h2><i class="fas fa-network-wired"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
         </div>
         
         <div class="content">
-            <div class="card" style="font-size: 0.8rem;">
-                <b>Chú thích:</b>
-                <div style="display:flex; flex-wrap:wrap; margin-top:5px;">
-                    <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span>MC</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span>Trụ Néo</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span>Trụ Đỡ</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span>Mốc Cáp</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span>Cột Mốc</div>
-                    <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span>Hầm</div>
-                </div>
-            </div>
-
             <div class="card" style="background:#e3f2fd;">
-                <label>1. Upload Dữ liệu:</label>
+                <label>1. Cập nhật Dữ liệu (Excel/CSV):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="btn-check" onclick="analyzeFiles()">Kiểm tra</button>
+                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Sẵn sàng...</div>
-                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled>Upload Cloud</button>
+                <button class="btn-upload" id="btnUpload" onclick="window.uploadToCloud()" disabled>Upload Cloud</button>
             </div>
 
             <div class="card">
                 <label>2. Chọn Mạch:</label>
-                <select id="circuitSelect" onchange="drawCircuit()">
-                    <option value="">-- Đang tải --</option>
+                <select id="circuitSelect" onchange="window.drawCircuit()">
+                    <option value="">-- Đang tải dữ liệu --</option>
                 </select>
                 <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px;"></div>
             </div>
@@ -125,13 +100,13 @@
             <div class="card">
                 <label>3. Tìm Sự Cố:</label>
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
-                <button class="btn-find" onclick="findFault()">TÌM VỊ TRÍ</button>
+                <button class="btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result"></div>
             </div>
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.1<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.2<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -146,7 +121,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
-        // Cấu hình Firebase của bạn
         const firebaseConfig = { 
             apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", 
             authDomain: "tavietnam-78ae8.firebaseapp.com", 
@@ -157,8 +131,13 @@
         };
         
         const app = initializeApp(firebaseConfig);
-        window.db = getDatabase(app); window.set = set; window.ref = ref; window.onValue = onValue;
-        listenCloud();
+        window.db = getDatabase(app); 
+        window.set = set; 
+        window.ref = ref; 
+        window.onValue = onValue;
+        
+        // Khởi động lắng nghe sau khi load xong
+        window.listenCloud();
     </script>
 
     <script>
@@ -176,13 +155,29 @@
         let stagingData = null;
         let currentPath = [];
 
+        // --- THÊM LEGEND VÀO BẢN ĐỒ ---
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Chú Thích</h4>
+                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span> Máy Cắt (MC)</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span> Mốc Cáp</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span> Cột Mốc</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span> Hầm Cáp</div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
         function log(msg, type='info') {
             const c = document.getElementById('console');
             c.innerHTML += `<div style="color:${type=='err'?'#ff5252':'#00e676'}">> ${msg}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
-        // Hàm chuẩn hóa dữ liệu (Bỏ dấu, fix lỗi gõ)
         function norm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
@@ -194,39 +189,70 @@
             return n;
         }
 
-        // --- 1. XỬ LÝ FILE ---
-        function analyzeFiles() {
+        // --- 1. XỬ LÝ FILE (FIX LỖI MULTI-FILE CSV) ---
+        window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
+            document.getElementById('console').innerHTML = "";
             if(!input.files.length) return log("Chưa chọn file", 'err');
+            
             Promise.all(Array.from(input.files).map(readFile)).then(res => {
-                processSheets(Object.assign({}, ...res));
+                // Gộp tất cả sheet từ các file lại thành 1 object lớn
+                let combinedSheets = Object.assign({}, ...res);
+                processSheets(combinedSheets);
+            }).catch(e => log(e.message, 'err'));
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = e => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, {type:'array'});
+                        let sheets = {};
+                        wb.SheetNames.forEach(n => {
+                            // Nếu là file CSV, sheet name mặc định là "Sheet1", ta cần lấy tên file làm tên sheet
+                            let finalName = n;
+                            if(file.name.toLowerCase().endsWith(".csv")) {
+                                finalName = file.name.toUpperCase(); // Dùng tên file để định danh
+                            }
+                            sheets[finalName] = XLSX.utils.sheet_to_json(wb.Sheets[n]);
+                        });
+                        resolve(sheets);
+                    } catch(err) { reject(err); }
+                };
+                r.readAsArrayBuffer(file);
             });
         }
-        function readFile(f) { return new Promise(r => { const rd=new FileReader(); rd.onload=e=>{ const w=XLSX.read(e.target.result,{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(f); }); }
 
         function processSheets(sheets) {
-            const findS = k => Object.keys(sheets).find(n => k.some(x => n.toUpperCase().includes(x)));
-            const sPoles=findS(["TRU","TOA"]), sSegs=findS(["DOAN","SEG"]), sCircs=findS(["MACH","CAU"]);
+            // Tìm sheet theo tên file hoặc tên sheet
+            const findS = k => Object.keys(sheets).find(n => k.some(x => n.includes(x)));
             
-            if(!sPoles||!sSegs||!sCircs) return log("Thiếu sheet!", 'err');
+            // Tìm khóa phù hợp (do file bạn là TOA_DO.csv nên key sẽ chứa TOA_DO)
+            const sPoles = findS(["TRU", "TOA"]);
+            const sSegs = findS(["DOAN", "SEG", "DM"]);
+            const sCircs = findS(["MACH", "CAU", "HINH"]);
+
+            if(!sPoles) return log("❌ Thiếu file Tọa độ (TOA_DO)", 'err');
+            if(!sSegs) return log("❌ Thiếu file Danh mục Đoạn (DM_DOAN)", 'err');
+            if(!sCircs) return log("❌ Thiếu file Cấu hình Mạch (CAU_HINH)", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {} };
 
-            // 1. POLES & ASSETS
+            // 1. POLES
             sheets[sPoles].forEach(r => {
                 let row = norm(r);
                 let l = row.TUYEN_TU || row.TUYEN || row.MA_TUYEN;
                 let n = row.TRU_TU || row.TEN_TRU || row.TEN_DIEM || row.VI_TRI;
+                // Parse loại điểm
                 let typeRaw = (row.LOAI_DIEM || row.LOAI || "TRU_DO").toUpperCase().trim();
-                
-                // Chuẩn hóa Loại điểm
                 let type = "TRU_DO"; 
                 if(typeRaw.includes("MC") || typeRaw.includes("MAY")) type = "MC";
                 else if(typeRaw.includes("NEO")) type = "TRU_NEO";
                 else if(typeRaw.includes("COT_MOC")) type = "COT_MOC";
                 else if(typeRaw.includes("MOC")) type = "MOC";
                 else if(typeRaw.includes("HAM")) type = "HAM_CAP";
-                else if(typeRaw.includes("DO")) type = "TRU_DO";
 
                 if(l && row.LAT) {
                     if(!data.poles[l]) data.poles[l]=[];
@@ -256,20 +282,22 @@
 
             stagingData = data;
             document.getElementById('btnUpload').disabled = false;
-            log(`Đã đọc ${Object.keys(data.poles).length} tuyến dây.`);
+            log(`✅ Đã đọc thành công: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
         }
 
-        function uploadToCloud() {
-            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(()=>log("Upload OK!"));
+        window.uploadToCloud = function() {
+            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(()=>log("Upload Cloud Thành công!"));
         }
 
         // --- 3. HIỂN THỊ ---
-        function listenCloud() {
-            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
-                appData = snap.val() || {poles:{}, segments:{}, circuits:{}};
-                updateUI();
-                drawBg();
-            });
+        window.listenCloud = function() {
+            if(window.ref) {
+                window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
+                    appData = snap.val() || {poles:{}, segments:{}, circuits:{}};
+                    updateUI();
+                    drawBg();
+                });
+            }
         }
 
         function updateUI() {
@@ -280,9 +308,8 @@
             });
         }
 
-        // Tạo Icon theo Loại
         function createIcon(type, name) {
-            let className = 'my-icon icon-tru-do'; // Default
+            let className = 'my-icon icon-tru-do'; 
             let size = [12, 12];
             let html = '';
 
@@ -301,5 +328,98 @@
 
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
-                // Vẽ dây mờ nền
-                if(pts.length>
+                if(pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
+                appData.poles[l].forEach(p => {
+                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.bgPoints).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
+                });
+            }
+        }
+
+        window.drawCircuit = function() {
+            const id = document.getElementById('circuitSelect').value;
+            layers.main.clearLayers(); layers.fault.clearLayers();
+            currentPath = []; 
+            document.getElementById('circuit-info').innerText = "";
+
+            if(!id || !appData.circuits[id]) return;
+
+            const segs = appData.circuits[id];
+            let totalDist = 0;
+
+            segs.forEach((item, idx) => {
+                const def = appData.segments[item.segId];
+                if(!def) return;
+                
+                let pts = [];
+                if(def.lineFrom !== def.lineTo) {
+                     let p1 = getPolePos(def.lineFrom, def.poleFrom);
+                     let p2 = getPolePos(def.lineTo, def.poleTo);
+                     if(p1 && p2) pts = [p1, p2];
+                } else {
+                     pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
+                }
+
+                if(pts.length) {
+                    let isCable = def.type === 'NGAM';
+                    let color = isCable ? '#7b1fa2' : '#1565c0';
+                    let dash = isCable ? "5,5" : null;
+
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:3, dashArray:dash}).addTo(layers.main);
+                    
+                    pts.forEach(p => {
+                        L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layers.main).bindPopup(p.name);
+                    });
+
+                    pts.forEach((p, i) => {
+                        if(i>0) totalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                        currentPath.push({ ...p, line: def.lineFrom, accDist: totalDist });
+                    });
+                }
+            });
+            
+            document.getElementById('circuit-info').innerText = `Tổng dài: ${(totalDist/1000).toFixed(2)} km`;
+            if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
+        }
+
+        function getPolePos(line, name) {
+            if(!appData.poles[line]) return null;
+            return appData.poles[line].find(p => p.name === name);
+        }
+        function getPoleRange(line, from, to) {
+            if(!appData.poles[line]) return [];
+            const lData = appData.poles[line];
+            let i1 = lData.findIndex(p=>p.name===from), i2 = lData.findIndex(p=>p.name===to);
+            if(i1<0 || i2<0) return [];
+            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+        }
+
+        window.findFault = function() {
+            let km = parseFloat(document.getElementById('faultKm').value);
+            let res = document.getElementById('result');
+            res.style.display='none';
+            if(isNaN(km) || currentPath.length<2) return;
+            
+            let target = km * 1000;
+            for(let i=1; i<currentPath.length; i++) {
+                let p1 = currentPath[i-1], p2 = currentPath[i];
+                if(p2.accDist >= target) {
+                    let r = (target - p1.accDist)/(p2.accDist - p1.accDist);
+                    let lat = p1.lat + (p2.lat-p1.lat)*r, lng = p1.lng + (p2.lng-p1.lng)*r;
+                    
+                    L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+                    map.setView([lat,lng], 16);
+                    res.style.display='block'; res.innerHTML = `<b>TÌM THẤY!</b><br>Đoạn: ${p1.name} -> ${p2.name}<br>Cách điểm trước: ${(target-p1.accDist).toFixed(1)}m`;
+                    return;
+                }
+            }
+            res.style.display='block'; res.innerHTML = "Ngoài phạm vi (Max: "+(currentPath[currentPath.length-1].accDist/1000).toFixed(2)+"km)";
+        }
+
+        function getDist(lat1,lon1,lat2,lon2) {
+            const R=6371000; const dLat=(lat2-lat1)*Math.PI/180; const dLon=(lon2-lon1)*Math.PI/180;
+            const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+        }
+    </script>
+</body>
+</html>
