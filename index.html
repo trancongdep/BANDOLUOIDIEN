@@ -3,129 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện v14.0 (Chẩn Đoán Lỗi)</title>
+    <title>Hệ Thống Lưới Điện v14.1 (Fix Lỗi Tiếng Việt)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f4f6f8; }
-        
-        #sidebar {
-            width: 450px; background: white; border-right: 1px solid #ccc;
-            display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-        }
-        
-        .header { background: #2c3e50; color: white; padding: 15px; }
-        .header h2 { margin: 0; font-size: 1.1rem; }
-        
+        #sidebar { width: 450px; background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+        .header { background: #2c3e50; color: white; padding: 15px; } .header h2 { margin: 0; font-size: 1.1rem; }
         .content { padding: 15px; overflow-y: auto; flex: 1; }
-        
-        /* Debug Console Style */
-        #debug-console {
-            background: #212121; color: #00e676; font-family: 'Consolas', monospace;
-            padding: 10px; border-radius: 4px; font-size: 0.8rem;
-            max-height: 200px; overflow-y: auto; margin-bottom: 15px;
-            white-space: pre-wrap; border: 1px solid #444;
-        }
-        .log-err { color: #ff5252; font-weight: bold; }
-        .log-warn { color: #ffab40; }
-        .log-info { color: #40c4ff; }
-
+        #debug-console { background: #212121; color: #00e676; font-family: 'Consolas', monospace; padding: 10px; border-radius: 4px; font-size: 0.8rem; max-height: 250px; overflow-y: auto; margin-bottom: 15px; white-space: pre-wrap; border: 1px solid #444; }
         .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; }
-        label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 5px; }
-        
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
-        .btn-check { background: #607d8b; color: white; }
-        .btn-upload { background: #e65100; color: white; }
-        .btn-view { background: #0277bd; color: white; }
+        .btn-check { background: #607d8b; color: white; } .btn-upload { background: #e65100; color: white; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-
-        #segment-list { font-size: 0.8rem; border: 1px solid #eee; height: 150px; overflow-y: auto; }
-        .seg-row { padding: 5px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <div class="header">
-            <h2><i class="fas fa-tools"></i> Admin & Debugger</h2>
-        </div>
-
+        <div class="header"><h2><i class="fas fa-tools"></i> Admin & Debugger v14.1</h2></div>
         <div class="content">
             <div class="card">
-                <label>1. Kiểm tra & Upload Dữ liệu:</label>
+                <label>1. Kiểm tra & Upload (Hỗ trợ tiếng Việt):</label>
                 <input type="file" id="excelFile" accept=".xlsx" style="margin-bottom:10px; width:100%"/>
-                
-                <button class="btn-check" onclick="analyzeFile()">
-                    <i class="fas fa-stethoscope"></i> Phân Tích Tìm Lỗi
-                </button>
-                
-                <div id="debug-console">Trạng thái: Chờ file...</div>
-
-                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled>
-                    <i class="fas fa-cloud-upload-alt"></i> Dữ liệu OK -> Upload ngay
-                </button>
-            </div>
-
-            <div style="font-size:0.8rem; color:green; margin-bottom:10px;" id="cloud-status">
-                <i class="fas fa-wifi"></i> Đang kết nối Firebase...
-            </div>
-
-            <div class="card">
-                <label>2. Xem Bản Đồ:</label>
-                <button class="btn-view" onclick="drawAll()">
-                    <i class="fas fa-map"></i> Vẽ Tất Cả Mạch
-                </button>
-                
-                <label style="margin-top:10px">Hoặc xem từng mạch:</label>
-                <select id="circuitSelect" onchange="drawSingle()">
-                    <option value="">-- Chọn mạch --</option>
-                </select>
-                <div id="segment-list"></div>
+                <button class="btn-check" onclick="analyzeFile()"><i class="fas fa-stethoscope"></i> Phân Tích Tìm Lỗi</button>
+                <div id="debug-console">Sẵn sàng...</div>
+                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled><i class="fas fa-cloud-upload-alt"></i> Upload Firebase</button>
             </div>
         </div>
     </div>
-
     <div id="map" style="flex:1;"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
-            authDomain: "tavietnam-78ae8.firebaseapp.com",
-            projectId: "tavietnam-78ae8",
-            storageBucket: "tavietnam-78ae8.firebasestorage.app",
-            messagingSenderId: "670121705534",
-            appId: "1:670121705534:web:1027ad98550573ad37116f"
-        };
-
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        const firebaseConfig = { apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", authDomain: "tavietnam-78ae8.firebaseapp.com", projectId: "tavietnam-78ae8", storageBucket: "tavietnam-78ae8.firebasestorage.app", messagingSenderId: "670121705534", appId: "1:670121705534:web:1027ad98550573ad37116f" };
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        window.db = db; window.set = set; window.ref = ref; window.onValue = onValue;
-
-        listenCloud();
+        window.db = getDatabase(app); window.set = set; window.ref = ref;
     </script>
 
     <script>
-        let map;
-        let layers = { bg: L.layerGroup(), main: L.layerGroup() };
-        let appData = { poles: {}, segments: {}, circuits: {} };
-        let stagingData = null; // Dữ liệu chờ upload
-
-        function initMap() {
-            map = L.map('map').setView([10.762622, 106.660172], 12);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity: 0.4}).addTo(map);
-            Object.values(layers).forEach(l => l.addTo(map));
-        }
-        initMap();
+        let map = L.map('map').setView([10.762, 106.660], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let stagingData = null;
 
         function log(msg, type='info') {
             const c = document.getElementById('debug-console');
@@ -134,95 +58,94 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- 1. PHÂN TÍCH FILE (QUAN TRỌNG) ---
+        // --- HÀM CHUẨN HÓA MẠNH MẼ (BỎ DẤU) ---
+        function norm(obj) {
+            let n = {};
+            Object.keys(obj).forEach(k => {
+                // 1. Chuyển thành chuỗi
+                let key = String(k);
+                // 2. Bỏ dấu tiếng Việt (Huyền, sắc, hỏi...)
+                key = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // 3. Đổi chữ Đ -> D
+                key = key.replace(/đ/g, "d").replace(/Đ/g, "D");
+                // 4. Viết hoa, trim, thay dấu cách bằng _
+                key = key.trim().toUpperCase().replace(/[^A-Z0-9]/g, "_"); // Chỉ giữ lại Chữ và Số
+                
+                n[key] = obj[k];
+            });
+            return n;
+        }
+
         function analyzeFile() {
             const input = document.getElementById('excelFile');
-            const consoleBox = document.getElementById('debug-console');
-            consoleBox.innerHTML = ""; // Clear log
-            document.getElementById('btnUpload').disabled = true;
-
+            document.getElementById('debug-console').innerHTML = "";
             if(!input.files.length) return log("Chưa chọn file!", 'err');
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    log("Đang đọc file Excel...");
                     const wb = XLSX.read(e.target.result, {type:'array'});
                     
-                    // Tìm Sheets
                     const findS = (k) => wb.SheetNames.find(n => k.some(x => n.toUpperCase().includes(x)));
+                    const sCircs = findS(["CAU_HINH","MACH","DUONG"]);
                     const sPoles = findS(["TOA_DO","TRU"]);
                     const sSegs = findS(["DOAN","SEG"]);
-                    const sCircs = findS(["CAU_HINH","MACH","DUONG"]);
 
-                    if(!sPoles) log("❌ Thiếu Sheet Tọa độ Trụ (cần tên chứa 'TRU', 'TOA_DO')", 'err');
-                    if(!sSegs) log("❌ Thiếu Sheet Danh mục Đoạn (cần tên chứa 'DOAN', 'SEG')", 'err');
-                    if(!sCircs) log("❌ Thiếu Sheet Cấu hình Mạch (cần tên chứa 'MACH', 'CAU_HINH')", 'err');
+                    if(!sCircs) return log("❌ Không thấy Sheet Mạch (cần tên 'MACH', 'CAU_HINH')", 'err');
+                    if(!sPoles) return log("❌ Không thấy Sheet Trụ", 'err');
+                    if(!sSegs) return log("❌ Không thấy Sheet Đoạn", 'err');
 
-                    if(!sPoles || !sSegs || !sCircs) return;
-
+                    const rawCircs = XLSX.utils.sheet_to_json(wb.Sheets[sCircs]);
                     const rawPoles = XLSX.utils.sheet_to_json(wb.Sheets[sPoles]);
                     const rawSegs = XLSX.utils.sheet_to_json(wb.Sheets[sSegs]);
-                    const rawCircs = XLSX.utils.sheet_to_json(wb.Sheets[sCircs]);
 
-                    log(`✅ Đã đọc: ${rawPoles.length} dòng Trụ, ${rawSegs.length} dòng Đoạn, ${rawCircs.length} dòng Mạch.`);
+                    // DEBUG: In ra các cột tìm thấy để kiểm tra
+                    if(rawCircs.length > 0) {
+                        let sampleRow = norm(rawCircs[0]);
+                        log(`ℹ️ Sheet Mạch có các cột: ${Object.keys(sampleRow).join(", ")}`, 'warn');
+                    }
 
-                    // --- KIỂM TRA LOGIC ---
+                    // --- PARSE DATA ---
                     let cleanData = { poles: {}, segments: {}, circuits: {} };
                     let errors = 0;
 
-                    // 1. Check TRỤ
-                    rawPoles.forEach((r, i) => {
+                    // 1. Poles
+                    rawPoles.forEach(r => {
                         let row = norm(r);
-                        let line = row.MA_TUYEN || row.TUYEN;
-                        let name = row.TEN_TRU || row.VI_TRI;
-                        if(line && name) {
-                            if(!cleanData.poles[line]) cleanData.poles[line] = [];
-                            let sort = parseInt((name.toString().match(/\d+/) || [9999])[0]);
-                            cleanData.poles[line].push({name: name.toString(), lat: row.LAT, lng: row.LONG, sort});
-                        } else {
-                            // log(`⚠️ Sheet Trụ dòng ${i+2}: Thiếu Mã Tuyến hoặc Tên Trụ`, 'warn');
+                        let l = row.MA_TUYEN || row.TUYEN;
+                        let n = row.TEN_TRU || row.VI_TRI;
+                        if(l && row.LAT && row.LONG) {
+                            if(!cleanData.poles[l]) cleanData.poles[l] = [];
+                            let sort = parseInt((String(n).match(/\d+/) || [9999])[0]);
+                            cleanData.poles[l].push({name:String(n), lat:row.LAT, lng:row.LONG, sort});
                         }
                     });
-                    
-                    // Sort Trụ
-                    for(let k in cleanData.poles) cleanData.poles[k].sort((a,b)=>a.sort-b.sort);
 
-                    // 2. Check ĐOẠN
-                    rawSegs.forEach((r, i) => {
+                    // 2. Segments
+                    rawSegs.forEach(r => {
                         let row = norm(r);
-                        let id = row.MA_DOAN;
-                        let line = row.MA_TUYEN || row.TUYEN;
-                        
-                        if(!id) return log(`❌ Sheet Đoạn dòng ${i+2}: Thiếu Mã Đoạn`, 'err');
-                        if(!line) return log(`❌ Sheet Đoạn dòng ${i+2} (${id}): Thiếu Mã Tuyến`, 'err');
-                        
-                        // Check link tới Trụ
-                        if(!cleanData.poles[line]) {
-                            log(`⚠️ Sheet Đoạn dòng ${i+2} (${id}): Tuyến '${line}' không có trong Sheet Trụ!`, 'warn');
-                            errors++;
-                        }
-                        
-                        cleanData.segments[id] = { id, line, from: row.TU_TRU, to: row.DEN_TRU };
+                        let id = row.MA_DOAN || row.MA_DOAN_TUYEN;
+                        if(id) cleanData.segments[id] = { id, line: row.MA_TUYEN || row.TUYEN, from: row.TU_TRU, to: row.DEN_TRU };
                     });
 
-                    // 3. Check MẠCH (QUAN TRỌNG NHẤT)
+                    // 3. Circuits (Check Lỗi kỹ hơn)
                     rawCircs.forEach((r, i) => {
                         let row = norm(r);
-                        let cid = row.MA_DUONG_DAY || row.MA_MACH;
-                        let sid = row.MA_DOAN;
+                        let cid = row.MA_DUONG_DAY || row.MA_MACH || row.TEN_MACH; // Thử nhiều key
+                        let sid = row.MA_DOAN || row.MA_DOAN_TUYEN || row.DOAN;   // Thử nhiều key
                         
-                        if(!cid) return; // Bỏ qua dòng trống
-                        
+                        if(!cid) return; // Dòng trống
+
                         if(!sid) {
-                            log(`❌ Sheet Mạch dòng ${i+2}: Mạch '${cid}' thiếu Mã Đoạn`, 'err');
+                            log(`❌ Dòng ${i+2}: Mạch '${cid}' thiếu Mã Đoạn.`, 'err');
+                            log(`   -> Cột hiện có: ${Object.keys(row).join(", ")}`, 'warn');
                             errors++;
                             return;
                         }
-
-                        // Check link tới Đoạn
+                        
+                        // Check link
                         if(!cleanData.segments[sid]) {
-                            log(`❌ Sheet Mạch dòng ${i+2}: Mạch '${cid}' gọi đoạn '${sid}' nhưng đoạn này KHÔNG CÓ trong Sheet Đoạn!`, 'err');
+                            log(`❌ Dòng ${i+2}: Mạch gọi đoạn '${sid}' nhưng không có trong Sheet Đoạn`, 'err');
                             errors++;
                         } else {
                             if(!cleanData.circuits[cid]) cleanData.circuits[cid] = [];
@@ -230,104 +153,27 @@
                         }
                     });
 
-                    // Tổng kết
                     if(errors > 0) {
-                        log(`🚫 TÌM THẤY ${errors} LỖI DỮ LIỆU. VUI LÒNG SỬA EXCEL TRƯỚC KHI UPLOAD.`, 'err');
+                        log(`🚫 Có ${errors} lỗi. Hãy kiểm tra lại tên cột trong Excel.`, 'err');
+                        log(`💡 Gợi ý: Tên cột phải là 'MA_DOAN' hoặc 'Mã Đoạn'`, 'info');
                     } else {
-                        log(`✨ Dữ liệu sạch sẽ! Sẵn sàng upload.`, 'info');
-                        // Sort circuits
-                        for(let k in cleanData.circuits) cleanData.circuits[k].sort((a,b)=>a.order-b.order);
+                        log("✨ Dữ liệu OK! Sẵn sàng Upload.", 'info');
                         stagingData = cleanData;
                         document.getElementById('btnUpload').disabled = false;
                     }
 
-                } catch(err) {
-                    log("Crashed: " + err.message, 'err');
-                }
+                } catch(e) { log(e.message, 'err'); }
             };
             reader.readAsArrayBuffer(input.files[0]);
         }
 
-        // --- UPLOAD ---
         function uploadToCloud() {
             if(!stagingData) return;
-            log("Đang đẩy lên Firebase...");
+            log("Đang upload...");
             window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
-                .then(() => log("✅ Upload thành công!", 'info'))
-                .catch(e => log("Lỗi Upload: "+e.message, 'err'));
+                .then(() => log("✅ Thành công!", 'info'))
+                .catch(e => log(e.message, 'err'));
         }
-
-        function norm(obj) {
-            let n = {}; Object.keys(obj).forEach(k => n[k.trim().toUpperCase().replace(/ /g,"_")] = obj[k]); return n;
-        }
-
-        // --- VIEW MODE ---
-        function listenCloud() {
-            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), (snap) => {
-                const val = snap.val();
-                if(val) {
-                    appData = val;
-                    document.getElementById('cloud-status').innerHTML = "🟢 Đã kết nối Cloud";
-                    updateUI();
-                }
-            });
-        }
-
-        function updateUI() {
-            const s = document.getElementById('circuitSelect');
-            s.innerHTML = '<option value="">-- Chọn mạch --</option>';
-            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
-                let o = document.createElement('option'); o.value=k; o.text=k; s.add(o);
-            });
-        }
-
-        function drawAll() {
-            layers.main.clearLayers();
-            if(!appData.circuits) return;
-            let keys = Object.keys(appData.circuits);
-            keys.forEach((cid, idx) => {
-                let pts = getPoints(cid);
-                if(pts.length) {
-                    // Offset để tách dòng
-                    let offset = (idx - keys.length/2) * 5;
-                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'blue', weight:2, offset: offset}).addTo(layers.main).bindPopup(cid);
-                }
-            });
-            if(keys.length) {
-                let pts = getPoints(keys[0]);
-                if(pts.length) map.fitBounds(pts.map(p=>[p.lat,p.lng]));
-            }
-        }
-
-        function drawSingle() {
-            layers.main.clearLayers();
-            const cid = document.getElementById('circuitSelect').value;
-            const pts = getPoints(cid);
-            if(pts.length) {
-                L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'red', weight:4}).addTo(layers.main);
-                map.fitBounds(pts.map(p=>[p.lat,p.lng]));
-            }
-        }
-
-        function getPoints(cid) {
-            let pts = [];
-            const segs = appData.circuits[cid];
-            if(!segs) return [];
-            segs.forEach(item => {
-                const def = appData.segments[item.segId];
-                if(def && appData.poles[def.line]) {
-                    const lData = appData.poles[def.line];
-                    let i1 = lData.findIndex(p=>p.name==def.from);
-                    let i2 = lData.findIndex(p=>p.name==def.to);
-                    if(i1>=0 && i2>=0) {
-                        let sub = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
-                        pts = pts.concat(sub);
-                    }
-                }
-            });
-            return pts;
-        }
-
     </script>
 </body>
 </html>
