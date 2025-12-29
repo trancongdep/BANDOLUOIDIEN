@@ -3,66 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.2</title>
+    <title>Hệ Thống Lưới Điện - Version 1.1 (Patch 1)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CẤU TRÚC LAYOUT */
+        /* CẤU TRÚC LAYOUT CHÍNH */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
-            width: 400px; 
+            width: 450px; 
             background: white; 
             border-right: 1px solid #ccc; 
-            display: flex; flex-direction: column; 
+            display: flex; 
+            flex-direction: column; 
             z-index: 2000; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { background: #1a237e; color: white; padding: 15px; flex-shrink: 0; }
-        .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+        .header { 
+            background: #283593; 
+            color: white; 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        .header h2 { margin: 0; font-size: 1.1rem; }
 
-        .content { padding: 15px; overflow-y: auto; flex: 1; background: #f5f5f5; }
+        /* CONTENT CUỘN ĐƯỢC */
+        .content { 
+            padding: 15px; 
+            overflow-y: auto; 
+            flex: 1; 
+            background: #f5f5f5;
+        }
 
+        /* FOOTER CỐ ĐỊNH */
         .footer {
-            background: #263238; color: #eceff1; padding: 10px; text-align: center;
-            font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0;
+            background: #263238;
+            color: #eceff1;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.75rem;
+            border-top: 3px solid #ff6f00;
+            flex-shrink: 0; 
+            line-height: 1.4;
         }
         .footer strong { color: #ffca28; }
 
-        /* UI ELEMENTS */
-        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; }
+        /* CÁC PANEL & BUTTON */
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
         .btn-check { background: #5c6bc0; color: white; }
         .btn-upload { background: #ff7043; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; } button:disabled { background: #ccc; cursor: not-allowed; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
 
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-top: 5px; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-top: 5px; }
         
-        /* --- LEGEND ON MAP (Góc dưới phải) --- */
-        .legend {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            line-height: 18px;
-            color: #333;
-            font-size: 0.8rem;
-            min-width: 120px;
-        }
-        .legend h4 { margin: 0 0 5px 0; color: #1a237e; font-size: 0.9rem; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
-        .legend-icon { width: 14px; height: 14px; margin-right: 8px; display: inline-block; border: 1px solid #999; }
-
-        /* --- ICONS --- */
+        /* --- BỘ ICON --- */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        
         .icon-mc { background: #d32f2f; border-radius: 3px; font-size: 10px; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
@@ -71,18 +80,34 @@
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
+        
+        /* Legend */
+        .legend-item { display: flex; align-items: center; margin-right: 10px; font-size: 0.75rem; margin-bottom: 4px; }
+        .legend-icon { width: 12px; height: 12px; margin-right: 4px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <div class="header">
-            <h2><i class="fas fa-network-wired"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
+            <h2><i class="fas fa-map-marked-alt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
         </div>
         
         <div class="content">
+            <div class="card" style="font-size: 0.8rem;">
+                <b>Chú thích:</b>
+                <div style="display:flex; flex-wrap:wrap; margin-top:5px;">
+                    <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span>MC</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span>Trụ Néo</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span>Trụ Đỡ</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span>Mốc Cáp</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span>Cột Mốc</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span>Hầm</div>
+                </div>
+            </div>
+
             <div class="card" style="background:#e3f2fd;">
-                <label>1. Cập nhật Dữ liệu (Excel/CSV):</label>
+                <label>1. Upload Dữ liệu (Chọn tất cả file CSV):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Sẵn sàng...</div>
@@ -92,7 +117,7 @@
             <div class="card">
                 <label>2. Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
-                    <option value="">-- Đang tải dữ liệu --</option>
+                    <option value="">-- Đang tải --</option>
                 </select>
                 <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px;"></div>
             </div>
@@ -106,7 +131,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.2<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.1<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -136,7 +161,6 @@
         window.ref = ref; 
         window.onValue = onValue;
         
-        // Khởi động lắng nghe sau khi load xong
         window.listenCloud();
     </script>
 
@@ -155,48 +179,38 @@
         let stagingData = null;
         let currentPath = [];
 
-        // --- THÊM LEGEND VÀO BẢN ĐỒ ---
-        var legend = L.control({position: 'bottomright'});
-        legend.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = `
-                <h4>Chú Thích</h4>
-                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span> Máy Cắt (MC)</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span> Mốc Cáp</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span> Cột Mốc</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span> Hầm Cáp</div>
-            `;
-            return div;
-        };
-        legend.addTo(map);
-
         function log(msg, type='info') {
             const c = document.getElementById('console');
             c.innerHTML += `<div style="color:${type=='err'?'#ff5252':'#00e676'}">> ${msg}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
+        // --- HÀM CHUẨN HÓA (ĐỂ ĐỌC ĐƯỢC CẢ "MA_DOAN" VÀ "MADOAN") ---
         function norm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let key = String(k).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-                if(key==='MA_TUYEN') key='TUYEN_TU'; if(key==='TU_TRU') key='TRU_TU'; if(key==='DEN_TRU') key='TRU_DEN';
+                
+                // MAPPING CỘT CHO KHỚP VỚI CODE CŨ
+                if(key==='MADOAN') key='MA_DOAN'; // Fix lỗi file Cấu hình mạch
+                if(key==='MA_TUYEN') key='TUYEN_TU'; 
+                if(key==='TU_TRU') key='TRU_TU'; 
+                if(key==='DEN_TRU') key='TRU_DEN';
+                
                 n[key] = obj[k];
             });
+            // Tương thích ngược cho file cũ chỉ có MA_TUYEN
             if(n.TUYEN_TU && !n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU;
             return n;
         }
 
-        // --- 1. XỬ LÝ FILE (FIX LỖI MULTI-FILE CSV) ---
+        // --- 1. XỬ LÝ FILE (FIX CHO NHIỀU FILE CSV) ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
             if(!input.files.length) return log("Chưa chọn file", 'err');
             
             Promise.all(Array.from(input.files).map(readFile)).then(res => {
-                // Gộp tất cả sheet từ các file lại thành 1 object lớn
                 let combinedSheets = Object.assign({}, ...res);
                 processSheets(combinedSheets);
             }).catch(e => log(e.message, 'err'));
@@ -211,10 +225,10 @@
                         const wb = XLSX.read(data, {type:'array'});
                         let sheets = {};
                         wb.SheetNames.forEach(n => {
-                            // Nếu là file CSV, sheet name mặc định là "Sheet1", ta cần lấy tên file làm tên sheet
+                            // QUAN TRỌNG: Lấy tên file làm tên sheet để dễ tìm
                             let finalName = n;
                             if(file.name.toLowerCase().endsWith(".csv")) {
-                                finalName = file.name.toUpperCase(); // Dùng tên file để định danh
+                                finalName = file.name.toUpperCase();
                             }
                             sheets[finalName] = XLSX.utils.sheet_to_json(wb.Sheets[n]);
                         });
@@ -226,13 +240,12 @@
         }
 
         function processSheets(sheets) {
-            // Tìm sheet theo tên file hoặc tên sheet
+            // Tìm sheet theo tên file
             const findS = k => Object.keys(sheets).find(n => k.some(x => n.includes(x)));
             
-            // Tìm khóa phù hợp (do file bạn là TOA_DO.csv nên key sẽ chứa TOA_DO)
-            const sPoles = findS(["TRU", "TOA"]);
-            const sSegs = findS(["DOAN", "SEG", "DM"]);
-            const sCircs = findS(["MACH", "CAU", "HINH"]);
+            const sPoles = findS(["TOA_DO", "TOA DO", "TRU"]);
+            const sSegs = findS(["DM_DOAN", "DOAN", "SEG"]);
+            const sCircs = findS(["CAU_HINH", "MACH", "DUONG"]);
 
             if(!sPoles) return log("❌ Thiếu file Tọa độ (TOA_DO)", 'err');
             if(!sSegs) return log("❌ Thiếu file Danh mục Đoạn (DM_DOAN)", 'err');
@@ -245,7 +258,7 @@
                 let row = norm(r);
                 let l = row.TUYEN_TU || row.TUYEN || row.MA_TUYEN;
                 let n = row.TRU_TU || row.TEN_TRU || row.TEN_DIEM || row.VI_TRI;
-                // Parse loại điểm
+                
                 let typeRaw = (row.LOAI_DIEM || row.LOAI || "TRU_DO").toUpperCase().trim();
                 let type = "TRU_DO"; 
                 if(typeRaw.includes("MC") || typeRaw.includes("MAY")) type = "MC";
@@ -272,24 +285,27 @@
 
             // 3. CIRCUITS
             sheets[sCircs].forEach(r => {
-                let row = norm(r); let cid = row.MA_DUONG_DAY||row.MA_MACH;
-                if(cid && row.MA_DOAN) {
+                let row = norm(r); 
+                let cid = row.MA_DUONG_DAY || row.MA_MACH;
+                let sid = row.MA_DOAN; // Bây giờ đã được norm thành MA_DOAN dù file gốc là MADOAN
+
+                if(cid && sid) {
                     if(!data.circuits[cid]) data.circuits[cid]=[];
-                    data.circuits[cid].push({ segId:row.MA_DOAN, order:parseInt(row.STT||999) });
+                    data.circuits[cid].push({ segId:sid, order:parseInt(row.STT||999) });
                 }
             });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
             document.getElementById('btnUpload').disabled = false;
-            log(`✅ Đã đọc thành công: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
+            log(`✅ Đã đọc thành công: ${Object.keys(data.circuits).length} mạch.`);
         }
 
         window.uploadToCloud = function() {
             window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(()=>log("Upload Cloud Thành công!"));
         }
 
-        // --- 3. HIỂN THỊ ---
+        // --- 3. HIỂN THỊ (LOGIC CŨ V1.1) ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
@@ -360,7 +376,7 @@
                 }
 
                 if(pts.length) {
-                    let isCable = def.type === 'NGAM';
+                    let isCable = (def.type === 'NGAM');
                     let color = isCable ? '#7b1fa2' : '#1565c0';
                     let dash = isCable ? "5,5" : null;
 
