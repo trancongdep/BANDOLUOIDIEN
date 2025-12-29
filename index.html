@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.9.1</title>
+    <title>Hệ Thống Lưới Điện - Version 1.9.2</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -31,7 +31,8 @@
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
         .btn-check { background: #1976d2; color: white; }
-        .btn-upload { background: #e65100; color: white; }
+        .btn-merge { background: #2e7d32; color: white; }
+        .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
         button:disabled { background: #ccc; cursor: not-allowed; }
 
@@ -39,6 +40,9 @@
         
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 150px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
         
+        /* Khu vực chứa 2 nút Upload ẩn */
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+
         /* ICONS & LEGEND */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
@@ -67,7 +71,14 @@
                 <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
                 <div id="console">Chờ file...</div>
                 
-                <button class="btn-upload" id="btnUpload" onclick="window.uploadToCloud()" disabled>Upload Cloud</button>
+                <div id="upload-actions">
+                    <button class="btn-merge" onclick="window.confirmUpload('merge')">
+                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU (Giữ cũ + Thêm mới)
+                    </button>
+                    <button class="btn-replace" onclick="window.confirmUpload('replace')">
+                        <i class="fas fa-trash-alt"></i> XÓA CŨ & GHI MỚI
+                    </button>
+                </div>
             </div>
 
             <div class="card">
@@ -87,7 +98,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.9.1<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.9.2<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -100,7 +111,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const firebaseConfig = { 
             apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", 
@@ -114,6 +125,7 @@
         const app = initializeApp(firebaseConfig);
         window.db = getDatabase(app); 
         window.set = set; 
+        window.update = update;
         window.ref = ref; 
         window.onValue = onValue;
         
@@ -158,26 +170,22 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA MỚI (TỐI ƯU CHO CSV) ---
+        // --- HÀM CHUẨN HÓA ---
         function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
-                
                 let standardKey = cleanKey;
                 if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
                 if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
                 if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADOANTUYEN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
-                
                 n[standardKey] = obj[k];
                 n[cleanKey] = obj[k];
             });
-            
             if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
             if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
-
             return n;
         }
 
@@ -185,7 +193,7 @@
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
-            document.getElementById('btnUpload').disabled = true;
+            document.getElementById('upload-actions').style.display = "none"; // Ẩn nút cũ đi
 
             if(!input.files.length) return log("Chưa chọn file", 'err');
             
@@ -298,15 +306,35 @@
                 log(`⚠️ Có ${errors} cảnh báo.`, 'warn');
             }
             
-            log(`✅ Đã đọc: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch. Sẵn sàng Upload.`);
-            document.getElementById('btnUpload').disabled = false;
+            log(`✅ Đã đọc: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
+            log(`👉 Hãy chọn GỘP hoặc THAY MỚI bên dưới.`);
+            
+            // KHÔI PHỤC: HIỆN 2 NÚT CHỌN
+            document.getElementById('upload-actions').style.display = "block";
         }
 
-        window.uploadToCloud = function() {
+        // --- UPLOAD (MERGE/REPLACE) ---
+        window.confirmUpload = function(mode) {
             if(!stagingData) return;
-            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
-                .then(()=>log("Upload Cloud Thành công!"))
-                .catch(e => log("Lỗi: " + e.message, 'err'));
+
+            if(mode === 'replace') {
+                if(!confirm("CẢNH BÁO: XÓA HẾT dữ liệu cũ trên Cloud?")) return;
+                log("Đang xóa cũ và ghi mới...", 'warn');
+                window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
+                    .then(() => log("✅ Đã thay thế thành công!", 'success'))
+                    .catch(e => log("Lỗi: " + e.message, 'err'));
+            } 
+            else if (mode === 'merge') {
+                log("Đang gộp dữ liệu...", 'info');
+                let updates = {};
+                Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
+                Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
+                Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
+
+                window.update(window.ref(window.db), updates)
+                    .then(() => log("✅ Đã gộp thành công!", 'success'))
+                    .catch(e => log("Lỗi Merge: " + e.message, 'err'));
+            }
         }
 
         // --- 3. HIỂN THỊ ---
@@ -350,7 +378,7 @@
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
                 
-                // *** LOGIC MỚI V1.9: NẾU LÀ TUYẾN "MAYCAT" THÌ KHÔNG VẼ DÂY NỐI ***
+                // LOGIC V1.9: NẾU TUYẾN "MAYCAT" THÌ KHÔNG VẼ DÂY
                 if(l !== 'MAYCAT' && pts.length>1) {
                     L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 }
@@ -387,7 +415,7 @@
                 }
 
                 if(def.lineFrom !== def.lineTo) {
-                     pts = [p1, p2]; // Nối thẳng (Jump)
+                     pts = [p1, p2]; // Jump
                 } else {
                      pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
                 }
