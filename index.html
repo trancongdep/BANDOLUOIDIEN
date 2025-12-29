@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.14</title>
+    <title>Hệ Thống Lưới Điện - Version 1.17 (Exact Match)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* GIỮ NGUYÊN GIAO DIỆN CHUẨN */
+        /* GIỮ NGUYÊN GIAO DIỆN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
@@ -30,7 +30,7 @@
         label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .btn-check { background: #00897b; color: white; }
+        .btn-check { background: #00796b; color: white; }
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
@@ -42,7 +42,11 @@
         
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
-        /* ICONS & LEGEND */
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 140px; }
+        .legend h4 { margin: 0 0 8px 0; color: #004d40; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
+        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; }
+
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
@@ -50,9 +54,6 @@
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
-
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.8rem; min-width: 140px; }
-        .legend-icon { width: 14px; height: 14px; margin-right: 8px; display: inline-block; vertical-align: middle; }
 
         #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
     </style>
@@ -66,7 +67,7 @@
         
         <div class="content">
             <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
-                <label>1. Cập nhật Dữ liệu (v1.14 Fix):</label>
+                <label>1. Cập nhật Dữ liệu (v1.17 Exact):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
                 <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & So sánh</button>
@@ -99,7 +100,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.14<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.17<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -149,6 +150,7 @@
         let stagingData = null;
         let currentPath = [];
 
+        // --- LEGEND ---
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
@@ -170,23 +172,19 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA MỚI (ƯU TIÊN PHÂN BIỆT ĐẾN/TỪ) ---
+        // --- HÀM CHUẨN HÓA MỚI (TỐI ƯU CHO CSV) ---
         function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
-                
                 let standardKey = cleanKey;
-                // Ưu tiên check DEN trước để tránh bị TUYEN_DEN -> TUYEN_TU
-                if (cleanKey.includes("TUYEN") && (cleanKey.includes("DEN") || cleanKey.includes("DICH"))) standardKey = "TUYEN_DEN";
-                else if (cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
                 
-                if (cleanKey.includes("TRU") && (cleanKey.includes("DEN") || cleanKey.includes("DICH"))) standardKey = "TRU_DEN";
-                else if (cleanKey.includes("TRU") && (cleanKey.includes("TU") || cleanKey.includes("BATDAU"))) standardKey = "TRU_TU";
+                // Ưu tiên nhận diện ĐÚNG CỘT TUYẾN/TRỤ
+                if (cleanKey.includes("MATUYEN") || (cleanKey.includes("TUYEN") && !cleanKey.includes("DEN"))) standardKey = "TUYEN_TU";
+                if (cleanKey.includes("TUTRU") || (cleanKey.includes("TRUTU")) || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
                 
-                // Fallback cho file TOA_DO
-                if (cleanKey === "TENTRU" || cleanKey === "VITRI") standardKey = "TRU_TU";
-                if (cleanKey === "MATUYEN") standardKey = "TUYEN_TU";
+                if (cleanKey.includes("TUYENDEN")) standardKey = "TUYEN_DEN";
+                if (cleanKey.includes("TRUDEN") || cleanKey.includes("DENTRU")) standardKey = "TRU_DEN";
 
                 if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
                 if (cleanKey.includes("MADUONGDAY")) standardKey = "MA_DUONG_DAY";
@@ -194,20 +192,20 @@
                 n[standardKey] = obj[k];
                 n[cleanKey] = obj[k];
             });
-            
-            // Xử lý mặc định nếu thiếu
+            // Tương thích ngược: Nếu không có cột ĐẾN, gán bằng cột TỪ
             if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; 
-            if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
+            if (!n.TRU_DEN && n.TRU_TU) n.TRU_DEN = n.TRU_TU; // Cẩn thận chỗ này
 
             return n;
         }
 
-        // --- HÀM LÀM SẠCH CHUỖI ĐỂ SO SÁNH MỜ ---
+        // --- HÀM LÀM SẠCH TÊN ---
         function cleanString(str) {
             if (!str) return "";
             return String(str).trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); 
         }
 
+        // --- 1. XỬ LÝ FILE ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             document.getElementById('console').innerHTML = "";
@@ -243,23 +241,22 @@
 
         function processSheets(sheets) {
             const findS = k => Object.keys(sheets).find(n => n.includes(k));
-            
             const sPoles = findS("TOA_DO");
             const sSegs = findS("DM_DOAN");
             const sCircs = findS("CAU_HINH");
 
-            if(!sPoles) return log("❌ Lỗi: Không tìm thấy file TOA_DO", 'err');
-            if(!sSegs) return log("❌ Lỗi: Không tìm thấy file DM_DOAN", 'err');
-            if(!sCircs) return log("❌ Lỗi: Không tìm thấy file CAU_HINH", 'err');
+            if(!sPoles) return log("❌ Lỗi: Thiếu TOA_DO", 'err');
+            if(!sSegs) return log("❌ Lỗi: Thiếu DM_DOAN", 'err');
+            if(!sCircs) return log("❌ Lỗi: Thiếu CAU_HINH", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {} };
             let errors = 0;
 
             // 1. POLES
-            sheets[sPoles].forEach((r, idx) => {
+            sheets[sPoles].forEach((r) => {
                 let row = flexibleNorm(r);
-                let l = row.TUYEN_TU; // Trong TOA_DO, MA_TUYEN được map thành TUYEN_TU
-                let n = String(row.TRU_TU).trim(); // TEN_TRU map thành TRU_TU
+                let l = row.MA_TUYEN || row.TUYEN_TU; // Trong file TOA_DO, MA_TUYEN map về TUYEN_TU do logic norm
+                let n = String(row.TEN_TRU || row.TRU_TU).trim();
                 let type = String(row.LOAI_DIEM || "TRU_DO").trim().toUpperCase(); 
 
                 if(l && row.LAT) {
@@ -273,10 +270,9 @@
             for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
             // 2. SEGMENTS
-            sheets[sSegs].forEach((r, idx) => {
+            sheets[sSegs].forEach((r) => {
                 let row = flexibleNorm(r);
                 let id = row.MA_DOAN; 
-                
                 if(!id) return; 
 
                 let t_tu = row.TUYEN_TU;
@@ -284,39 +280,36 @@
                 let t_den = row.TUYEN_DEN;
                 let tr_den = String(row.TRU_DEN).trim();
 
-                if(!t_tu || !tr_tu || !tr_den) {
-                    log(`⚠️ Đoạn ${id}: Thiếu thông tin`, 'warn');
-                    errors++;
-                    return;
-                }
+                // Lấy thông tin TỪ và ĐẾN bằng cách tìm chính xác Tuyến + Trụ
+                // Nếu không thấy mới tìm Global
+                let p1 = getPoleExact(t_tu, tr_tu, data.poles);
+                let p2 = getPoleExact(t_den, tr_den, data.poles);
 
-                // Check link
-                let p1 = getPolePos(t_tu, tr_tu, data.poles);
-                let p2 = getPolePos(t_den, tr_den, data.poles);
+                // Fallback Global
+                if(!p1) p1 = getPoleGlobal(tr_tu, data.poles);
+                if(!p2) p2 = getPoleGlobal(tr_den, data.poles);
 
-                if(!p1) log(`⚠️ Đoạn ${id}: Không tìm thấy trụ đầu '${tr_tu}' (${t_tu})`, 'warn');
-                if(!p2) log(`⚠️ Đoạn ${id}: Không tìm thấy trụ cuối '${tr_den}' (${t_den})`, 'warn');
+                if(!p1) { log(`⚠️ Đoạn ${id}: Không tìm thấy trụ đầu '${tr_tu}' (Tuyến gốc: ${t_tu})`, 'warn'); errors++; }
+                if(!p2) { log(`⚠️ Đoạn ${id}: Không tìm thấy trụ cuối '${tr_den}' (Tuyến gốc: ${t_den})`, 'warn'); errors++; }
 
                 data.segments[id] = { 
                     id, 
                     type: (String(row.LOAI).includes("NGAM") ? "NGAM" : "NOI"), 
-                    lineFrom: t_tu, poleFrom: tr_tu, lineTo: t_den, poleTo: tr_den 
+                    lineFrom: p1 ? p1.foundRoute : t_tu, // Lưu tuyến thực tế tìm thấy
+                    poleFrom: tr_tu, 
+                    lineTo: p2 ? p2.foundRoute : t_den, 
+                    poleTo: tr_den 
                 };
             });
 
             // 3. CIRCUITS
-            sheets[sCircs].forEach((r, idx) => {
+            sheets[sCircs].forEach((r) => {
                 let row = flexibleNorm(r);
                 let cid = row.MA_DUONG_DAY;
                 let sid = row.MA_DOAN; 
-                
                 if(!sid) return;
 
-                if(!data.segments[sid]) {
-                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY trong DM_DOAN`, 'warn');
-                    errors++;
-                }
-
+                if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} thiếu đoạn ${sid}`, 'warn'); errors++; }
                 if(!data.circuits[cid]) data.circuits[cid]=[];
                 data.circuits[cid].push({ segId: sid, order: parseInt(row.STT||999) });
             });
@@ -330,21 +323,46 @@
             document.getElementById('upload-actions').style.display = "block";
         }
 
+        // --- HÀM TÌM CHÍNH XÁC (TUYẾN + TRỤ) ---
+        function getPoleExact(line, name, sourceData) {
+            let data = sourceData || appData.poles;
+            if (data[line]) {
+                let p = data[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
+                if (p) return { ...p, foundRoute: line };
+                
+                // Fuzzy trong cùng tuyến
+                let cleanName = cleanString(name);
+                p = data[line].find(item => cleanString(item.name) === cleanName);
+                if (p) return { ...p, foundRoute: line };
+            }
+            return null;
+        }
+
+        // --- HÀM TÌM TOÀN CỤC (CHỈ TÌM TÊN TRỤ) ---
+        function getPoleGlobal(name, sourceData) {
+            let data = sourceData || appData.poles;
+            let cleanName = cleanString(name);
+            
+            for (let l in data) {
+                let p = data[l].find(item => cleanString(item.name) === cleanName);
+                if (p) return { ...p, foundRoute: l };
+            }
+            return null;
+        }
+
         window.confirmUpload = function(mode) {
             if(!stagingData) return;
             if(mode === 'replace') {
-                if(!confirm("CẢNH BÁO: XÓA HẾT dữ liệu cũ trên Cloud?")) return;
+                if(!confirm("CẢNH BÁO: XÓA HẾT cũ và ghi mới?")) return;
                 window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
                     .then(() => log("✅ Thay thế thành công!", 'success'));
-            } 
-            else if (mode === 'merge') {
-                log("Đang gộp dữ liệu...", 'info');
+            } else {
                 let updates = {};
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
                 window.update(window.ref(window.db), updates)
-                    .then(() => log("✅ Đã gộp thành công!", 'success'));
+                    .then(() => log("✅ Gộp thành công!", 'success'));
             }
         }
 
@@ -378,58 +396,12 @@
             layers.bg.clearLayers(); layers.bgPoints.clearLayers(); layers.mc.clearLayers();
             if(appData.poles) for(let l in appData.poles) {
                 let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
-                
-                // KHÔNG VẼ DÂY NẾU LÀ TUYẾN "MAYCAT"
-                if(l !== 'MAYCAT' && pts.length>1) {
-                    L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
-                }
-                
+                if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 appData.poles[l].forEach(p => {
                     let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
                     L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name) }).addTo(layer).bindPopup(`<b>${p.name}</b><br>Loại: ${p.type}<br>Tuyến: ${l}`);
                 });
             }
-        }
-
-        function getPolePos(line, name, sourceData) {
-            let data = sourceData || appData.poles;
-            if(!data[line]) return null;
-            
-            // 1. Exact Match
-            let p = data[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
-            if (p) return p;
-
-            // 2. Fuzzy Match (Ignore special chars)
-            let cleanName = cleanString(name);
-            p = data[line].find(item => cleanString(item.name) === cleanName);
-            if (p) return p;
-
-            // 3. Logic MAYCAT (Find by number)
-            if (line === "MAYCAT") {
-                let targetNum = (String(name).match(/\d+/)||[null])[0];
-                if (targetNum) return data[line].find(p => p.name.includes(targetNum));
-            }
-            return null;
-        }
-
-        function getPoleRange(line, from, to) {
-            if(!appData.poles[line]) return [];
-            const lData = appData.poles[line];
-            
-            let p1 = getPolePos(line, from);
-            let p2 = getPolePos(line, to);
-            
-            if(!p1 || !p2) return [];
-            
-            // Sử dụng indexOf trên object đã tìm thấy (vì p1, p2 là tham chiếu)
-            let i1 = lData.indexOf(p1);
-            let i2 = lData.indexOf(p2);
-            
-            // Handle case where object references differ (e.g., loaded from different sources)
-            if (i1 === -1) i1 = lData.findIndex(p => p.name === p1.name);
-            if (i2 === -1) i2 = lData.findIndex(p => p.name === p2.name);
-
-            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
         window.drawCircuit = function() {
@@ -448,18 +420,25 @@
                 if(!def) return;
                 
                 let pts = [];
-                let p1 = getPolePos(def.lineFrom, def.poleFrom);
-                let p2 = getPolePos(def.lineTo, def.poleTo);
+                // LOGIC V1.16: Sử dụng hàm tìm kiếm chính xác + global
+                let p1 = getPoleExact(def.lineFrom, def.poleFrom) || getPoleGlobal(def.poleFrom);
+                let p2 = getPoleExact(def.lineTo, def.poleTo) || getPoleGlobal(def.poleTo);
 
                 if(!p1 || !p2) {
                     console.warn(`Thiếu tọa độ đoạn ${item.segId}`);
                     return;
                 }
 
-                if(def.lineFrom !== def.lineTo) {
-                     pts = [p1, p2]; 
+                // Vẽ
+                if(p1.foundRoute !== p2.foundRoute) {
+                     pts = [p1, p2]; // Jump
                 } else {
-                     pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
+                     // Nếu cùng tuyến, tìm trong mảng của tuyến đó
+                     const lData = appData.poles[p1.foundRoute];
+                     // Tìm index dựa trên object tham chiếu
+                     let i1 = lData.findIndex(p => p.name === p1.name);
+                     let i2 = lData.findIndex(p => p.name === p2.name);
+                     pts = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
                 }
 
                 if(pts.length) {
