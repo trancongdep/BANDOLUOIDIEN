@@ -3,55 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện - Version 1.5 (Standard)</title>
+    <title>Hệ Thống Lưới Điện - Version 1.7</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* LAYOUT */
+        /* CẤU TRÚC LAYOUT (GIỮ NGUYÊN) */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
         #sidebar { 
-            width: 420px; background: white; border-right: 1px solid #ccc; 
-            display: flex; flex-direction: column; z-index: 2000; 
+            width: 450px; 
+            background: white; 
+            border-right: 1px solid #ccc; 
+            display: flex; flex-direction: column; 
+            z-index: 2000; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
         }
 
-        .header { background: #00695c; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
-        .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+        .header { background: #006064; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 1.1rem; }
 
         .content { padding: 15px; overflow-y: auto; flex: 1; background: #fafafa; }
 
-        .footer { background: #263238; color: #eceff1; padding: 10px; text-align: center; font-size: 0.7rem; border-top: 3px solid #ff8f00; flex-shrink: 0; line-height: 1.4; }
+        .footer { background: #263238; color: #eceff1; padding: 10px; text-align: center; font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0; line-height: 1.4; }
         .footer strong { color: #ffca28; }
 
-        /* UI COMPONENTS */
-        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .card-header { font-weight: bold; color: #00695c; border-bottom: 2px solid #b2dfdb; padding-bottom: 5px; margin-bottom: 10px; font-size: 0.9rem; }
-        
-        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #455a64; }
+        /* UI ELEMENTS */
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .btn-check { background: #455a64; color: white; }
+        .btn-check { background: #5c6bc0; color: white; }
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button:disabled { background: #cfd8dc; color: #90a4ae; cursor: not-allowed; transform: none; }
+        button:hover { opacity: 0.9; } button:disabled { background: #ccc; cursor: not-allowed; }
 
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        #console { background: #263238; color: #80cbc4; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-top: 5px; border: 1px solid #37474f; }
         
-        /* Upload Options Area */
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
-        /* LEGEND ON MAP */
+        /* LEGEND */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); line-height: 20px; color: #333; font-size: 0.8rem; min-width: 140px; }
-        .legend h4 { margin: 0 0 8px 0; color: #00695c; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
+        .legend h4 { margin: 0 0 8px 0; color: #006064; font-size: 0.9rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 4px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
-        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; box-shadow: 1px 1px 2px rgba(0,0,0,0.3); vertical-align: middle; }
+        .legend-icon { width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle; }
 
         /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
@@ -74,11 +73,10 @@
         
         <div class="content">
             <div class="card" style="background:#e0f2f1; border-color:#b2dfdb;">
-                <div class="card-header">1. Cập nhật Dữ liệu (Strict)</div>
-                <label>Chọn file Excel/CSV:</label>
+                <label>1. Cập nhật Dữ liệu (Auto Fix):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 
-                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra Cấu trúc</button>
+                <button class="btn-check" onclick="window.analyzeFiles()">Kiểm tra & Sửa lỗi</button>
                 <div id="console">Sẵn sàng...</div>
 
                 <div id="upload-actions">
@@ -92,8 +90,7 @@
             </div>
 
             <div class="card">
-                <div class="card-header">2. Vận hành</div>
-                <label>Chọn Mạch:</label>
+                <label>2. Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
                     <option value="">-- Đang tải dữ liệu --</option>
                 </select>
@@ -101,8 +98,7 @@
             </div>
 
             <div class="card">
-                <div class="card-header">3. Tìm Sự Cố</div>
-                <label>Khoảng cách từ đầu nguồn (km):</label>
+                <label>3. Tìm Sự Cố:</label>
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <button class="btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result"></div>
@@ -110,7 +106,7 @@
         </div>
 
         <div class="footer">
-            Copyright <strong>TCD software</strong> @2025 - Version 1.5<br>
+            Copyright <strong>TCD software</strong> @2025 - Version 1.7<br>
             Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
@@ -184,13 +180,35 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM CHUẨN HÓA NGHIÊM NGẶT (STRICT) ---
-        function strictNorm(obj) {
+        // --- HÀM CHUẨN HÓA MỚI (CHẤP NHẬN BIẾN THỂ) ---
+        function flexibleNorm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
-                let key = String(k).trim().toUpperCase(); // Chỉ viết hoa, không bỏ dấu
-                n[key] = obj[k];
+                // Xóa ký tự lạ, viết hoa, xóa gạch dưới để so sánh dễ hơn
+                let cleanKey = String(k).toUpperCase().replace(/[^A-Z0-9]/g, ""); 
+                
+                // MAP KEY THÔNG MINH
+                let standardKey = cleanKey;
+                
+                if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU"; // Default
+                if (cleanKey.includes("TUTRU") || cleanKey === "TRUTU" || cleanKey.includes("VITRI") || cleanKey.includes("TENTRU")) standardKey = "TRU_TU";
+                
+                // Fix lỗi MADOAN vs MA_DOAN
+                if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
+                
+                if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
+                
+                // Mặc định giữ nguyên nếu không match
+                // Nhưng ta sẽ dùng key gốc được chuẩn hóa làm key chính
+                n[standardKey] = obj[k];
+                // Giữ cả key gốc được làm sạch để fallback
+                n[cleanKey] = obj[k];
             });
+            
+            // Xử lý các cột Đích (Đến)
+            if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; // Nếu không có tuyến đến, mặc định cùng tuyến
+            if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
+
             return n;
         }
 
@@ -229,12 +247,11 @@
         }
 
         function processSheets(sheets) {
-            // Tìm sheet theo từ khóa trong tên file
             const findS = k => Object.keys(sheets).find(n => n.includes(k));
             
             const sPoles = findS("TOA_DO");
             const sSegs = findS("DM_DOAN");
-            const sCircs = findS("CAU_HINH_MACH");
+            const sCircs = findS("CAU_HINH");
 
             if(!sPoles) return log("❌ Lỗi: Không tìm thấy file/sheet 'TOA_DO'", 'err');
             if(!sSegs) return log("❌ Lỗi: Không tìm thấy file/sheet 'DM_DOAN'", 'err');
@@ -245,55 +262,76 @@
 
             // 1. POLES
             sheets[sPoles].forEach((r, idx) => {
-                let row = strictNorm(r);
-                if(!row.MA_TUYEN || !row.TEN_TRU || !row.LAT || !row.LONG) return;
+                let row = flexibleNorm(r);
+                
+                // Tìm các biến thể của cột quan trọng
+                let l = row.MA_TUYEN || row.TUYEN || row.TUYEN_TU || row.MATUYEN;
+                let n = row.TEN_TRU || row.TRU || row.TRU_TU || row.VITRI || row.TENTRU;
+                
+                // Parse Type
+                let typeRaw = String(row.LOAI_DIEM || row.LOAI || "").toUpperCase();
+                let type = "TRU_DO"; 
+                if(typeRaw.includes("MC") || String(n).includes("TDC")) type = "MC";
+                else if(typeRaw.includes("NEO")) type = "TRU_NEO";
+                else if(typeRaw.includes("COT")) type = "COT_MOC";
+                else if(typeRaw.includes("MOC")) type = "MOC";
+                else if(typeRaw.includes("HAM")) type = "HAM_CAP";
 
-                let l = row.MA_TUYEN;
-                let n = String(row.TEN_TRU).trim();
-                let type = (row.LOAI_DIEM || "TRU_DO").trim().toUpperCase(); 
-
-                if(!data.poles[l]) data.poles[l]=[];
-                let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
-                data.poles[l].push({
-                    name: n, lat: parseFloat(row.LAT), lng: parseFloat(row.LONG), sort: sNum, type: type 
-                });
+                if(l && row.LAT) {
+                    if(!data.poles[l]) data.poles[l]=[];
+                    let sNum = parseInt((String(n).match(/\d+/)||[9999])[0]);
+                    data.poles[l].push({
+                        name:String(n).trim(), lat:parseFloat(row.LAT), lng:parseFloat(row.LONG), sort:sNum, type: type 
+                    });
+                }
             });
+            // Sort
             for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
             // 2. SEGMENTS
             sheets[sSegs].forEach((r, idx) => {
-                let row = strictNorm(r);
-                if(!row.MA_DOAN) return;
+                let row = flexibleNorm(r);
+                let id = row.MA_DOAN || row.MADOAN; // Fix lỗi chính ở đây
+                
+                if(!id) return; 
 
-                let id = row.MA_DOAN;
-                if(!row.TUYEN_TU || !row.TRU_TU || !row.TUYEN_DEN || !row.TRU_DEN) {
-                    log(`⚠️ Dòng ${idx+2} (DM_DOAN): Thiếu dữ liệu tuyến/trụ`, 'warn');
+                // Lấy thông tin tuyến/trụ
+                let t_tu = row.TUYEN_TU || row.MATUYEN;
+                let tr_tu = row.TRU_TU || row.TUTRU;
+                let t_den = row.TUYEN_DEN || row.TUYENDEN || t_tu;
+                let tr_den = row.TRU_DEN || row.DENTRU;
+
+                if(!t_tu || !tr_tu || !tr_den) {
+                    log(`⚠️ Đoạn ${id}: Thiếu thông tin`, 'warn');
                     errors++;
                     return;
                 }
 
                 data.segments[id] = { 
                     id, 
-                    type: (row.LOAI || "NOI").toUpperCase(), 
-                    lineFrom: row.TUYEN_TU, 
-                    poleFrom: String(row.TRU_TU).trim(), 
-                    lineTo: row.TUYEN_DEN, 
-                    poleTo: String(row.TRU_DEN).trim() 
+                    type: (String(row.LOAI).includes("NGAM") ? "NGAM" : "NOI"), 
+                    lineFrom: t_tu, 
+                    poleFrom: String(tr_tu).trim(), 
+                    lineTo: t_den, 
+                    poleTo: String(tr_den).trim() 
                 };
             });
 
             // 3. CIRCUITS
             sheets[sCircs].forEach((r, idx) => {
-                let row = strictNorm(r);
-                if(!row.MA_DUONG_DAY) return;
-
-                let cid = row.MA_DUONG_DAY;
-                let sid = row.MA_DOAN;
+                let row = flexibleNorm(r);
+                let cid = row.MA_DUONG_DAY || row.MADUONGDAY || row.MAMACH;
+                let sid = row.MA_DOAN || row.MADOAN; // Fix lỗi chính ở đây
                 
                 if(!sid) {
-                    log(`⚠️ Dòng ${idx+2} (CAU_HINH): Thiếu MA_DOAN`, 'warn');
-                    errors++;
+                    // Nếu dòng ko có mã đoạn, bỏ qua (có thể dòng trống)
                     return;
+                }
+
+                // Check link integrity
+                if(!data.segments[sid]) {
+                    log(`⚠️ Mạch ${cid} gọi đoạn ${sid} nhưng KHÔNG TÌM THẤY trong DM_DOAN`, 'warn');
+                    errors++;
                 }
 
                 if(!data.circuits[cid]) data.circuits[cid]=[];
@@ -303,10 +341,8 @@
 
             stagingData = data;
             
-            if(errors > 0) log(`⚠️ Có ${errors} cảnh báo.`, 'warn');
-            
-            log(`✅ Đã đọc: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
-            log(`👉 Hãy chọn GỘP hoặc THAY MỚI bên dưới.`);
+            log(`✅ Kết quả: ${Object.keys(data.poles).length} tuyến, ${Object.keys(data.circuits).length} mạch.`);
+            if(errors > 0) log(`⚠️ Có ${errors} cảnh báo (dữ liệu thiếu).`, 'warn');
             
             document.getElementById('upload-actions').style.display = "block";
         }
@@ -335,7 +371,7 @@
             }
         }
 
-        // --- 3. HIỂN THỊ ---
+        // --- VISUALIZATION ---
         window.listenCloud = function() {
             if(window.ref) {
                 window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
