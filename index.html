@@ -3,65 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Lưới Điện v16.0 (Smart Merge)</title>
+    <title>Hệ Thống Lưới Điện - Version 1.1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; }
-        #sidebar { width: 480px; background: white; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 2000; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .header { background: #37474f; color: white; padding: 15px; } .header h2 { margin: 0; font-size: 1.1rem; }
-        .content { padding: 15px; overflow-y: auto; flex: 1; }
+        /* CẤU TRÚC LAYOUT CHÍNH */
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        .admin-box { background: #e0f7fa; border: 1px dashed #006064; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
-        #console { background: #263238; color: #80cbc4; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 150px; overflow-y: auto; margin-top: 5px; white-space: pre-wrap; }
+        #sidebar { 
+            width: 450px; 
+            background: white; 
+            border-right: 1px solid #ccc; 
+            display: flex; 
+            flex-direction: column; /* Quan trọng để đẩy footer xuống đáy */
+            z-index: 2000; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
+        }
+
+        .header { 
+            background: #283593; 
+            color: white; 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        .header h2 { margin: 0; font-size: 1.1rem; }
+
+        /* CONTENT CUỘN ĐƯỢC */
+        .content { 
+            padding: 15px; 
+            overflow-y: auto; 
+            flex: 1; /* Chiếm toàn bộ khoảng trống còn lại */
+            background: #f5f5f5;
+        }
+
+        /* FOOTER CỐ ĐỊNH */
+        .footer {
+            background: #263238;
+            color: #eceff1;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.75rem;
+            border-top: 3px solid #ff6f00;
+            flex-shrink: 0; /* Không bị co lại */
+            line-height: 1.4;
+        }
+        .footer strong { color: #ffca28; }
+
+        /* CÁC PANEL & BUTTON */
+        .card { background: white; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        label { font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 5px; color: #333; }
         
         button { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .btn-analyze { background: #546e7a; color: white; }
-        .btn-merge { background: #00897b; color: white; } 
-        .btn-replace { background: #d32f2f; color: white; }
-        button:hover { opacity: 0.9; } button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-check { background: #5c6bc0; color: white; }
+        .btn-upload { background: #ff7043; color: white; }
+        .btn-find { background: #d32f2f; color: white; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
 
-        .stat-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: white; margin-right: 5px; }
-        .bg-new { background: #2e7d32; } .bg-dup { background: #f57c00; }
+        input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        /* Modal Style */
-        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 8px; text-align: center; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 8px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-top: 5px; }
+        
+        /* --- BỘ ICON --- */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        
+        .icon-mc { background: #d32f2f; border-radius: 3px; font-size: 10px; }
+        .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
+        .icon-tru-do { background: #1976d2; border-radius: 50%; }
+        .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
+        .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
+        .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
+
+        #result { display: none; background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; border-radius: 4px; margin-top: 10px; }
+        
+        /* Legend */
+        .legend-item { display: flex; align-items: center; margin-right: 10px; font-size: 0.75rem; margin-bottom: 4px; }
+        .legend-icon { width: 12px; height: 12px; margin-right: 4px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <div class="header"><h2><i class="fas fa-server"></i> Quản Lý Dữ Liệu (Smart Sync)</h2></div>
+        <div class="header">
+            <h2><i class="fas fa-map-marked-alt"></i> QUẢN LÝ LƯỚI ĐIỆN</h2>
+        </div>
+        
         <div class="content">
-            <div class="admin-box">
-                <label><b>1. Chọn File Excel:</b></label>
-                <input type="file" id="excelFile" accept=".xlsx, .csv" multiple style="width:100%; margin-bottom:10px"/>
-                
-                <button class="btn-analyze" onclick="analyzeAndCompare()">
-                    <i class="fas fa-search"></i> Kiểm tra Trùng lặp
-                </button>
-                
-                <div id="console">Chờ file...</div>
-
-                <div id="action-buttons" style="display:none; margin-top:10px; border-top:1px solid #ccc; padding-top:10px;">
-                    <p style="margin:0 0 5px 0; font-size:0.9rem; font-weight:bold;">Chọn phương thức Upload:</p>
-                    
-                    <button class="btn-merge" onclick="confirmUpload('merge')">
-                        <i class="fas fa-code-branch"></i> GỘP DỮ LIỆU (Giữ cũ + Thêm mới)
-                    </button>
-                    
-                    <button class="btn-replace" onclick="confirmUpload('replace')">
-                        <i class="fas fa-trash-alt"></i> XÓA CŨ - NẠP MỚI (Cẩn thận!)
-                    </button>
+            <div class="card" style="font-size: 0.8rem;">
+                <b>Chú thích:</b>
+                <div style="display:flex; flex-wrap:wrap; margin-top:5px;">
+                    <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:3px;"></span>MC</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span>Trụ Néo</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span>Trụ Đỡ</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span>Mốc Cáp</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#4a148c;"></span>Cột Mốc</div>
+                    <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span>Hầm</div>
                 </div>
             </div>
 
-            <div style="text-align:center; margin-bottom:10px;">
-                <button onclick="drawAll()" style="background:#1565c0; color:white;"><i class="fas fa-map"></i> Vẽ Lại Bản Đồ</button>
-             </div>
+            <div class="card" style="background:#e3f2fd;">
+                <label>1. Upload Dữ liệu:</label>
+                <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
+                <button class="btn-check" onclick="analyzeFiles()">Kiểm tra</button>
+                <div id="console">Sẵn sàng...</div>
+                <button class="btn-upload" id="btnUpload" onclick="uploadToCloud()" disabled>Upload Cloud</button>
+            </div>
+
+            <div class="card">
+                <label>2. Chọn Mạch:</label>
+                <select id="circuitSelect" onchange="drawCircuit()">
+                    <option value="">-- Đang tải --</option>
+                </select>
+                <div id="circuit-info" style="font-size:0.8rem; color:#666; margin-top:5px;"></div>
+            </div>
+
+            <div class="card">
+                <label>3. Tìm Sự Cố:</label>
+                <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
+                <button class="btn-find" onclick="findFault()">TÌM VỊ TRÍ</button>
+                <div id="result"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Copyright <strong>TCD software</strong> @2025 - Version 1.1<br>
+            Liên hệ: Trần Công Đẹp - 0963292882
         </div>
     </div>
     
@@ -73,224 +144,162 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = { apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", authDomain: "tavietnam-78ae8.firebaseapp.com", projectId: "tavietnam-78ae8", storageBucket: "tavietnam-78ae8.firebasestorage.app", messagingSenderId: "670121705534", appId: "1:670121705534:web:1027ad98550573ad37116f" };
-        const app = initializeApp(firebaseConfig);
-        window.db = getDatabase(app); window.set = set; window.ref = ref; window.get = get; window.update = update; window.onValue = onValue;
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
-        // Load data on start
+        // Cấu hình Firebase của bạn
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", 
+            authDomain: "tavietnam-78ae8.firebaseapp.com", 
+            projectId: "tavietnam-78ae8", 
+            storageBucket: "tavietnam-78ae8.firebasestorage.app", 
+            messagingSenderId: "670121705534", 
+            appId: "1:670121705534:web:1027ad98550573ad37116f" 
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        window.db = getDatabase(app); window.set = set; window.ref = ref; window.onValue = onValue;
         listenCloud();
     </script>
 
     <script>
         let map = L.map('map').setView([10.762, 106.660], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        let layers = { main: L.layerGroup().addTo(map) };
-
-        let localData = null; // Data from Excel
-        let cloudData = null; // Data from Firebase
-        let diffReport = null; // Result of comparison
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
+        
+        let layers = { 
+            bg: L.layerGroup().addTo(map), 
+            bgPoints: L.layerGroup().addTo(map),
+            main: L.layerGroup().addTo(map), 
+            fault: L.layerGroup().addTo(map) 
+        };
+        let appData = { poles: {}, segments: {}, circuits: {} };
+        let stagingData = null;
+        let currentPath = [];
 
         function log(msg, type='info') {
             const c = document.getElementById('console');
-            let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':(type=='success'?'#69f0ae':'#80cbc4'));
-            c.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+            c.innerHTML += `<div style="color:${type=='err'?'#ff5252':'#00e676'}">> ${msg}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
+        // Hàm chuẩn hóa dữ liệu (Bỏ dấu, fix lỗi gõ)
         function norm(obj) {
             let n = {};
             Object.keys(obj).forEach(k => {
                 let key = String(k).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").trim().toUpperCase().replace(/[^A-Z0-9]/g, "_");
-                if(key==='MADOAN'||key==='MADOANTUYEN') key='MA_DOAN';
+                if(key==='MA_TUYEN') key='TUYEN_TU'; if(key==='TU_TRU') key='TRU_TU'; if(key==='DEN_TRU') key='TRU_DEN';
                 n[key] = obj[k];
             });
+            if(n.TUYEN_TU && !n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU;
             return n;
         }
 
-        // 1. TẢI DỮ LIỆU TỪ CLOUD ĐỂ SO SÁNH
-        function listenCloud() {
-            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), (snap) => {
-                cloudData = snap.val() || { poles: {}, segments: {}, circuits: {} };
-            });
-        }
-
-        // 2. PHÂN TÍCH FILE VÀ SO SÁNH
-        function analyzeAndCompare() {
+        // --- 1. XỬ LÝ FILE ---
+        function analyzeFiles() {
             const input = document.getElementById('excelFile');
-            document.getElementById('action-buttons').style.display = 'none';
-            document.getElementById('console').innerHTML = "";
-            
-            if(!input.files.length) return log("Chưa chọn file!", 'err');
-
-            const promises = Array.from(input.files).map(readFile);
-            Promise.all(promises).then(res => {
-                let combined = {}; res.forEach(r => Object.assign(combined, r));
-                processAndCompare(combined);
-            }).catch(e => log(e.message, 'err'));
-        }
-
-        function readFile(file) {
-            return new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.onload = e => {
-                    const wb = XLSX.read(e.target.result, {type:'array'});
-                    let sheets = {};
-                    wb.SheetNames.forEach(n => sheets[n] = XLSX.utils.sheet_to_json(wb.Sheets[n]));
-                    resolve(sheets);
-                };
-                r.readAsArrayBuffer(file);
+            if(!input.files.length) return log("Chưa chọn file", 'err');
+            Promise.all(Array.from(input.files).map(readFile)).then(res => {
+                processSheets(Object.assign({}, ...res));
             });
         }
+        function readFile(f) { return new Promise(r => { const rd=new FileReader(); rd.onload=e=>{ const w=XLSX.read(e.target.result,{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(f); }); }
 
-        function processAndCompare(sheets) {
-            // ... (Giữ nguyên logic tìm sheet và parse dữ liệu giống v15.0) ...
-            const findS = (k) => Object.keys(sheets).find(n => k.some(x => n.toUpperCase().includes(x)));
-            const sPoles = findS(["TOA_DO","TRU"]); const sSegs = findS(["DOAN","SEG"]); const sCircs = findS(["CAU_HINH","MACH"]);
+        function processSheets(sheets) {
+            const findS = k => Object.keys(sheets).find(n => k.some(x => n.toUpperCase().includes(x)));
+            const sPoles=findS(["TRU","TOA"]), sSegs=findS(["DOAN","SEG"]), sCircs=findS(["MACH","CAU"]);
             
-            if(!sPoles || !sSegs || !sCircs) return log("❌ Thiếu Sheet cần thiết.", 'err');
+            if(!sPoles||!sSegs||!sCircs) return log("Thiếu sheet!", 'err');
 
-            let parsed = { poles: {}, segments: {}, circuits: {} };
-            
-            // Parse logic (rút gọn)
+            let data = { poles: {}, segments: {}, circuits: {} };
+
+            // 1. POLES & ASSETS
             sheets[sPoles].forEach(r => {
-                let row = norm(r); let l = row.MA_TUYEN||row.TUYEN; let n = row.TEN_TRU||row.VI_TRI;
-                if(!n && row.VI_TRI && row.VI_TRI.includes('_')) { let p=row.VI_TRI.split('_'); n=p[0]; l=p[1]; }
+                let row = norm(r);
+                let l = row.TUYEN_TU || row.TUYEN || row.MA_TUYEN;
+                let n = row.TRU_TU || row.TEN_TRU || row.TEN_DIEM || row.VI_TRI;
+                let typeRaw = (row.LOAI_DIEM || row.LOAI || "TRU_DO").toUpperCase().trim();
+                
+                // Chuẩn hóa Loại điểm
+                let type = "TRU_DO"; 
+                if(typeRaw.includes("MC") || typeRaw.includes("MAY")) type = "MC";
+                else if(typeRaw.includes("NEO")) type = "TRU_NEO";
+                else if(typeRaw.includes("COT_MOC")) type = "COT_MOC";
+                else if(typeRaw.includes("MOC")) type = "MOC";
+                else if(typeRaw.includes("HAM")) type = "HAM_CAP";
+                else if(typeRaw.includes("DO")) type = "TRU_DO";
+
                 if(l && row.LAT) {
-                    if(!parsed.poles[l]) parsed.poles[l] = [];
-                    parsed.poles[l].push({name:String(n).trim(), lat:row.LAT, lng:row.LONG, sort:parseInt((String(n).match(/\d+/)||[999])[0])});
+                    if(!data.poles[l]) data.poles[l]=[];
+                    let sNum = parseInt((String(n).match(/\d+/)||[9999])[0]);
+                    data.poles[l].push({
+                        name:String(n).trim(), lat:row.LAT, lng:row.LONG, sort:sNum, type: type 
+                    });
                 }
             });
-            for(let k in parsed.poles) parsed.poles[k].sort((a,b)=>a.sort-b.sort);
+            for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
 
+            // 2. SEGMENTS
             sheets[sSegs].forEach(r => {
                 let row = norm(r); let id = row.MA_DOAN;
-                if(id) parsed.segments[id] = { id, line: row.MA_TUYEN, from: String(row.TU_TRU).trim(), to: String(row.DEN_TRU).trim() };
+                if(id) data.segments[id] = { id, type:(row.LOAI||'NOI').toUpperCase(), lineFrom:row.TUYEN_TU, poleFrom:String(row.TRU_TU).trim(), lineTo:row.TUYEN_DEN, poleTo:String(row.TRU_DEN).trim() };
             });
 
+            // 3. CIRCUITS
             sheets[sCircs].forEach(r => {
                 let row = norm(r); let cid = row.MA_DUONG_DAY||row.MA_MACH;
                 if(cid && row.MA_DOAN) {
-                    if(!parsed.circuits[cid]) parsed.circuits[cid] = [];
-                    parsed.circuits[cid].push({ segId: row.MA_DOAN, order: parseInt(row.STT||999) });
+                    if(!data.circuits[cid]) data.circuits[cid]=[];
+                    data.circuits[cid].push({ segId:row.MA_DOAN, order:parseInt(row.STT||999) });
                 }
             });
+            for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
-            localData = parsed;
+            stagingData = data;
+            document.getElementById('btnUpload').disabled = false;
+            log(`Đã đọc ${Object.keys(data.poles).length} tuyến dây.`);
+        }
+
+        function uploadToCloud() {
+            window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(()=>log("Upload OK!"));
+        }
+
+        // --- 3. HIỂN THỊ ---
+        function listenCloud() {
+            window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
+                appData = snap.val() || {poles:{}, segments:{}, circuits:{}};
+                updateUI();
+                drawBg();
+            });
+        }
+
+        function updateUI() {
+            const s = document.getElementById('circuitSelect');
+            s.innerHTML = '<option value="">-- Chọn mạch --</option>';
+            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
+                let o = document.createElement('option'); o.value=k; o.text=k; s.add(o);
+            });
+        }
+
+        // Tạo Icon theo Loại
+        function createIcon(type, name) {
+            let className = 'my-icon icon-tru-do'; // Default
+            let size = [12, 12];
+            let html = '';
+
+            if(type === 'MC') { className = 'my-icon icon-mc'; size = [16, 16]; html = 'MC'; }
+            else if(type === 'TRU_NEO') { className = 'my-icon icon-tru-neo'; size = [12, 12]; }
+            else if(type === 'MOC') { className = 'my-icon icon-moc'; size = [8, 8]; }
+            else if(type === 'COT_MOC') { className = 'my-icon icon-cot-moc'; size = [10, 14]; }
+            else if(type === 'HAM_CAP') { className = 'my-icon icon-ham-cap'; size = [14, 10]; html = 'H'; }
             
-            // --- BẮT ĐẦU SO SÁNH (DIFF) ---
-            log("🔎 Đang so sánh với Cloud...", 'warn');
-            
-            let stats = {
-                poles: { new: 0, exist: 0 },
-                segments: { new: 0, exist: 0 },
-                circuits: { new: 0, exist: 0 }
-            };
-
-            // Check Poles (Routes)
-            Object.keys(localData.poles).forEach(k => {
-                if(cloudData && cloudData.poles && cloudData.poles[k]) stats.poles.exist++;
-                else stats.poles.new++;
-            });
-
-            // Check Segments
-            Object.keys(localData.segments).forEach(k => {
-                if(cloudData && cloudData.segments && cloudData.segments[k]) stats.segments.exist++;
-                else stats.segments.new++;
-            });
-
-            // Check Circuits
-            Object.keys(localData.circuits).forEach(k => {
-                if(cloudData && cloudData.circuits && cloudData.circuits[k]) stats.circuits.exist++;
-                else stats.circuits.new++;
-            });
-
-            // REPORT
-            log(`📊 KẾT QUẢ SO SÁNH:`);
-            log(`- Tuyến dây: ${stats.poles.new} mới, ${stats.poles.exist} trùng.`);
-            log(`- Đoạn mẫu: ${stats.segments.new} mới, ${stats.segments.exist} trùng.`);
-            log(`- Mạch điện: ${stats.circuits.new} mới, ${stats.circuits.exist} trùng.`);
-
-            if(stats.circuits.exist > 0) {
-                log(`⚠️ Chú ý: Có ${stats.circuits.exist} mạch đã tồn tại. Nếu chọn 'Gộp', sẽ ghi đè cấu hình mới cho mạch này.`, 'warn');
-            } else {
-                log(`✅ Dữ liệu hoàn toàn mới.`, 'success');
-            }
-
-            document.getElementById('action-buttons').style.display = 'block';
+            return L.divIcon({ className: className, html: html, iconSize: size, iconAnchor: [size[0]/2, size[1]/2] });
         }
 
-        // 3. THỰC HIỆN UPLOAD
-        function confirmUpload(mode) {
-            if(!localData) return;
+        function drawBg() {
+            layers.bg.clearLayers();
+            layers.bgPoints.clearLayers();
 
-            if(mode === 'replace') {
-                if(!confirm("CẢNH BÁO: Chế độ này sẽ XÓA SẠCH dữ liệu cũ trên Cloud và thay bằng file này. Bạn có chắc chắn không?")) return;
-                log("Đang xóa và ghi mới...", 'warn');
-                window.set(window.ref(window.db, 'he_thong_luoi_dien'), localData)
-                    .then(() => log("✅ Đã thay thế toàn bộ dữ liệu!", 'success'));
-            } 
-            else if (mode === 'merge') {
-                log("Đang gộp dữ liệu...", 'info');
-                
-                // Logic Merge: Dùng update() để không xóa các nhánh khác
-                let updates = {};
-
-                // Merge Poles
-                Object.keys(localData.poles).forEach(key => {
-                    updates[`he_thong_luoi_dien/poles/${key}`] = localData.poles[key];
-                });
-
-                // Merge Segments
-                Object.keys(localData.segments).forEach(key => {
-                    updates[`he_thong_luoi_dien/segments/${key}`] = localData.segments[key];
-                });
-
-                // Merge Circuits
-                Object.keys(localData.circuits).forEach(key => {
-                    updates[`he_thong_luoi_dien/circuits/${key}`] = localData.circuits[key];
-                });
-
-                window.update(window.ref(window.db), updates)
-                    .then(() => log("✅ Đã gộp thành công! Dữ liệu cũ không bị mất.", 'success'))
-                    .catch(e => log("Lỗi: " + e.message, 'err'));
-            }
-        }
-
-        // Map Drawing (Giữ nguyên từ bản trước)
-        function drawAll() {
-            layers.main.clearLayers();
-            if(!cloudData || !cloudData.circuits) return;
-            let keys = Object.keys(cloudData.circuits);
-            keys.forEach((cid, i) => {
-                let pts = getPoints(cid);
-                if(pts.length) {
-                    let offset = (i - keys.length/2)*5;
-                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:'blue', weight:2, offset:offset}).addTo(layers.main).bindPopup(cid);
-                }
-            });
-            if(keys.length) { let p=getPoints(keys[0]); if(p.length) map.fitBounds(p.map(x=>[x.lat,x.lng])); }
-        }
-
-        function getPoints(cid) {
-            let pts = [];
-            const segs = cloudData.circuits[cid];
-            segs.forEach(item => {
-                const def = cloudData.segments[item.segId];
-                if(def && cloudData.poles[def.line]) {
-                    const lData = cloudData.poles[def.line];
-                    let i1 = lData.findIndex(p=>p.name===def.from);
-                    let i2 = lData.findIndex(p=>p.name===def.to);
-                    if(i1>=0 && i2>=0) {
-                        let sub = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
-                        pts = pts.concat(sub);
-                    }
-                }
-            });
-            return pts;
-        }
-
-    </script>
-</body>
-</html>
+            if(appData.poles) for(let l in appData.poles) {
+                let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
+                // Vẽ dây mờ nền
+                if(pts.length>
