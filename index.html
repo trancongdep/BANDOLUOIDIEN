@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.31</title>
+    <title>Hệ Thống Lưới Điện - Version 1.32</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
         /* CSS CHUẨN */
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
+        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 85%; max-width: 400px; 
             height: calc(100% - 30px); 
@@ -39,6 +40,72 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
         }
 
+        /* --- WINDOWS STYLE DIALOG (NEW) --- */
+        #custom-confirm {
+            display: none; /* Mặc định ẩn */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Nền tối mờ */
+            z-index: 9999;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .win-dialog {
+            background: #f0f0f0;
+            width: 90%; max-width: 400px;
+            border: 1px solid #999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border-radius: 4px;
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .win-header {
+            background: white; /* Header trắng kiểu Win 10/11 */
+            padding: 8px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .win-title { font-weight: 600; font-size: 0.95rem; color: #333; }
+        .win-close { background: none; border: none; font-size: 1.2rem; color: #666; cursor: pointer; }
+        .win-close:hover { color: red; }
+
+        .win-body {
+            padding: 20px 15px;
+            font-size: 0.95rem; color: #333;
+            background: #fff;
+            display: flex; align-items: center;
+        }
+        .win-icon { font-size: 2rem; margin-right: 15px; color: #0078d7; } /* Icon xanh Windows */
+
+        .win-footer {
+            padding: 12px 15px;
+            background: #f3f3f3;
+            border-top: 1px solid #e0e0e0;
+            display: flex; justify-content: flex-end; gap: 10px;
+        }
+
+        .win-btn {
+            padding: 6px 20px;
+            border: 1px solid #ccc;
+            background: #e1e1e1;
+            color: #000;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 2px;
+            min-width: 80px;
+            transition: all 0.1s;
+        }
+        .win-btn:hover { background: #d1d1d1; border-color: #adadad; }
+        .win-btn.primary { 
+            background: #0078d7; color: white; border-color: #005a9e; 
+        }
+        .win-btn.primary:hover { background: #005a9e; }
+
+        /* --- CÁC PHẦN CŨ --- */
         .accordion {
             background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left;
             outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd;
@@ -55,7 +122,6 @@
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -75,6 +141,7 @@
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
+        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
@@ -83,6 +150,7 @@
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
+        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
@@ -90,6 +158,23 @@
 
     <div id="map" style="flex:1;"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
+
+    <div id="custom-confirm">
+        <div class="win-dialog">
+            <div class="win-header">
+                <span class="win-title">Xác nhận điều khiển</span>
+                <button class="win-close" onclick="closeWinDialog()">×</button>
+            </div>
+            <div class="win-body">
+                <i class="fas fa-question-circle win-icon"></i>
+                <span id="win-msg">Nội dung câu hỏi...</span>
+            </div>
+            <div class="win-footer">
+                <button class="win-btn primary" id="win-btn-yes">Yes</button>
+                <button class="win-btn" onclick="closeWinDialog()">No</button>
+            </div>
+        </div>
+    </div>
 
     <div id="sidebar">
         <div class="header">
@@ -131,7 +216,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.31</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.32</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -152,7 +237,7 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
         let layers = { bg: L.layerGroup().addTo(map), bgPoints: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
-        let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {} }; // Đổi thành mcStates để quản lý từng MC
+        let appData = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} }; 
         let stagingData = null;
         let currentPathTotalDist = 0; 
         let currentPath = [];
@@ -168,6 +253,34 @@
                 var panel = this.nextElementSibling;
                 if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = panel.scrollHeight + "px";
             });
+        }
+
+        // --- WINDOWS DIALOG LOGIC ---
+        let pendingMC = null;
+        window.showMCConfirm = function(mcName) {
+            let currentState = appData.mcStates[mcName] !== false; // true=Đóng, false=Mở
+            let actionText = currentState ? "MỞ (CẮT ĐIỆN)" : "ĐÓNG (CẤP ĐIỆN)";
+            let color = currentState ? "green" : "red";
+            
+            document.getElementById('win-msg').innerHTML = `Bạn có chắc chắn muốn <b>${actionText}</b> máy cắt <b>${mcName}</b> không?`;
+            pendingMC = mcName;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            
+            document.getElementById('win-btn-yes').onclick = function() {
+                executeMCToggle();
+                closeWinDialog();
+            };
+        }
+
+        window.closeWinDialog = function() {
+            document.getElementById('custom-confirm').style.display = 'none';
+            pendingMC = null;
+        }
+
+        function executeMCToggle() {
+            if(!pendingMC) return;
+            let newState = !(appData.mcStates[pendingMC] !== false);
+            window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [pendingMC]: newState });
         }
 
         var legendControl = L.control({position: 'bottomright'});
@@ -245,7 +358,7 @@
             const sPoles=findS("TOA_DO"), sSegs=findS("DM_DOAN"), sCircs=findS("CAU_HINH");
             if(!sPoles||!sSegs||!sCircs) return log("Thiếu file TOA_DO, DM_DOAN hoặc CAU_HINH", 'err');
 
-            let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
+            let data = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} };
             let errors = 0;
 
             let polesData = sheets[sPoles];
@@ -266,9 +379,7 @@
                         if(!data.poles[l]) data.poles[l]=[];
                         let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
                         data.poles[l].push({name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLong]), sort:sNum, type:t});
-                        
-                        // Khởi tạo trạng thái MC (Mặc định Đóng = true)
-                        if(t.includes('MC')) data.mcStates[n] = true;
+                        if(t.includes('MC')) data.mcStates[n] = true; 
                     }
                 });
                 for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
@@ -315,6 +426,7 @@
                     if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} không tồn tại`, 'warn'); errors++; }
                     if(!data.circuits[cid]) data.circuits[cid]=[];
                     data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
+                    data.states[cid] = false;
                 });
                 for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             }
@@ -334,7 +446,6 @@
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
-                // Merge mcStates
                 if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k => updates[`he_thong_luoi_dien/mcStates/${k}`] = stagingData.mcStates[k]);
                 window.update(window.ref(window.db), updates).then(()=>log("Gộp OK!",'success'));
             }
@@ -376,10 +487,8 @@
                 if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 appData.poles[l].forEach(p => {
                     let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
-                    // Lấy trạng thái MC nếu có
                     let isMCClosed = true;
                     if(p.type.includes('MC')) isMCClosed = appData.mcStates[p.name] !== false;
-                    
                     L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isMCClosed) }).addTo(layer).bindPopup(p.name);
                 });
             }
@@ -399,14 +508,6 @@
             return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
-        window.toggleMCState = function(mcName) {
-            let currentState = appData.mcStates[mcName] !== false; // Default true
-            let action = currentState ? "CẮT (MỞ)" : "ĐÓNG";
-            if(confirm(`Bạn có chắc muốn ${action} máy cắt ${mcName} không?`)) {
-                window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [mcName]: !currentState });
-            }
-        }
-
         window.drawCircuit = function() {
             const id = document.getElementById('circuitSelect').value;
             layers.main.clearLayers(); layers.fault.clearLayers(); layers.mc.clearLayers();
@@ -419,42 +520,28 @@
 
             const segs = appData.circuits[id];
             
-            // LOGIC TÍNH TOÁN NGUỒN (ĐA ĐIỂM)
-            // 1. Tìm tất cả MC trong mạch
+            // LOGIC SCADA ĐA ĐIỂM
             let connectedMCs = [];
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(def) {
-                    // Check nếu điểm đầu/cuối là MC (dựa vào tên trong TOA_DO)
-                    // Cần lấy type của điểm.
                     let p1 = getPole(def.lineFrom, def.poleFrom);
                     let p2 = getPole(def.lineTo, def.poleTo);
                     if(p1 && p1.type.includes('MC')) connectedMCs.push(p1.name);
                     if(p2 && p2.type.includes('MC')) connectedMCs.push(p2.name);
                 }
             });
-            // Unique MC list
             connectedMCs = [...new Set(connectedMCs)];
             
-            // 2. Kiểm tra trạng thái: Ít nhất 1 MC Đóng -> Có điện
             let isEnergized = false;
-            if(connectedMCs.length > 0) {
-                isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
-            } else {
-                // Nếu mạch không nối MC nào (vô lý nhưng đề phòng), mặc định đen? Hoặc coi như có điện?
-                // Theo yêu cầu: dây nhận điện từ MC. Không có MC -> Mất điện.
-                isEnergized = false; 
-            }
+            if(connectedMCs.length > 0) isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
 
-            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; // Đỏ hoặc Xanh
-            if(connectedMCs.length === 0) statusColor = '#000'; // Đen nếu ko có nguồn
+            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; // Đỏ (Có điện) / Xanh (An toàn)
+            if(connectedMCs.length === 0) statusColor = '#000';
 
             let statusText = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
-            if(connectedMCs.length === 0) statusText = 'KHÔNG CÓ NGUỒN';
-
             document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${statusText}</span>`;
 
-            // VẼ
             segs.forEach((item) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
@@ -470,19 +557,17 @@
                 if(pts.length) {
                     let isCable = (def.type.includes('NGAM'));
                     let color = statusColor;
-                    if (isCable) color = isEnergized ? '#7b1fa2' : '#000'; // Tím nếu có điện, Đen nếu mất
-                    
+                    if (isCable) color = isEnergized ? '#7b1fa2' : '#000';
                     L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray: isCable?"5,5":null}).addTo(layers.main);
                     
                     pts.forEach(p => {
                         let isMC = p.type.includes('MC');
-                        let mcState = appData.mcStates[p.name] !== false; // Default true
+                        let mcState = appData.mcStates[p.name] !== false;
                         let icon = createIcon(p.type, p.name, mcState);
                         
                         if(isMC) {
                             let marker = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(layers.main);
-                            // Sửa lỗi: Gọi hàm toggleMCState với tên MC
-                            marker.bindPopup(`<b>${p.name}</b><br>Trạng thái: ${mcState?'Đóng':'Mở'}<br>Click để thao tác`).on('click', () => window.toggleMCState(p.name));
+                            marker.bindPopup(`<b>${p.name}</b>`).on('click', () => window.showMCConfirm(p.name));
                         } else {
                             L.marker([p.lat, p.lng], { icon: icon }).addTo(layers.main).bindPopup(p.name);
                         }
@@ -499,7 +584,6 @@
         }
 
         window.findFault = function() {
-            // FIX: Xóa layer cũ ngay lập tức
             layers.fault.clearLayers();
             document.getElementById('result').style.display = 'none';
             document.getElementById('fault-info-box').style.display = 'none';
@@ -510,10 +594,7 @@
             let cName = document.getElementById('circuitSelect').value;
             let res = document.getElementById('result');
             
-            if(isNaN(kmInput)) return;
-            if(currentPath.length < 2) {
-                res.style.display = 'block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return;
-            }
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
 
             let targetDist = kmInput * 1000;
             if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
@@ -529,10 +610,8 @@
                 let p1 = currentPath[i-1], p2 = currentPath[i];
                 let segmentLen = p2.accDist - p1.accDist;
                 
-                // FIX: Thêm sai số nhỏ để bắt điểm
                 if (targetDist >= (p1.accDist - 0.1) && targetDist <= (p2.accDist + 0.1)) {
                     let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
-                    
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
 
@@ -541,7 +620,6 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    // Fix Google Maps Link (v1.28)
                     document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
