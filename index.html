@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.25</title>
+    <title>Hệ Thống Lưới Điện - Version 1.27 (Absolute Strict)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -12,22 +12,19 @@
         /* CSS CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        /* SIDEBAR (Trượt) */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 85%; max-width: 400px; 
-            height: calc(100% - 30px); /* Chừa chỗ cho footer */
+            height: calc(100% - 30px); 
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
         #sidebar.active { left: 0; }
 
-        .header { background: #b71c1c; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 1.1rem; }
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
-
-        /* FOOTER TOÀN MÀN HÌNH */
         .footer { 
             position: fixed; bottom: 0; left: 0; width: 100%; height: 30px;
             background: #212121; color: #eceff1; 
@@ -35,15 +32,13 @@
             font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000;
         }
 
-        /* BUTTONS */
         #menu-toggle {
             position: absolute; top: 10px; left: 10px; z-index: 2000;
-            background: #b71c1c; color: white; border: none;
+            background: #004d40; color: white; border: none;
             padding: 10px 15px; border-radius: 4px; cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
         }
 
-        /* ACCORDION */
         .accordion {
             background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left;
             outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd;
@@ -54,7 +49,6 @@
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; border-bottom: 1px solid #ddd; }
 
-        /* INPUTS & ACTIONS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 10px 0 5px; color: #333; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; }
         .btn-check { background: #00796b; color: white; }
@@ -62,25 +56,18 @@
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         
-        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
-        .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
-        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
         /* LEGEND */
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; /* Tránh footer */ }
-        .legend h4 { margin: 0 0 5px 0; color: #b71c1c; font-size: 0.85rem; border-bottom: 2px solid #ffcdd2; padding-bottom: 3px; font-weight: bold; }
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
+        .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        /* FAULT INFO BOX */
-        .fault-box { 
-            display: none; background: white; padding: 15px; border-radius: 8px; 
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); 
-            border-left: 5px solid #d32f2f;
-            width: 260px; font-size: 0.9rem; margin-bottom: 30px;
-        }
+        /* FAULT BOX */
+        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-bottom: 30px; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
@@ -95,14 +82,12 @@
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
-        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div id="map" style="flex:1;"></div>
-    
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
 
     <div id="sidebar">
@@ -114,7 +99,7 @@
             <button class="accordion">1. Cập nhật Dữ liệu</button>
             <div class="panel">
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict)</button>
+                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Chuẩn xác)</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions" style="display:none;">
                     <button class="action-btn btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU</button>
@@ -135,8 +120,8 @@
             <div class="panel">
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu nguồn</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
@@ -144,7 +129,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.25</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.27</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -183,7 +168,6 @@
             });
         }
 
-        // --- LEGEND CONTROL ---
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
@@ -205,7 +189,6 @@
         };
         legendControl.addTo(map);
 
-        // --- FAULT INFO CONTROL ---
         var faultControl = L.control({position: 'bottomright'});
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
@@ -230,26 +213,21 @@
             layers.fault.clearLayers();
         }
 
-        // --- CORE LOGIC (V1.20) ---
         function log(msg, type='info') {
             const c = document.getElementById('console');
             let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':(type=='success'?'#00e676':'#fff'));
             c.innerHTML += `<div style="color:${color}">> ${msg}</div>`; c.scrollTop = c.scrollHeight;
         }
 
-        function flexibleNorm(obj) {
-            let n = {};
-            Object.keys(obj).forEach(k => {
-                let cleanKey = String(k).replace(/[^a-zA-Z0-9_]/g, "").toUpperCase(); 
-                let standardKey = cleanKey;
-                if (cleanKey.includes("MATUYEN") || cleanKey.includes("TUYEN")) standardKey = "TUYEN_TU";
-                if (cleanKey.includes("TUTRU") || cleanKey.includes("TRUTU") || cleanKey.includes("VITRI")) standardKey = "TRU_TU";
-                if (cleanKey.includes("MADOAN")) standardKey = "MA_DOAN";
-                if (cleanKey.includes("MADUONGDAY") || cleanKey.includes("MAMACH")) standardKey = "MA_DUONG_DAY";
-                n[standardKey] = obj[k]; n[cleanKey] = obj[k];
-            });
-            if (!n.TUYEN_DEN) n.TUYEN_DEN = n.TUYEN_TU; if (!n.TRU_DEN && n.DENTRU) n.TRU_DEN = n.DENTRU; 
-            return n;
+        // --- HÀM TÌM CỘT CHÍNH XÁC ---
+        function getCol(row, candidates) {
+            let keys = Object.keys(row);
+            for (let c of candidates) {
+                // Loại bỏ BOM, so sánh chính xác
+                let match = keys.find(k => k.trim().replace(/^\uFEFF/, '') === c);
+                if (match) return match;
+            }
+            return null;
         }
 
         window.analyzeFiles = function() {
@@ -265,35 +243,87 @@
         function processSheets(sheets) {
             const findS = k => Object.keys(sheets).find(n => n.includes(k));
             const sPoles=findS("TOA_DO"), sSegs=findS("DM_DOAN"), sCircs=findS("CAU_HINH");
-            if(!sPoles||!sSegs||!sCircs) return log("Thiếu file bắt buộc!", 'err');
+            if(!sPoles||!sSegs||!sCircs) return log("Thiếu file TOA_DO, DM_DOAN hoặc CAU_HINH", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {}, states: {} };
-            
-            sheets[sPoles].forEach(r => {
-                let row = flexibleNorm(r);
-                let l=row.MA_TUYEN||row.TUYEN_TU, n=String(row.TEN_TRU||row.TRU_TU).trim(), t=String(row.LOAI_DIEM||"TRU_DO").trim().toUpperCase(); 
-                if(l && row.LAT) { if(!data.poles[l]) data.poles[l]=[]; data.poles[l].push({name:n, lat:parseFloat(row.LAT), lng:parseFloat(row.LONG), type:t}); }
-            });
+            let errors = 0;
 
-            sheets[sSegs].forEach(r => {
-                let row = flexibleNorm(r);
-                let id=row.MA_DOAN; 
-                if(id) data.segments[id] = { id, type:(String(row.LOAI).includes("NGAM")?"NGAM":"NOI"), lineFrom:row.TUYEN_TU, poleFrom:String(row.TRU_TU).trim(), lineTo:row.TUYEN_DEN, poleTo:String(row.TRU_DEN).trim() };
-            });
+            // 1. POLES
+            let polesData = sheets[sPoles];
+            if (polesData.length) {
+                let cMa = getCol(polesData[0], ["MA_TUYEN"]);
+                let cTen = getCol(polesData[0], ["TEN_TRU"]);
+                let cLat = getCol(polesData[0], ["LAT"]);
+                let cLong = getCol(polesData[0], ["LONG"]);
+                let cLoai = getCol(polesData[0], ["LOAI_DIEM"]);
 
-            sheets[sCircs].forEach(r => {
-                let row = flexibleNorm(r);
-                let cid=row.MA_DUONG_DAY;
-                if(cid && row.MA_DOAN) {
+                if(!cMa || !cTen || !cLat || !cLong) return log("File TOA_DO sai tên cột (MA_TUYEN, TEN_TRU, LAT, LONG)", 'err');
+
+                polesData.forEach(r => {
+                    let l = String(r[cMa]).trim(); 
+                    let n = String(r[cTen]).trim();
+                    let t = cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO"; 
+                    if(l && r[cLat]) {
+                        if(!data.poles[l]) data.poles[l]=[];
+                        let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
+                        data.poles[l].push({name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLong]), sort:sNum, type:t});
+                    }
+                });
+                for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
+            }
+
+            // 2. SEGMENTS
+            let segsData = sheets[sSegs];
+            if (segsData.length) {
+                let cId = getCol(segsData[0], ["MA_DOAN"]);
+                let cT1 = getCol(segsData[0], ["TUYEN_TU"]);
+                let cTr1 = getCol(segsData[0], ["TRU_TU"]);
+                let cT2 = getCol(segsData[0], ["TUYEN_DEN"]);
+                let cTr2 = getCol(segsData[0], ["TRU_DEN"]);
+                let cL = getCol(segsData[0], ["LOAI_DIEM", "LOAI"]);
+
+                if(!cId || !cT1 || !cTr1 || !cT2 || !cTr2) return log("File DM_DOAN sai tên cột (MA_DOAN, TUYEN_TU, TRU_TU, TUYEN_DEN, TRU_DEN)", 'err');
+
+                segsData.forEach(r => {
+                    let id = r[cId]; if(!id) return;
+                    let t1 = String(r[cT1]).trim(), tr1 = String(r[cTr1]).trim();
+                    let t2 = String(r[cT2]).trim(), tr2 = String(r[cTr2]).trim();
+
+                    // CHECK STRICT
+                    let p1 = data.poles[t1]?.find(p=>p.name===tr1);
+                    let p2 = data.poles[t2]?.find(p=>p.name===tr2);
+
+                    if(!p1) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr1}' ở tuyến '${t1}'`, 'warn'); errors++; }
+                    if(!p2) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr2}' ở tuyến '${t2}'`, 'warn'); errors++; }
+
+                    data.segments[id] = { id, type:(cL && String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom:t1, poleFrom:tr1, lineTo:t2, poleTo:tr2 };
+                });
+            }
+
+            // 3. CIRCUITS
+            let circsData = sheets[sCircs];
+            if (circsData.length) {
+                let cCid = getCol(circsData[0], ["MA_DUONG_DAY"]);
+                let cSid = getCol(circsData[0], ["MA_DOAN"]);
+                let cStt = getCol(circsData[0], ["STT"]);
+
+                if(!cCid || !cSid) return log("File CAU_HINH sai tên cột (MA_DUONG_DAY, MA_DOAN)", 'err');
+
+                circsData.forEach(r => {
+                    let cid = r[cCid];
+                    let sid = r[cSid];
+                    if(!sid) return;
+                    if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} không tồn tại`, 'warn'); errors++; }
                     if(!data.circuits[cid]) data.circuits[cid]=[];
-                    data.circuits[cid].push({ segId:row.MA_DOAN, order:parseInt(row.STT||999) });
+                    data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
                     data.states[cid] = false;
-                }
-            });
-            for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
+                });
+                for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
+            }
 
             stagingData = data;
-            log(`✅ Sẵn sàng upload.`);
+            if (errors>0) log(`🚫 CÓ ${errors} LỖI DỮ LIỆU.`, 'err');
+            else log(`✅ Dữ liệu chuẩn xác!`, 'success');
             document.getElementById('upload-actions').style.display = "block";
         }
 
@@ -311,7 +341,6 @@
             }
         }
 
-        // --- VISUALIZATION ---
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
@@ -348,15 +377,19 @@
             }
         }
 
-        function getPoleExact(line, name) {
+        // Exact Match
+        function getPole(line, name) {
             if(!appData.poles[line]) return null;
-            return appData.poles[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
+            return appData.poles[line].find(p => p.name === name);
         }
-        function getPoleGlobal(name) {
-            for(let l in appData.poles) {
-                let p = appData.poles[l].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
-                if(p) return {...p, foundRoute: l};
-            } return null;
+
+        function getPoleRange(line, from, to) {
+            if(!appData.poles[line]) return [];
+            const lData = appData.poles[line];
+            let i1 = lData.findIndex(p=>p.name===from);
+            let i2 = lData.findIndex(p=>p.name===to);
+            if(i1<0 || i2<0) return [];
+            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
         window.toggleCircuitState = function() {
@@ -375,23 +408,20 @@
 
             const segs = appData.circuits[id];
             let isClosed = appData.states[id] === true;
-            let statusColor = isClosed ? '#ff0000' : '#388e3c'; // ĐỎ TƯƠI
+            let statusColor = isClosed ? '#ff0000' : '#388e3c';
             document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${isClosed?'ĐANG ĐÓNG (CÓ ĐIỆN)':'ĐANG CẮT (AN TOÀN)'}</span>`;
 
             segs.forEach((item) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
                 
-                let p1 = getPoleExact(def.lineFrom, def.poleFrom) || getPoleGlobal(def.poleFrom);
-                let p2 = getPoleExact(def.lineTo, def.poleTo) || getPoleGlobal(def.poleTo);
+                let p1 = getPole(def.lineFrom, def.poleFrom);
+                let p2 = getPole(def.lineTo, def.poleTo);
                 if(!p1 || !p2) return;
 
-                let pts = [p1, p2];
-                if(def.lineFrom === def.lineTo && p1.foundRoute === p2.foundRoute) {
-                    let lData = appData.poles[p1.foundRoute];
-                    let i1 = lData.findIndex(p => p.name === p1.name), i2 = lData.findIndex(p => p.name === p2.name);
-                    pts = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
-                }
+                let pts = [];
+                if(def.lineFrom !== def.lineTo) pts = [p1, p2];
+                else pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
 
                 if(pts.length) {
                     let isCable = (def.type.includes('NGAM'));
@@ -424,17 +454,14 @@
             let direction = document.querySelector('input[name="faultDir"]:checked').value;
             let cName = document.getElementById('circuitSelect').value;
             let res = document.getElementById('result');
-            res.style.display = 'none'; // Ẩn lỗi cũ
+            res.style.display = 'none'; 
             
-            if(isNaN(kmInput)) return;
-            if(currentPath.length < 2) {
-                res.style.display = 'block'; res.innerHTML = "Vui lòng chọn mạch trước!"; return;
-            }
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.innerHTML='Chưa chọn mạch!'; return; }
 
             let targetDist = kmInput * 1000;
             if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
 
-            if (targetDist < 0 || targetDist > currentPathTotalDist + 10) { // Sai số 10m
+            if (targetDist < 0 || targetDist > currentPathTotalDist + 10) {
                 res.style.display = 'block';
                 res.className = 'warning-msg';
                 res.innerHTML = `<i class="fas fa-exclamation-circle"></i> <b>LỖI:</b> Khoảng cách ${kmInput}km vượt quá chiều dài dây (${(currentPathTotalDist/1000).toFixed(2)}km)`;
@@ -443,8 +470,11 @@
 
             for(let i=1; i<currentPath.length; i++) {
                 let p1 = currentPath[i-1], p2 = currentPath[i];
-                if (p2.accDist >= targetDist) {
-                    let ratio = (targetDist - p1.accDist) / (p2.accDist - p1.accDist);
+                let segmentLen = p2.accDist - p1.accDist;
+                
+                if (targetDist >= p1.accDist && targetDist <= p2.accDist) {
+                    let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
+                    
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
 
@@ -453,7 +483,7 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    document.getElementById('fi-addr').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
+                    document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
                      .addTo(layers.fault).bindPopup("ĐIỂM SỰ CỐ").openPopup();
