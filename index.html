@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.24</title>
+    <title>Hệ Thống Lưới Điện - Version 1.25</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CSS CHUẨN (Mobile First) */
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; background: #f0f2f5; overflow: hidden; }
+        /* CSS CHUẨN */
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        /* SIDEBAR */
+        /* SIDEBAR (Trượt) */
         #sidebar { 
-            position: fixed; top: 0; left: -100%; width: 85%; max-width: 400px; height: 100%;
+            position: fixed; top: 0; left: -100%; width: 85%; max-width: 400px; 
+            height: calc(100% - 30px); /* Chừa chỗ cho footer */
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
@@ -25,7 +26,14 @@
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
-        .footer { background: #212121; color: #eceff1; padding: 10px; text-align: center; font-size: 0.7rem; border-top: 3px solid #ff6f00; flex-shrink: 0; }
+
+        /* FOOTER TOÀN MÀN HÌNH */
+        .footer { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 30px;
+            background: #212121; color: #eceff1; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000;
+        }
 
         /* BUTTONS */
         #menu-toggle {
@@ -60,29 +68,27 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND (BOTTOM RIGHT) */
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; }
+        /* LEGEND */
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; /* Tránh footer */ }
         .legend h4 { margin: 0 0 5px 0; color: #b71c1c; font-size: 0.85rem; border-bottom: 2px solid #ffcdd2; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        /* FAULT INFO BOX (THAY THẾ LEGEND KHI TÌM SỰ CỐ) */
+        /* FAULT INFO BOX */
         .fault-box { 
-            display: none; /* Mặc định ẩn */
-            background: white; padding: 15px; border-radius: 8px; 
+            display: none; background: white; padding: 15px; border-radius: 8px; 
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); 
             border-left: 5px solid #d32f2f;
-            width: 250px; font-size: 0.9rem;
+            width: 260px; font-size: 0.9rem; margin-bottom: 30px;
         }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
-        .btn-close-fault:hover { background: #ddd; }
 
         /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc-on { background: #d32f2f; border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
@@ -90,13 +96,13 @@
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
         
-        /* WARNING BOX */
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div id="map" style="flex:1;"></div>
+    
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
 
     <div id="sidebar">
@@ -108,7 +114,7 @@
             <button class="accordion">1. Cập nhật Dữ liệu</button>
             <div class="panel">
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict Mode)</button>
+                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict)</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions" style="display:none;">
                     <button class="action-btn btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU</button>
@@ -136,8 +142,9 @@
                 <div id="result" style="display:none;"></div>
             </div>
         </div>
-        <div class="footer">Copyright TCD software @2025 - Version 1.24</div>
     </div>
+
+    <div class="footer">Copyright TCD software @2025 - Version 1.25</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -183,11 +190,11 @@
             div.id = "main-legend";
             div.innerHTML = `
                 <h4>CHÚ THÍCH</h4>
-                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f;"></span> Dây Đóng (Đỏ)</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện (Đỏ)</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#000;"></span> Mất điện/Chưa rõ</div>
                 <hr style="margin:5px 0;">
-                <div class="legend-item"><span class="legend-icon" style="background:#d32f2f; border-radius:2px;"></span> MC Đóng</div>
+                <div class="legend-item"><span class="legend-icon" style="background:#ff0000; border-radius:2px;"></span> MC Đóng</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#388e3c; border-radius:2px;"></span> MC Mở</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
@@ -198,7 +205,7 @@
         };
         legendControl.addTo(map);
 
-        // --- FAULT INFO CONTROL (ẨN MẶC ĐỊNH) ---
+        // --- FAULT INFO CONTROL ---
         var faultControl = L.control({position: 'bottomright'});
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
@@ -223,7 +230,7 @@
             layers.fault.clearLayers();
         }
 
-        // --- DATA LOGIC (STRICT v1.18) ---
+        // --- CORE LOGIC (V1.20) ---
         function log(msg, type='info') {
             const c = document.getElementById('console');
             let color = type=='err'?'#ff5252':(type=='warn'?'#ffab40':(type=='success'?'#00e676':'#fff'));
@@ -368,7 +375,7 @@
 
             const segs = appData.circuits[id];
             let isClosed = appData.states[id] === true;
-            let statusColor = isClosed ? '#d32f2f' : '#388e3c';
+            let statusColor = isClosed ? '#ff0000' : '#388e3c'; // ĐỎ TƯƠI
             document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${isClosed?'ĐANG ĐÓNG (CÓ ĐIỆN)':'ĐANG CẮT (AN TOÀN)'}</span>`;
 
             segs.forEach((item) => {
@@ -417,16 +424,17 @@
             let direction = document.querySelector('input[name="faultDir"]:checked').value;
             let cName = document.getElementById('circuitSelect').value;
             let res = document.getElementById('result');
+            res.style.display = 'none'; // Ẩn lỗi cũ
             
-            res.style.display = 'none'; // Ẩn thông báo cũ
-            
-            if(isNaN(kmInput) || currentPath.length<2) return;
+            if(isNaN(kmInput)) return;
+            if(currentPath.length < 2) {
+                res.style.display = 'block'; res.innerHTML = "Vui lòng chọn mạch trước!"; return;
+            }
 
             let targetDist = kmInput * 1000;
             if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
 
-            if (targetDist < 0 || targetDist > currentPathTotalDist) {
-                // Hiển thị lỗi cảnh báo ĐỎ
+            if (targetDist < 0 || targetDist > currentPathTotalDist + 10) { // Sai số 10m
                 res.style.display = 'block';
                 res.className = 'warning-msg';
                 res.innerHTML = `<i class="fas fa-exclamation-circle"></i> <b>LỖI:</b> Khoảng cách ${kmInput}km vượt quá chiều dài dây (${(currentPathTotalDist/1000).toFixed(2)}km)`;
@@ -440,15 +448,12 @@
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
 
-                    // ẨN LEGEND, HIỆN FAULT INFO
                     document.getElementById('main-legend').style.display = 'none';
-                    let fb = document.getElementById('fault-info-box');
-                    fb.style.display = 'block';
-                    
+                    document.getElementById('fault-info-box').style.display = 'block';
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    document.getElementById('fi-addr').innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
+                    document.getElementById('fi-addr').innerHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
                      .addTo(layers.fault).bindPopup("ĐIỂM SỰ CỐ").openPopup();
