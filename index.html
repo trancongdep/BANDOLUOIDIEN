@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.28</title>
+    <title>Hệ Thống Lưới Điện - Version 1.29</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CSS CHUẨN */
+        /* CSS CHUẨN (Mobile First) */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
+        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 85%; max-width: 400px; 
             height: calc(100% - 30px); 
@@ -55,7 +56,6 @@
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -63,6 +63,13 @@
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
+
+        /* SEPARATOR TRONG PANEL */
+        .section-divider { border-top: 2px dashed #ddd; margin: 15px 0; position: relative; }
+        .section-divider:after { 
+            content: 'TÌM SỰ CỐ'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); 
+            background: white; padding: 0 10px; color: #757575; font-size: 0.75rem; font-weight: bold; 
+        }
 
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
@@ -76,7 +83,8 @@
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
+        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
@@ -107,21 +115,23 @@
                 </div>
             </div>
 
-            <button class="accordion">2. Vận hành (SCADA)</button>
+            <button class="accordion">2. Vận hành & Tìm Sự Cố</button>
             <div class="panel">
+                <label>Chọn Mạch điện:</label>
                 <select id="circuitSelect" onchange="window.drawCircuit()">
-                    <option value="">-- Chọn mạch --</option>
+                    <option value="">-- Vui lòng chọn mạch --</option>
                 </select>
+                
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
                 <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
-            </div>
 
-            <button class="accordion">3. Tìm điểm Sự cố</button>
-            <div class="panel">
-                <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
+                <div class="section-divider"></div>
+
+                <label>Nhập khoảng cách sự cố (Km):</label>
+                <input type="number" id="faultKm" step="0.01" placeholder="Ví dụ: 2.5" />
                 <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu nguồn</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
@@ -129,7 +139,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.28</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.29</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -396,6 +406,8 @@
             layers.main.clearLayers(); layers.fault.clearLayers(); layers.mc.clearLayers();
             currentPath = []; currentPathTotalDist = 0; 
             document.getElementById('circuit-info').innerText = "";
+            document.getElementById('faultKm').value = ''; // Reset input
+            document.getElementById('result').style.display = 'none'; // Hide result
 
             if(!id || !appData.circuits[id]) { document.getElementById('status-text').innerText = "---"; return; }
 
@@ -449,7 +461,7 @@
             let res = document.getElementById('result');
             res.style.display = 'none'; 
             
-            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.innerHTML='Chưa chọn mạch!'; return; }
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
 
             let targetDist = kmInput * 1000;
             if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
@@ -465,7 +477,8 @@
                 let p1 = currentPath[i-1], p2 = currentPath[i];
                 let segmentLen = p2.accDist - p1.accDist;
                 
-                if (targetDist >= p1.accDist && targetDist <= p2.accDist) {
+                // Cho phép sai số nhỏ do làm tròn
+                if (targetDist >= (p1.accDist - 0.1) && targetDist <= (p2.accDist + 0.1)) {
                     let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
                     
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
@@ -476,7 +489,8 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    document.getElementById('fi-addr').innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
+                    // Fix Google Maps Link
+                    document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
                      .addTo(layers.fault).bindPopup("ĐIỂM SỰ CỐ").openPopup();
