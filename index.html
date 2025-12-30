@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.30</title>
+    <title>Hệ Thống Lưới Điện - Version 1.31</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -64,20 +64,17 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        /* FAULT BOX */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-bottom: 30px; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
-        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
@@ -86,12 +83,7 @@
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
-        
-        .warning-msg { 
-            color: #d32f2f; background: #ffebee; padding: 10px; 
-            border-radius: 4px; border: 1px solid #ffcdd2; 
-            margin-top: 10px; font-size: 0.9rem; display: none;
-        }
+        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -134,12 +126,12 @@
                     <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
-                <div id="result" class="warning-msg"></div>
+                <div id="result" style="display:none;"></div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.30</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.31</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -160,7 +152,7 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
         let layers = { bg: L.layerGroup().addTo(map), bgPoints: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
-        let appData = { poles: {}, segments: {}, circuits: {}, states: {} }; 
+        let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {} }; // Đổi thành mcStates để quản lý từng MC
         let stagingData = null;
         let currentPathTotalDist = 0; 
         let currentPath = [];
@@ -253,7 +245,7 @@
             const sPoles=findS("TOA_DO"), sSegs=findS("DM_DOAN"), sCircs=findS("CAU_HINH");
             if(!sPoles||!sSegs||!sCircs) return log("Thiếu file TOA_DO, DM_DOAN hoặc CAU_HINH", 'err');
 
-            let data = { poles: {}, segments: {}, circuits: {}, states: {} };
+            let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
             let errors = 0;
 
             let polesData = sheets[sPoles];
@@ -274,6 +266,9 @@
                         if(!data.poles[l]) data.poles[l]=[];
                         let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
                         data.poles[l].push({name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLong]), sort:sNum, type:t});
+                        
+                        // Khởi tạo trạng thái MC (Mặc định Đóng = true)
+                        if(t.includes('MC')) data.mcStates[n] = true;
                     }
                 });
                 for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
@@ -320,7 +315,6 @@
                     if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} không tồn tại`, 'warn'); errors++; }
                     if(!data.circuits[cid]) data.circuits[cid]=[];
                     data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
-                    data.states[cid] = false;
                 });
                 for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             }
@@ -340,7 +334,8 @@
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
-                if(stagingData.states) Object.keys(stagingData.states).forEach(k => updates[`he_thong_luoi_dien/states/${k}`] = false);
+                // Merge mcStates
+                if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k => updates[`he_thong_luoi_dien/mcStates/${k}`] = stagingData.mcStates[k]);
                 window.update(window.ref(window.db), updates).then(()=>log("Gộp OK!",'success'));
             }
         }
@@ -348,7 +343,12 @@
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
-                if(val) { appData = val; if(!appData.states) appData.states={}; updateUI(); drawBg(); if(document.getElementById('circuitSelect').value) window.drawCircuit(); }
+                if(val) { 
+                    appData = val; 
+                    if(!appData.mcStates) appData.mcStates={}; 
+                    updateUI(); drawBg(); 
+                    if(document.getElementById('circuitSelect').value) window.drawCircuit(); 
+                }
             });
         }
 
@@ -376,7 +376,11 @@
                 if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
                 appData.poles[l].forEach(p => {
                     let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
-                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, true) }).addTo(layer).bindPopup(p.name);
+                    // Lấy trạng thái MC nếu có
+                    let isMCClosed = true;
+                    if(p.type.includes('MC')) isMCClosed = appData.mcStates[p.name] !== false;
+                    
+                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isMCClosed) }).addTo(layer).bindPopup(p.name);
                 });
             }
         }
@@ -395,10 +399,12 @@
             return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
-        window.toggleCircuitState = function() {
-            let cid = document.getElementById('circuitSelect').value;
-            if(!cid) return;
-            window.update(window.ref(window.db, 'he_thong_luoi_dien/states'), { [cid]: !appData.states[cid] });
+        window.toggleMCState = function(mcName) {
+            let currentState = appData.mcStates[mcName] !== false; // Default true
+            let action = currentState ? "CẮT (MỞ)" : "ĐÓNG";
+            if(confirm(`Bạn có chắc muốn ${action} máy cắt ${mcName} không?`)) {
+                window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [mcName]: !currentState });
+            }
         }
 
         window.drawCircuit = function() {
@@ -412,10 +418,43 @@
             if(!id || !appData.circuits[id]) { document.getElementById('status-text').innerText = "---"; return; }
 
             const segs = appData.circuits[id];
-            let isClosed = appData.states[id] === true;
-            let statusColor = isClosed ? '#ff0000' : '#388e3c';
-            document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${isClosed?'ĐANG ĐÓNG (CÓ ĐIỆN)':'ĐANG CẮT (AN TOÀN)'}</span>`;
+            
+            // LOGIC TÍNH TOÁN NGUỒN (ĐA ĐIỂM)
+            // 1. Tìm tất cả MC trong mạch
+            let connectedMCs = [];
+            segs.forEach(item => {
+                let def = appData.segments[item.segId];
+                if(def) {
+                    // Check nếu điểm đầu/cuối là MC (dựa vào tên trong TOA_DO)
+                    // Cần lấy type của điểm.
+                    let p1 = getPole(def.lineFrom, def.poleFrom);
+                    let p2 = getPole(def.lineTo, def.poleTo);
+                    if(p1 && p1.type.includes('MC')) connectedMCs.push(p1.name);
+                    if(p2 && p2.type.includes('MC')) connectedMCs.push(p2.name);
+                }
+            });
+            // Unique MC list
+            connectedMCs = [...new Set(connectedMCs)];
+            
+            // 2. Kiểm tra trạng thái: Ít nhất 1 MC Đóng -> Có điện
+            let isEnergized = false;
+            if(connectedMCs.length > 0) {
+                isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
+            } else {
+                // Nếu mạch không nối MC nào (vô lý nhưng đề phòng), mặc định đen? Hoặc coi như có điện?
+                // Theo yêu cầu: dây nhận điện từ MC. Không có MC -> Mất điện.
+                isEnergized = false; 
+            }
 
+            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; // Đỏ hoặc Xanh
+            if(connectedMCs.length === 0) statusColor = '#000'; // Đen nếu ko có nguồn
+
+            let statusText = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
+            if(connectedMCs.length === 0) statusText = 'KHÔNG CÓ NGUỒN';
+
+            document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${statusText}</span>`;
+
+            // VẼ
             segs.forEach((item) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
@@ -431,14 +470,19 @@
                 if(pts.length) {
                     let isCable = (def.type.includes('NGAM'));
                     let color = statusColor;
-                    if (isCable) color = isClosed ? '#7b1fa2' : '#000';
+                    if (isCable) color = isEnergized ? '#7b1fa2' : '#000'; // Tím nếu có điện, Đen nếu mất
+                    
                     L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray: isCable?"5,5":null}).addTo(layers.main);
                     
                     pts.forEach(p => {
-                        let icon = createIcon(p.type, p.name, isClosed);
-                        if(p.type.includes('MC')) {
-                            L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(layers.main)
-                             .bindPopup(`<b>${p.name}</b><br>Click để Đóng/Cắt`).on('click', window.toggleCircuitState);
+                        let isMC = p.type.includes('MC');
+                        let mcState = appData.mcStates[p.name] !== false; // Default true
+                        let icon = createIcon(p.type, p.name, mcState);
+                        
+                        if(isMC) {
+                            let marker = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(layers.main);
+                            // Sửa lỗi: Gọi hàm toggleMCState với tên MC
+                            marker.bindPopup(`<b>${p.name}</b><br>Trạng thái: ${mcState?'Đóng':'Mở'}<br>Click để thao tác`).on('click', () => window.toggleMCState(p.name));
                         } else {
                             L.marker([p.lat, p.lng], { icon: icon }).addTo(layers.main).bindPopup(p.name);
                         }
@@ -497,6 +541,7 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
+                    // Fix Google Maps Link (v1.28)
                     document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
