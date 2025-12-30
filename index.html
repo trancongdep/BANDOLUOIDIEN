@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.27 (Absolute Strict)</title>
+    <title>Hệ Thống Lưới Điện - Version 1.28</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -55,28 +55,28 @@
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
+        .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
+        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        /* FAULT BOX */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-bottom: 30px; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
-        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
-        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        .icon-mc { background: #d32f2f; border-radius: 2px; font-size: 10px; border: 2px solid white; z-index: 1000 !important; } 
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
@@ -99,7 +99,7 @@
             <button class="accordion">1. Cập nhật Dữ liệu</button>
             <div class="panel">
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Chuẩn xác)</button>
+                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict)</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions" style="display:none;">
                     <button class="action-btn btn-merge" onclick="window.confirmUpload('merge')">GỘP DỮ LIỆU</button>
@@ -120,8 +120,8 @@
             <div class="panel">
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu nguồn</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
@@ -129,7 +129,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.27</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.28</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -219,11 +219,9 @@
             c.innerHTML += `<div style="color:${color}">> ${msg}</div>`; c.scrollTop = c.scrollHeight;
         }
 
-        // --- HÀM TÌM CỘT CHÍNH XÁC ---
         function getCol(row, candidates) {
             let keys = Object.keys(row);
             for (let c of candidates) {
-                // Loại bỏ BOM, so sánh chính xác
                 let match = keys.find(k => k.trim().replace(/^\uFEFF/, '') === c);
                 if (match) return match;
             }
@@ -248,7 +246,6 @@
             let data = { poles: {}, segments: {}, circuits: {}, states: {} };
             let errors = 0;
 
-            // 1. POLES
             let polesData = sheets[sPoles];
             if (polesData.length) {
                 let cMa = getCol(polesData[0], ["MA_TUYEN"]);
@@ -257,7 +254,7 @@
                 let cLong = getCol(polesData[0], ["LONG"]);
                 let cLoai = getCol(polesData[0], ["LOAI_DIEM"]);
 
-                if(!cMa || !cTen || !cLat || !cLong) return log("File TOA_DO sai tên cột (MA_TUYEN, TEN_TRU, LAT, LONG)", 'err');
+                if(!cMa || !cTen || !cLat || !cLong) return log("File TOA_DO sai tên cột", 'err');
 
                 polesData.forEach(r => {
                     let l = String(r[cMa]).trim(); 
@@ -272,7 +269,6 @@
                 for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
             }
 
-            // 2. SEGMENTS
             let segsData = sheets[sSegs];
             if (segsData.length) {
                 let cId = getCol(segsData[0], ["MA_DOAN"]);
@@ -282,14 +278,13 @@
                 let cTr2 = getCol(segsData[0], ["TRU_DEN"]);
                 let cL = getCol(segsData[0], ["LOAI_DIEM", "LOAI"]);
 
-                if(!cId || !cT1 || !cTr1 || !cT2 || !cTr2) return log("File DM_DOAN sai tên cột (MA_DOAN, TUYEN_TU, TRU_TU, TUYEN_DEN, TRU_DEN)", 'err');
+                if(!cId || !cT1 || !cTr1 || !cT2 || !cTr2) return log("File DM_DOAN sai tên cột", 'err');
 
                 segsData.forEach(r => {
                     let id = r[cId]; if(!id) return;
                     let t1 = String(r[cT1]).trim(), tr1 = String(r[cTr1]).trim();
                     let t2 = String(r[cT2]).trim(), tr2 = String(r[cTr2]).trim();
 
-                    // CHECK STRICT
                     let p1 = data.poles[t1]?.find(p=>p.name===tr1);
                     let p2 = data.poles[t2]?.find(p=>p.name===tr2);
 
@@ -300,14 +295,13 @@
                 });
             }
 
-            // 3. CIRCUITS
             let circsData = sheets[sCircs];
             if (circsData.length) {
                 let cCid = getCol(circsData[0], ["MA_DUONG_DAY"]);
                 let cSid = getCol(circsData[0], ["MA_DOAN"]);
                 let cStt = getCol(circsData[0], ["STT"]);
 
-                if(!cCid || !cSid) return log("File CAU_HINH sai tên cột (MA_DUONG_DAY, MA_DOAN)", 'err');
+                if(!cCid || !cSid) return log("File CAU_HINH sai tên cột", 'err');
 
                 circsData.forEach(r => {
                     let cid = r[cCid];
@@ -377,7 +371,6 @@
             }
         }
 
-        // Exact Match
         function getPole(line, name) {
             if(!appData.poles[line]) return null;
             return appData.poles[line].find(p => p.name === name);
@@ -483,7 +476,7 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
+                    document.getElementById('fi-addr').innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
                      .addTo(layers.fault).bindPopup("ĐIỂM SỰ CỐ").openPopup();
