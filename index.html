@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.35</title>
+    <title>Hệ Thống Lưới Điện - Version 1.36</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -39,7 +39,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
         }
 
-        /* WINDOWS DIALOG */
+        /* CUSTOM WINDOWS DIALOG */
         #custom-confirm {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); z-index: 9999;
@@ -71,7 +71,6 @@
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -91,6 +90,7 @@
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
+        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
@@ -143,8 +143,8 @@
 
             <button class="accordion">2. Vận hành & Tìm Sự Cố</button>
             <div class="panel">
-                <label>Chọn Mạch điện:</label>
-                <select id="circuitSelect" onchange="window.drawCircuit()">
+                <label>Chọn Mạch (Để Zoom nhanh):</label>
+                <select id="circuitSelect" onchange="window.highlightCircuit()">
                     <option value="">-- Chọn mạch --</option>
                 </select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
@@ -164,7 +164,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.35</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.36</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -184,11 +184,16 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
-        let layers = { bg: L.layerGroup().addTo(map), bgPoints: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
+        let layers = { 
+            bg: L.layerGroup().addTo(map), // Chứa toàn bộ dây và trụ
+            highlight: L.layerGroup().addTo(map), // Chứa viền vàng khi chọn mạch
+            mc: L.layerGroup().addTo(map), // Chứa MC để nằm trên cùng
+            fault: L.layerGroup().addTo(map) 
+        };
         let appData = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} }; 
         let stagingData = null;
-        let currentPathTotalDist = 0; 
-        let currentPath = [];
+        let activeCircuitPath = []; // Lưu path của mạch đang chọn để tìm sự cố
+        let activeCircuitDist = 0;
 
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
@@ -203,15 +208,12 @@
             });
         }
 
-        // --- RESIZE PANEL (FIX UI BUG) ---
         function refreshPanelHeight(panelId) {
             let panel = document.getElementById(panelId);
-            if (panel.style.maxHeight) {
-                panel.style.maxHeight = panel.scrollHeight + "px";
-            }
+            if (panel.style.maxHeight) panel.style.maxHeight = panel.scrollHeight + "px";
         }
 
-        // --- DIALOG SYSTEM ---
+        // DIALOG
         let pendingAction = null; 
         window.showMCConfirm = function(mcName) {
             let currentState = appData.mcStates[mcName] !== false; 
@@ -220,29 +222,19 @@
             pendingAction = { type: 'mc', name: mcName };
             document.getElementById('custom-confirm').style.display = 'flex';
         }
-
         window.showUploadConfirm = function(mode) {
-            let msg = mode === 'merge' 
-                ? "Bạn có chắc muốn <b>GỘP</b> dữ liệu mới vào dữ liệu cũ không?" 
-                : "CẢNH BÁO: Bạn có chắc muốn <b>XÓA TOÀN BỘ</b> dữ liệu cũ và ghi mới?";
+            let msg = mode === 'merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?";
             document.getElementById('win-msg').innerHTML = msg;
             pendingAction = { type: 'upload', mode: mode };
             document.getElementById('custom-confirm').style.display = 'flex';
         }
-
-        window.closeWinDialog = function() {
-            document.getElementById('custom-confirm').style.display = 'none';
-            pendingAction = null;
-        }
-
+        window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; pendingAction = null; }
         document.getElementById('win-btn-yes').onclick = function() {
             if (!pendingAction) return;
             if (pendingAction.type === 'mc') {
                 let mcName = pendingAction.name;
-                let newState = !(appData.mcStates[mcName] !== false);
-                window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [mcName]: newState });
-            } 
-            else if (pendingAction.type === 'upload') {
+                window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [mcName]: !(appData.mcStates[mcName] !== false) });
+            } else if (pendingAction.type === 'upload') {
                 executeUpload(pendingAction.mode);
             }
             closeWinDialog();
@@ -250,17 +242,14 @@
 
         function executeUpload(mode) {
             if(!stagingData) return;
-            if(mode === 'replace') {
-                window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData)
-                    .then(() => log("✅ Thay thế thành công!", 'success'));
-            } else {
+            if(mode === 'replace') window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(() => log("✅ Thay thế thành công!", 'success'));
+            else {
                 let updates = {};
                 Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
                 Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
                 Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
                 if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k => updates[`he_thong_luoi_dien/mcStates/${k}`] = stagingData.mcStates[k]);
-                window.update(window.ref(window.db), updates)
-                    .then(() => log("✅ Gộp thành công!", 'success'));
+                window.update(window.ref(window.db), updates).then(() => log("✅ Gộp thành công!", 'success'));
             }
         }
 
@@ -279,7 +268,6 @@
                 <div class="legend-item"><span class="legend-icon" style="background:#ff6f00; transform:rotate(45deg);"></span> Trụ Néo</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#1976d2; border-radius:50%;"></span> Trụ Đỡ</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#7b1fa2;"></span> Mốc Cáp</div>
-                <div class="legend-item"><span class="legend-icon" style="background:#5d4037; border-radius:4px;"></span> Hầm Cáp</div>
             `;
             return div;
         };
@@ -337,7 +325,7 @@
         function processSheets(sheets) {
             const findS = k => Object.keys(sheets).find(n => n.includes(k));
             const sPoles=findS("TOA_DO"), sSegs=findS("DM_DOAN"), sCircs=findS("CAU_HINH");
-            if(!sPoles||!sSegs||!sCircs) return log("Thiếu file TOA_DO, DM_DOAN hoặc CAU_HINH", 'err');
+            if(!sPoles||!sSegs||!sCircs) return log("Thiếu file bắt buộc!", 'err');
 
             let data = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} };
             let errors = 0;
@@ -349,13 +337,9 @@
                 let cLat = getCol(polesData[0], ["LAT"]);
                 let cLong = getCol(polesData[0], ["LONG"]);
                 let cLoai = getCol(polesData[0], ["LOAI_DIEM"]);
-
                 if(!cMa || !cTen || !cLat || !cLong) return log("File TOA_DO sai tên cột", 'err');
-
                 polesData.forEach(r => {
-                    let l = String(r[cMa]).trim(); 
-                    let n = String(r[cTen]).trim();
-                    let t = cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO"; 
+                    let l = String(r[cMa]).trim(), n = String(r[cTen]).trim(), t = cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO"; 
                     if(l && r[cLat]) {
                         if(!data.poles[l]) data.poles[l]=[];
                         let sNum = parseInt((n.match(/\d+/)||[9999])[0]);
@@ -374,20 +358,13 @@
                 let cT2 = getCol(segsData[0], ["TUYEN_DEN"]);
                 let cTr2 = getCol(segsData[0], ["TRU_DEN"]);
                 let cL = getCol(segsData[0], ["LOAI_DIEM", "LOAI"]);
-
                 if(!cId || !cT1 || !cTr1 || !cT2 || !cTr2) return log("File DM_DOAN sai tên cột", 'err');
-
                 segsData.forEach(r => {
                     let id = r[cId]; if(!id) return;
-                    let t1 = String(r[cT1]).trim(), tr1 = String(r[cTr1]).trim();
-                    let t2 = String(r[cT2]).trim(), tr2 = String(r[cTr2]).trim();
-
-                    let p1 = data.poles[t1]?.find(p=>p.name===tr1);
-                    let p2 = data.poles[t2]?.find(p=>p.name===tr2);
-
+                    let t1 = String(r[cT1]).trim(), tr1 = String(r[cTr1]).trim(), t2 = String(r[cT2]).trim(), tr2 = String(r[cTr2]).trim();
+                    let p1 = data.poles[t1]?.find(p=>p.name===tr1), p2 = data.poles[t2]?.find(p=>p.name===tr2);
                     if(!p1) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr1}' ở tuyến '${t1}'`, 'warn'); errors++; }
                     if(!p2) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr2}' ở tuyến '${t2}'`, 'warn'); errors++; }
-
                     data.segments[id] = { id, type:(cL && String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom:t1, poleFrom:tr1, lineTo:t2, poleTo:tr2 };
                 });
             }
@@ -397,29 +374,21 @@
                 let cCid = getCol(circsData[0], ["MA_DUONG_DAY"]);
                 let cSid = getCol(circsData[0], ["MA_DOAN"]);
                 let cStt = getCol(circsData[0], ["STT"]);
-
                 if(!cCid || !cSid) return log("File CAU_HINH sai tên cột", 'err');
-
                 circsData.forEach(r => {
-                    let cid = r[cCid];
-                    let sid = r[cSid];
+                    let cid = r[cCid], sid = r[cSid];
                     if(!sid) return;
-                    if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} không tồn tại`, 'warn'); errors++; }
+                    if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} lỗi`, 'warn'); errors++; }
                     if(!data.circuits[cid]) data.circuits[cid]=[];
                     data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
-                    data.states[cid] = false;
                 });
                 for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             }
 
             stagingData = data;
-            if (errors>0) log(`🚫 CÓ ${errors} LỖI DỮ LIỆU.`, 'err');
-            else {
-                log(`✅ Dữ liệu chuẩn xác!`, 'success');
-                // FIX: HIỆN NÚT VÀ MỞ RỘNG PANEL
-                document.getElementById('upload-actions').style.display = "block";
-                refreshPanelHeight('panel-update'); 
-            }
+            if (errors>0) log(`🚫 CÓ ${errors} LỖI.`, 'err'); else log(`✅ Dữ liệu chuẩn!`, 'success');
+            document.getElementById('upload-actions').style.display = "block";
+            refreshPanelHeight('panel-update');
         }
 
         window.listenCloud = function() {
@@ -428,8 +397,12 @@
                 if(val) { 
                     appData = val; 
                     if(!appData.mcStates) appData.mcStates={}; 
-                    updateUI(); drawBg(); 
-                    if(document.getElementById('circuitSelect').value) window.drawCircuit(); 
+                    updateUI(); 
+                    renderWholeSystem(); // VẼ TOÀN BỘ NGAY KHI TẢI
+                    
+                    // Nếu đang chọn mạch, vẽ highlight
+                    let currentCircuit = document.getElementById('circuitSelect').value;
+                    if(currentCircuit) window.highlightCircuit(); 
                 }
             });
         }
@@ -451,23 +424,41 @@
             return L.divIcon({ className: cls, html: type.includes('MC')?'MC':'', iconSize: sz });
         }
 
-        function drawBg() {
+        // --- GLOBAL RENDER ---
+        function renderWholeSystem() {
             layers.bg.clearLayers(); layers.bgPoints.clearLayers(); layers.mc.clearLayers();
-            if(appData.poles) for(let l in appData.poles) {
-                let pts = appData.poles[l].map(p=>[p.lat,p.lng]);
-                if(l !== 'MAYCAT' && pts.length>1) L.polyline(pts, {color:'#cfd8dc', weight:1}).addTo(layers.bg);
-                appData.poles[l].forEach(p => {
-                    let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
-                    let isMCClosed = true;
-                    if(p.type.includes('MC')) isMCClosed = appData.mcStates[p.name] !== false;
-                    L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isMCClosed) }).addTo(layer).bindPopup(p.name);
+            
+            // Vẽ tất cả các mạch (từ CAU_HINH)
+            if (appData.circuits) {
+                Object.keys(appData.circuits).forEach(cid => {
+                    drawCircuitToLayer(cid, layers.bg, false); // Vẽ vào BG, không tính toán path
                 });
+            }
+            
+            // Vẽ các trụ lẻ (nếu có, để đảm bảo không sót)
+            // Tuy nhiên, logic trên đã vẽ theo Segment -> chuẩn hơn.
+            // Ta sẽ vẽ Marker đè lên để đảm bảo tương tác
+            if(appData.poles) {
+                for(let l in appData.poles) {
+                    appData.poles[l].forEach(p => {
+                        let layer = (p.type.includes('MC')) ? layers.mc : layers.bgPoints;
+                        let isMCClosed = true;
+                        if(p.type.includes('MC')) isMCClosed = appData.mcStates[p.name] !== false;
+                        
+                        let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isMCClosed) }).addTo(layer);
+                        if(p.type.includes('MC')) {
+                            marker.bindPopup(`<b>${p.name}</b><br>Click để Đóng/Cắt`).on('click', () => window.showMCConfirm(p.name));
+                        } else {
+                            marker.bindPopup(`<b>${p.name}</b><br>Tuyến: ${l}`);
+                        }
+                    });
+                }
             }
         }
 
-        function getPole(line, name) {
+        function getPoleExact(line, name) {
             if(!appData.poles[line]) return null;
-            return appData.poles[line].find(p => p.name === name);
+            return appData.poles[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
         }
 
         function getPoleRange(line, from, to) {
@@ -479,45 +470,39 @@
             return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
         }
 
-        window.drawCircuit = function() {
-            const id = document.getElementById('circuitSelect').value;
-            layers.main.clearLayers(); layers.fault.clearLayers(); layers.mc.clearLayers();
-            currentPath = []; currentPathTotalDist = 0; 
-            document.getElementById('circuit-info').innerText = "";
-            document.getElementById('faultKm').value = ''; 
-            document.getElementById('result').style.display = 'none';
+        // Hàm vẽ chung cho cả Global và Highlight
+        function drawCircuitToLayer(circuitId, targetLayer, calculatePath = false) {
+            const segs = appData.circuits[circuitId];
+            if (!segs) return;
 
-            if(!id || !appData.circuits[id]) { document.getElementById('status-text').innerText = "---"; return; }
-
-            const segs = appData.circuits[id];
-            
+            // Logic màu sắc
             let connectedMCs = [];
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(def) {
-                    let p1 = getPole(def.lineFrom, def.poleFrom);
-                    let p2 = getPole(def.lineTo, def.poleTo);
+                    let p1 = getPoleExact(def.lineFrom, def.poleFrom);
+                    let p2 = getPoleExact(def.lineTo, def.poleTo);
                     if(p1 && p1.type.includes('MC')) connectedMCs.push(p1.name);
                     if(p2 && p2.type.includes('MC')) connectedMCs.push(p2.name);
                 }
             });
             connectedMCs = [...new Set(connectedMCs)];
-            
-            let isEnergized = false;
-            if(connectedMCs.length > 0) isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
-
+            let isEnergized = connectedMCs.length > 0 && connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
             let statusColor = isEnergized ? '#ff0000' : '#388e3c'; 
             if(connectedMCs.length === 0) statusColor = '#000';
 
-            let statusText = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
-            document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${statusText}</span>`;
+            if (calculatePath) {
+                // Update UI text only when highlighting
+                let txt = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
+                document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${txt}</span>`;
+                currentPath = []; currentPathTotalDist = 0;
+            }
 
             segs.forEach((item) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
-                
-                let p1 = getPole(def.lineFrom, def.poleFrom);
-                let p2 = getPole(def.lineTo, def.poleTo);
+                let p1 = getPoleExact(def.lineFrom, def.poleFrom);
+                let p2 = getPoleExact(def.lineTo, def.poleTo);
                 if(!p1 || !p2) return;
 
                 let pts = [];
@@ -528,28 +513,38 @@
                     let isCable = (def.type.includes('NGAM'));
                     let color = statusColor;
                     if (isCable) color = isEnergized ? '#7b1fa2' : '#000';
-                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray: isCable?"5,5":null}).addTo(layers.main);
                     
-                    pts.forEach(p => {
-                        let icon = createIcon(p.type, p.name, isEnergized); 
-                        if(p.type.includes('MC')) {
-                            let mcState = appData.mcStates[p.name] !== false;
-                            let mcIcon = createIcon(p.type, p.name, mcState);
-                            let marker = L.marker([p.lat, p.lng], { icon: mcIcon, zIndexOffset: 1000 }).addTo(layers.main);
-                            marker.bindPopup(`<b>${p.name}</b><br>Click để Đóng/Cắt`).on('click', () => window.showMCConfirm(p.name));
-                        } else {
-                            L.marker([p.lat, p.lng], { icon: icon }).addTo(layers.main).bindPopup(p.name);
-                        }
-                    });
+                    let lineWeight = calculatePath ? 5 : 3; // Highlight dày hơn
+                    let lineOpacity = calculatePath ? 1 : 0.8;
 
-                    pts.forEach((p, i) => {
-                        if(i>0) currentPathTotalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
-                        currentPath.push({ ...p, accDist: currentPathTotalDist });
-                    });
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:lineWeight, opacity:lineOpacity, dashArray: isCable?"5,5":null}).addTo(targetLayer);
+
+                    if (calculatePath) {
+                        pts.forEach((p, i) => {
+                            if(i>0) currentPathTotalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                            currentPath.push({ ...p, accDist: currentPathTotalDist });
+                        });
+                    }
                 }
             });
+        }
+
+        // --- HIGHLIGHT CIRCUIT (Thay thế drawCircuit cũ) ---
+        window.highlightCircuit = function() {
+            const id = document.getElementById('circuitSelect').value;
+            layers.highlight.clearLayers();
+            layers.fault.clearLayers();
+            document.getElementById('circuit-info').innerText = "";
+            document.getElementById('faultKm').value = ''; 
+            document.getElementById('result').style.display = 'none';
+
+            if(!id) { document.getElementById('status-text').innerText = "---"; return; }
+
+            // Vẽ đè lên layer highlight
+            drawCircuitToLayer(id, layers.highlight, true);
+            
             document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(2)} km`;
-            map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
+            if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
         }
 
         window.findFault = function() {
@@ -578,8 +573,8 @@
             for(let i=1; i<currentPath.length; i++) {
                 let p1 = currentPath[i-1], p2 = currentPath[i];
                 if (targetDist >= (p1.accDist - 0.1) && targetDist <= (p2.accDist + 0.1)) {
-                    let ratio = (p2.accDist > p1.accDist) ? (targetDist - p1.accDist) / (p2.accDist - p1.accDist) : 0;
-                    
+                    let segmentLen = p2.accDist - p1.accDist;
+                    let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
 
