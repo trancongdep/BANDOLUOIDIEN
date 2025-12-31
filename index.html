@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.34</title>
+    <title>Hệ Thống Lưới Điện - Version 1.35</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -39,7 +39,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
         }
 
-        /* CUSTOM WINDOWS DIALOG */
+        /* WINDOWS DIALOG */
         #custom-confirm {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); z-index: 9999;
@@ -74,8 +74,6 @@
         button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
-        
-        /* QUAN TRỌNG: MẶC ĐỊNH ẨN, JAVASCRIPT SẼ HIỆN */
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
@@ -133,11 +131,10 @@
         </div>
         <div class="content">
             <button class="accordion">1. Cập nhật Dữ liệu</button>
-            <div class="panel">
+            <div class="panel" id="panel-update">
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict)</button>
                 <div id="console">Chờ file...</div>
-                
                 <div id="upload-actions" style="display:none;">
                     <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
                     <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
@@ -167,7 +164,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.34</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.35</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -206,9 +203,16 @@
             });
         }
 
-        // --- DIALOG SYSTEM (Unified) ---
-        let pendingAction = null; // Object {type: 'mc'|'upload', data: ...}
+        // --- RESIZE PANEL (FIX UI BUG) ---
+        function refreshPanelHeight(panelId) {
+            let panel = document.getElementById(panelId);
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = panel.scrollHeight + "px";
+            }
+        }
 
+        // --- DIALOG SYSTEM ---
+        let pendingAction = null; 
         window.showMCConfirm = function(mcName) {
             let currentState = appData.mcStates[mcName] !== false; 
             let actionText = currentState ? "MỞ (CẮT ĐIỆN)" : "ĐÓNG (CẤP ĐIỆN)";
@@ -231,10 +235,8 @@
             pendingAction = null;
         }
 
-        // Xử lý khi bấm YES
         document.getElementById('win-btn-yes').onclick = function() {
             if (!pendingAction) return;
-            
             if (pendingAction.type === 'mc') {
                 let mcName = pendingAction.name;
                 let newState = !(appData.mcStates[mcName] !== false);
@@ -262,7 +264,6 @@
             }
         }
 
-        // ... (PHẦN CÒN LẠI GIỮ NGUYÊN NHƯ v1.33) ...
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
@@ -413,10 +414,12 @@
 
             stagingData = data;
             if (errors>0) log(`🚫 CÓ ${errors} LỖI DỮ LIỆU.`, 'err');
-            else log(`✅ Dữ liệu chuẩn xác!`, 'success');
-            
-            // FIX: HIỆN LẠI NÚT UPLOAD
-            document.getElementById('upload-actions').style.display = "block";
+            else {
+                log(`✅ Dữ liệu chuẩn xác!`, 'success');
+                // FIX: HIỆN NÚT VÀ MỞ RỘNG PANEL
+                document.getElementById('upload-actions').style.display = "block";
+                refreshPanelHeight('panel-update'); 
+            }
         }
 
         window.listenCloud = function() {
@@ -503,7 +506,7 @@
             let isEnergized = false;
             if(connectedMCs.length > 0) isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
 
-            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; // ĐỎ TƯƠI / XANH
+            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; 
             if(connectedMCs.length === 0) statusColor = '#000';
 
             let statusText = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
@@ -528,8 +531,7 @@
                     L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray: isCable?"5,5":null}).addTo(layers.main);
                     
                     pts.forEach(p => {
-                        let icon = createIcon(p.type, p.name, isEnergized); // Logic icon có thể phức tạp hơn nếu cần
-                        // Với MC, icon phải theo trạng thái riêng của nó, không theo mạch
+                        let icon = createIcon(p.type, p.name, isEnergized); 
                         if(p.type.includes('MC')) {
                             let mcState = appData.mcStates[p.name] !== false;
                             let mcIcon = createIcon(p.type, p.name, mcState);
@@ -575,10 +577,8 @@
 
             for(let i=1; i<currentPath.length; i++) {
                 let p1 = currentPath[i-1], p2 = currentPath[i];
-                // FIX: Thêm sai số nhỏ để bắt điểm
                 if (targetDist >= (p1.accDist - 0.1) && targetDist <= (p2.accDist + 0.1)) {
-                    let segmentLen = p2.accDist - p1.accDist;
-                    let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
+                    let ratio = (p2.accDist > p1.accDist) ? (targetDist - p1.accDist) / (p2.accDist - p1.accDist) : 0;
                     
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
@@ -588,7 +588,6 @@
                     document.getElementById('fi-name').innerText = cName;
                     document.getElementById('fi-dist').innerText = `${kmInput} km (${direction==='start'?'Đầu':'Cuối'})`;
                     document.getElementById('fi-seg').innerHTML = `${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    // FIX GOOGLE MAPS LINK
                     document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:blue;text-decoration:underline;">Mở Google Maps</a>`;
 
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})})
