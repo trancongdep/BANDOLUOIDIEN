@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tcd-grid-v1.39';
+const CACHE_NAME = 'tcd-grid-v1.45';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
