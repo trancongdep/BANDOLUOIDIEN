@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.44</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Hệ Thống Lưới Điện - Version 1.45</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -13,10 +12,23 @@
         /* CSS CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        /* SIDEBAR */
+        /* FOOTER (FIX SAFE AREA) */
+        .footer { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            /* Chiều cao tối thiểu + vùng an toàn của thiết bị */
+            min-height: 30px;
+            padding-top: 5px;
+            padding-bottom: env(safe-area-inset-bottom, 10px); /* Tự động đệm thêm cho Android/iOS */
+            background: #212121; color: #eceff1; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000;
+        }
+
+        /* SIDEBAR (TỰ ĐỘNG KHỚP VỚI FOOTER) */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
-            height: calc(100% - 30px); /* Trừ chiều cao footer */
+            /* Neo đáy sidebar vào vị trí bên trên footer (30px + safe area) */
+            bottom: calc(30px + env(safe-area-inset-bottom, 10px));
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
@@ -27,14 +39,6 @@
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
-        
-        /* FOOTER */
-        .footer { 
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 30px;
-            background: #212121; color: #eceff1; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000;
-        }
 
         #menu-toggle {
             position: absolute; top: 10px; left: 10px; z-index: 2000;
@@ -42,6 +46,31 @@
             padding: 10px 15px; border-radius: 4px; cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
         }
+
+        /* LEGEND & FAULT BOX - ĐẨY LÊN CAO HƠN FOOTER + SAFE AREA */
+        .legend { 
+            background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; 
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; 
+            display: block; 
+            margin-right: 10px;
+            /* Cách đáy một khoảng an toàn để không bị footer che */
+            margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important;
+        }
+        .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
+        .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+
+        .fault-box { 
+            display: none; background: white; padding: 15px; border-radius: 8px; 
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
+            width: 260px; font-size: 0.9rem; 
+            margin-right: 10px;
+            margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important;
+        }
+        .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
+        .fault-label { font-weight: bold; color: #555; }
+        .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
         /* ACCORDION */
         .accordion {
@@ -67,7 +96,6 @@
 
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        /* TABS */
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
@@ -76,35 +104,9 @@
 
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
-
-        /* --- LEGEND & FAULT BOX (FIXED POSITION) --- */
-        /* Đẩy margin-bottom lên 45px để tránh Footer (30px) */
-        .legend { 
-            background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; 
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; 
-            display: block; 
-            margin-bottom: 45px !important; /* QUAN TRỌNG: FIX LỖI CHE KHUẤT */
-            margin-right: 10px;
-        }
-        .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
-        .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
-
-        .fault-box { 
-            display: none; background: white; padding: 15px; border-radius: 8px; 
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
-            width: 260px; font-size: 0.9rem; 
-            margin-bottom: 45px !important; /* QUAN TRỌNG: FIX LỖI CHE KHUẤT */
-            margin-right: 10px;
-        }
-        .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
-        .fault-label { font-weight: bold; color: #555; }
-        .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
         /* DIALOG */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -204,50 +206,35 @@
                 <div id="tab-seg" class="edit-section">
                     <label>Mã Đoạn (ID):</label>
                     <input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
-                    
                     <label>Điểm ĐẦU:</label>
-                    <div style="display:flex; gap:5px;">
-                        <select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"><option>Tuyến...</option></select>
-                        <select id="sel-seg-pole1"><option>Trụ...</option></select>
-                    </div>
-
+                    <div style="display:flex; gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"><option>Tuyến...</option></select><select id="sel-seg-pole1"><option>Trụ...</option></select></div>
                     <label>Điểm CUỐI:</label>
-                    <div style="display:flex; gap:5px;">
-                        <select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"><option>Tuyến...</option></select>
-                        <select id="sel-seg-pole2"><option>Trụ...</option></select>
-                    </div>
-
-                    <label>Loại dây:</label>
-                    <select id="inp-seg-type">
-                        <option value="NOI">Dây Nổi</option>
-                        <option value="NGAM">Cáp Ngầm</option>
-                    </select>
+                    <div style="display:flex; gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"><option>Tuyến...</option></select><select id="sel-seg-pole2"><option>Trụ...</option></select></div>
+                    <label>Loại dây:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
                     <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU ĐOẠN</button>
                 </div>
 
                 <div id="tab-cir" class="edit-section">
-                    <label>Tên Mạch:</label>
-                    <input type="text" id="inp-cir-id" list="list-circuits" placeholder="Chọn hoặc nhập mới...">
+                    <label>Tên Mạch:</label><input type="text" id="inp-cir-id" list="list-circuits" placeholder="Chọn hoặc nhập mới...">
                     <datalist id="list-circuits"></datalist>
-                    
-                    <label>Chọn Đoạn thêm vào:</label>
-                    <select id="sel-cir-seg"><option>-- Chọn đoạn --</option></select>
-                    
+                    <label>Chọn Đoạn thêm vào:</label><select id="sel-cir-seg"><option>-- Chọn đoạn --</option></select>
                     <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM VÀO MẠCH</button>
                 </div>
             </div>
 
             <button class="accordion">3. Vận hành & Tìm Sự Cố</button>
             <div class="panel">
+                <label>Chọn Mạch (Zoom):</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()">
-                    <option value="">-- Chọn mạch (Zoom) --</option>
+                    <option value="">-- Toàn cảnh --</option>
                 </select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
                 <div style="border-top: 1px dashed #ccc; margin: 15px 0;"></div>
+                <label>Nhập khoảng cách sự cố (Km):</label>
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu nguồn</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
@@ -293,8 +280,7 @@
                 isPickingMap = false;
                 document.querySelector('.btn-pick').innerText = "📍 Chấm bản đồ";
                 document.querySelector('.btn-pick').style.background = "#ff9800";
-                openSidebar(); 
-                alert("Đã lấy tọa độ!");
+                openSidebar(); alert("Đã lấy tọa độ!");
             } else { closeSidebar(); }
         });
 
@@ -335,7 +321,6 @@
             document.getElementById('custom-confirm').style.display = 'flex';
         }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; pendingAction = null; }
-        
         document.getElementById('win-btn-yes').onclick = function() {
             if (!pendingAction) return;
             if (pendingAction.type === 'mc') {
@@ -352,7 +337,7 @@
         legendControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
             div.id = "main-legend";
-            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>`;
+            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>`;
             return div;
         };
         legendControl.addTo(map);
@@ -367,7 +352,7 @@
         faultControl.addTo(map);
         window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display='none'; document.getElementById('main-legend').style.display='block'; layers.fault.clearLayers(); }
 
-        // LOGIC
+        // CORE LOGIC
         function log(msg) { document.getElementById('console').innerHTML += `<div>> ${msg}</div>`; document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight; }
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
 
@@ -431,15 +416,48 @@
             let poles = appData.poles[line] || [];
             document.getElementById(pid).innerHTML = '<option value="">Chọn Trụ...</option>' + poles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
         }
-        window.savePole = function() { /* Logic Save Pole v1.39 */ }
-        window.saveSegment = function() { /* Logic Save Seg v1.39 */ }
-        window.saveCircuitItem = function() { /* Logic Save Circuit v1.39 */ }
-        window.exportToExcel = function() { /* Logic Export v1.39 */ }
-        
-        // ... (Các hàm save/export giữ nguyên như v1.39, tôi rút gọn để vừa khung) ...
-        // Bạn copy lại hàm savePole, saveSegment, saveCircuitItem, exportToExcel từ v1.39 vào đây.
 
-        // INIT & RENDER
+        window.savePole = function() {
+            let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
+            let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
+            if(!line||!name||!lat||!lng) return alert("Thiếu thông tin!");
+            let path=`he_thong_luoi_dien/poles/${line}`;
+            window.get(window.child(window.ref(window.db), path)).then(snap=>{
+                let list=snap.val()||[], idx=list.findIndex(p=>p.name===name);
+                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng)};
+                if(idx>=0) list[idx]=p; else list.push(p);
+                window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); });
+            });
+        }
+        window.saveSegment = function() {
+            let id=document.getElementById('inp-seg-id').value.trim();
+            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
+            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
+            if(!id||!l1||!p1) return alert("Thiếu thông tin!");
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:l1, poleFrom:p1, lineTo:l2, poleTo:p2}).then(()=>alert("Đã lưu!"));
+        }
+        window.saveCircuitItem = function() {
+            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value;
+            if(!cid||!sid) return alert("Thiếu thông tin!");
+            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{
+                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1});
+                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!"));
+            });
+        }
+        window.exportToExcel = function() {
+            if(!appData.poles) return alert("Không có dữ liệu!");
+            let d1=[], d2=[], d3=[];
+            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
+            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
+            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId}));
+            let wb=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH");
+            XLSX.writeFile(wb,"DuLieuLuoiDien.xlsx");
+        }
+
+        // APP INIT
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
@@ -572,47 +590,7 @@
             const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
             return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
         }
-
-        // --- RE-ADD MISSING SAVE FUNCTIONS (FIX V1.42) ---
-        window.savePole = function() {
-            let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
-            let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
-            if(!line||!name||!lat||!lng) return alert("Thiếu thông tin!");
-            let path=`he_thong_luoi_dien/poles/${line}`;
-            window.get(window.child(window.ref(window.db), path)).then(snap=>{
-                let list=snap.val()||[], idx=list.findIndex(p=>p.name===name);
-                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng)};
-                if(idx>=0) list[idx]=p; else list.push(p);
-                window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); });
-            });
-        }
-        window.saveSegment = function() {
-            let id=document.getElementById('inp-seg-id').value.trim();
-            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
-            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
-            if(!id||!l1||!p1) return alert("Thiếu thông tin!");
-            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:l1, poleFrom:p1, lineTo:l2, poleTo:p2}).then(()=>alert("Đã lưu!"));
-        }
-        window.saveCircuitItem = function() {
-            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value;
-            if(!cid||!sid) return alert("Thiếu thông tin!");
-            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{
-                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1});
-                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!"));
-            });
-        }
-        window.exportToExcel = function() {
-            if(!appData.poles) return alert("Không có dữ liệu!");
-            let d1=[], d2=[], d3=[];
-            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
-            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
-            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId}));
-            let wb=XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH");
-            XLSX.writeFile(wb,"DuLieuLuoiDien.xlsx");
-        }
     </script>
 </body>
 </html>
+
