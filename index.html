@@ -4,16 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.48</title>
+    <title>Hệ Thống Lưới Điện - Version 1.49</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CSS CHUẨN (Giữ nguyên v1.45) */
+        /* CSS CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
             bottom: calc(30px + env(safe-area-inset-bottom, 10px));
@@ -183,6 +182,9 @@
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Toàn cảnh --</option></select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
+                
+                <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
+                
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
                 <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
                 <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label><label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
@@ -192,7 +194,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.48</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.49</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -213,12 +215,6 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
-        // --- LAYER FIX ---
-        // Chia tách rõ ràng:
-        // - main: Đường dây (Luôn hiện)
-        // - minor: Trụ đỡ (Ẩn khi zoom xa)
-        // - important: Trụ néo, hầm (Luôn hiện)
-        // - mc: Máy cắt (Luôn hiện)
         let layers = { 
             main: L.layerGroup().addTo(map), 
             minor: L.layerGroup().addTo(map), 
@@ -232,7 +228,7 @@
         let currentPath = []; let currentPathTotalDist = 0;
         let isPickingMap = false;
         
-        // --- SMART ZOOM LOGIC ---
+        // ZOOM VISIBILITY
         const ZOOM_THRESHOLD = 15;
         function updateLayerVisibility() {
             let z = map.getZoom();
@@ -390,15 +386,47 @@
             let poles = appData.poles[line] || [];
             document.getElementById(pid).innerHTML = '<option value="">Chọn Trụ...</option>' + poles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
         }
-        window.savePole = function() { /* Logic cũ... */ }
-        window.saveSegment = function() { /* Logic cũ... */ }
-        window.saveCircuitItem = function() { /* Logic cũ... */ }
-        window.exportToExcel = function() { /* Logic cũ... */ }
-        
-        // ... (Copy các hàm save/export từ v1.39) ...
-        // Rút gọn để không vượt quá giới hạn ký tự, đảm bảo bạn dùng logic v1.39 cho phần này
+        window.savePole = function() {
+            let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
+            let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
+            if(!line||!name||!lat||!lng) return alert("Thiếu thông tin!");
+            let path=`he_thong_luoi_dien/poles/${line}`;
+            window.get(window.child(window.ref(window.db), path)).then(snap=>{
+                let list=snap.val()||[], idx=list.findIndex(p=>p.name===name);
+                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng)};
+                if(idx>=0) list[idx]=p; else list.push(p);
+                window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); });
+            });
+        }
+        window.saveSegment = function() {
+            let id=document.getElementById('inp-seg-id').value.trim();
+            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
+            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
+            if(!id||!l1||!p1) return alert("Thiếu thông tin!");
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:l1, poleFrom:p1, lineTo:l2, poleTo:p2}).then(()=>alert("Đã lưu!"));
+        }
+        window.saveCircuitItem = function() {
+            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value;
+            if(!cid||!sid) return alert("Thiếu thông tin!");
+            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{
+                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1});
+                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!"));
+            });
+        }
+        window.exportToExcel = function() {
+            if(!appData.poles) return alert("Không có dữ liệu!");
+            let d1=[], d2=[], d3=[];
+            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
+            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
+            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId}));
+            let wb=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH");
+            XLSX.writeFile(wb,"DuLieuLuoiDien.xlsx");
+        }
 
-        // RENDER FIX
+        // RENDER & LOGIC
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
@@ -438,7 +466,7 @@
 
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC');
-                let isMinor = p.type === 'TRU_DO' || p.type === 'MOC'; // Trụ đỡ & Mốc
+                let isMinor = p.type === 'TRU_DO' || p.type === 'MOC'; 
                 
                 let target;
                 if(isMC) target = layers.mc;
@@ -447,6 +475,7 @@
 
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
                 let marker = L.marker([p.lat,p.lng], {icon: createIcon(p.type,p.name,isClosed), zIndexOffset:isMC?1000:0}).addTo(target);
+                
                 if(isMC) marker.bindPopup(`<b>${p.name}</b><br>Click Đóng/Cắt`).on('click', () => window.showMCConfirm(p.name));
                 else marker.bindPopup(`<b>${p.name}</b><br>${l}`);
             });
