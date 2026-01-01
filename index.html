@@ -1,10 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.37</title>
+    <title>Hệ Thống Lưới Điện - Version 1.38 (PWA)</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#004d40">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
@@ -71,6 +78,7 @@
         .btn-merge { background: #2e7d32; color: white; }
         .btn-replace { background: #c62828; color: white; }
         .btn-find { background: #d32f2f; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 120px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -79,23 +87,20 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        /* FAULT INFO BOX */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-bottom: 30px; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
 
-        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 2000 !important; } /* Z-index cao để nổi */
-        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 2000 !important; }
+        .icon-mc-on { background: #ff0000; border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
@@ -166,7 +171,17 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.37</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.38 (PWA)</div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered!', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -186,14 +201,13 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
-        // CÁC LAYER
         let layers = { 
-            main: L.layerGroup().addTo(map), // Chứa dây (Polyline)
-            points: L.layerGroup().addTo(map), // Chứa trụ (Marker)
-            mc: L.layerGroup().addTo(map), // Chứa MC (Marker Z-index cao)
-            fault: L.layerGroup().addTo(map) // Chứa điểm sự cố
+            bg: L.layerGroup().addTo(map), 
+            bgPoints: L.layerGroup().addTo(map),
+            mc: L.layerGroup().addTo(map), 
+            main: L.layerGroup().addTo(map), 
+            fault: L.layerGroup().addTo(map) 
         };
-        
         let appData = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} }; 
         let stagingData = null;
         let currentPathTotalDist = 0; 
@@ -356,6 +370,7 @@
                         if(t.includes('MC')) data.mcStates[n] = true; 
                     }
                 });
+                for(let k in data.poles) data.poles[k].sort((a,b)=>a.sort-b.sort);
             }
 
             let segsData = sheets[sSegs];
@@ -373,7 +388,13 @@
                     let id = r[cId]; if(!id) return;
                     let t1 = String(r[cT1]).trim(), tr1 = String(r[cTr1]).trim();
                     let t2 = String(r[cT2]).trim(), tr2 = String(r[cTr2]).trim();
-                    
+
+                    let p1 = data.poles[t1]?.find(p=>p.name===tr1);
+                    let p2 = data.poles[t2]?.find(p=>p.name===tr2);
+
+                    if(!p1) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr1}' ở tuyến '${t1}'`, 'warn'); errors++; }
+                    if(!p2) { log(`⚠️ Đoạn ${id}: Không thấy trụ '${tr2}' ở tuyến '${t2}'`, 'warn'); errors++; }
+
                     data.segments[id] = { id, type:(cL && String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom:t1, poleFrom:tr1, lineTo:t2, poleTo:tr2 };
                 });
             }
@@ -390,8 +411,10 @@
                     let cid = r[cCid];
                     let sid = r[cSid];
                     if(!sid) return;
+                    if(!data.segments[sid]) { log(`⚠️ Mạch ${cid} gọi đoạn ${sid} không tồn tại`, 'warn'); errors++; }
                     if(!data.circuits[cid]) data.circuits[cid]=[];
                     data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
+                    data.states[cid] = false;
                 });
                 for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             }
@@ -412,14 +435,15 @@
                     appData = val; 
                     if(!appData.mcStates) appData.mcStates={}; 
                     updateUI(); 
-                    renderGlobalMap(); // *** VẼ TOÀN BỘ NGAY KHI CÓ DỮ LIỆU ***
+                    renderGlobalMap();
+                    if(document.getElementById('circuitSelect').value) window.drawCircuit(); 
                 }
             });
         }
 
         function updateUI() {
             const s = document.getElementById('circuitSelect');
-            let cur = s.value; s.innerHTML = '<option value="">-- Chọn mạch (Zoom) --</option>';
+            let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh (Global) --</option>';
             if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); });
             s.value = cur;
         }
@@ -434,32 +458,17 @@
             return L.divIcon({ className: cls, html: type.includes('MC')?'MC':'', iconSize: sz });
         }
 
-        function getPole(line, name) {
-            if(!appData.poles[line]) return null;
-            return appData.poles[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
-        }
-
-        function getPoleGlobal(name) {
-            for(let l in appData.poles) {
-                let p = appData.poles[l].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
-                if(p) return {...p, foundRoute: l};
-            } return null;
-        }
-
-        // --- GLOBAL RENDER FUNCTION (VERSION 1.37 FIX) ---
         function renderGlobalMap() {
             layers.main.clearLayers();
-            layers.points.clearLayers();
+            layers.bgPoints.clearLayers();
             layers.mc.clearLayers();
             layers.fault.clearLayers();
 
-            // 1. VẼ TẤT CẢ TRỤ & MC (Từ appData.poles)
             if (appData.poles) {
                 for (let line in appData.poles) {
                     appData.poles[line].forEach(p => {
                         let isMC = p.type.includes('MC');
-                        let targetLayer = isMC ? layers.mc : layers.points;
-                        
+                        let targetLayer = isMC ? layers.mc : layers.bgPoints;
                         let isClosed = true;
                         if(isMC) isClosed = appData.mcStates[p.name] !== false;
 
@@ -477,20 +486,17 @@
                 }
             }
 
-            // 2. VẼ TẤT CẢ MẠCH (Từ appData.circuits)
             if (appData.circuits) {
                 Object.keys(appData.circuits).forEach(circuitId => {
-                    drawSingleCircuit(circuitId, false); // False = Không tính path, chỉ vẽ
+                    drawSingleCircuit(circuitId, false);
                 });
             }
         }
 
-        // Hàm vẽ từng mạch (Dùng chung cho Global và Zoom)
         function drawSingleCircuit(circuitId, isCalculatingPath) {
             const segs = appData.circuits[circuitId];
             if (!segs) return;
 
-            // SCADA Logic
             let connectedMCs = [];
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
@@ -505,42 +511,35 @@
             
             let isEnergized = false;
             if(connectedMCs.length > 0) isEnergized = connectedMCs.some(mcName => appData.mcStates[mcName] !== false);
-            else isEnergized = false; // Mặc định nếu ko nối MC thì coi như mất điện/đen
+            else isEnergized = false; 
 
-            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; // Đỏ hoặc Xanh
-            if(connectedMCs.length === 0) statusColor = '#000'; // Đen
+            let statusColor = isEnergized ? '#ff0000' : '#388e3c'; 
+            if(connectedMCs.length === 0) statusColor = '#000';
 
             if (isCalculatingPath) {
-                // Update UI text only when zooming specific circuit
                 let txt = isEnergized ? 'ĐANG CÓ ĐIỆN' : 'ĐANG MẤT ĐIỆN (AN TOÀN)';
                 document.getElementById('status-text').innerHTML = `<span style="color:${statusColor}">${txt}</span>`;
+                currentPath = []; currentPathTotalDist = 0;
             }
 
             segs.forEach((item) => {
                 const def = appData.segments[item.segId];
                 if(!def) return;
-                
-                let p1 = getPole(def.lineFrom, def.poleFrom) || getPoleGlobal(def.poleFrom);
-                let p2 = getPole(def.lineTo, def.poleTo) || getPoleGlobal(def.poleTo);
+                let p1 = getPole(def.lineFrom, def.poleFrom);
+                let p2 = getPole(def.lineTo, def.poleTo);
                 if(!p1 || !p2) return;
 
                 let pts = [];
-                let r1 = p1.foundRoute || def.lineFrom;
-                let r2 = p2.foundRoute || def.lineTo;
-
-                if (r1 !== r2) pts = [p1, p2];
-                else {
-                    let lData = appData.poles[r1];
-                    let i1 = lData.findIndex(p => p.name === p1.name);
-                    let i2 = lData.findIndex(p => p.name === p2.name);
-                    pts = (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
-                }
+                if(def.lineFrom !== def.lineTo) pts = [p1, p2];
+                else pts = getPoleRange(def.lineFrom, def.poleFrom, def.poleTo);
 
                 if(pts.length) {
                     let isCable = (def.type.includes('NGAM'));
                     let color = statusColor;
                     if (isCable) color = isEnergized ? '#7b1fa2' : '#000'; 
-                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:4, dashArray: isCable?"5,5":null}).addTo(layers.main);
+                    let lineWeight = isCalculatingPath ? 5 : 3; 
+                    let lineOpacity = isCalculatingPath ? 1 : 0.8;
+                    L.polyline(pts.map(p=>[p.lat,p.lng]), {color:color, weight:lineWeight, opacity:lineOpacity, dashArray: isCable?"5,5":null}).addTo(layers.main);
 
                     if (isCalculatingPath) {
                         pts.forEach((p, i) => {
@@ -552,22 +551,27 @@
             });
         }
 
-        // --- ZOOM & FIND FAULT ---
+        function getPole(line, name) {
+            if(!appData.poles[line]) return null;
+            return appData.poles[line].find(p => String(p.name).toUpperCase() === String(name).toUpperCase());
+        }
+
+        function getPoleRange(line, from, to) {
+            if(!appData.poles[line]) return [];
+            const lData = appData.poles[line];
+            let i1 = lData.findIndex(p=>p.name===from);
+            let i2 = lData.findIndex(p=>p.name===to);
+            if(i1<0 || i2<0) return [];
+            return (i1<=i2) ? lData.slice(i1,i2+1) : lData.slice(i2,i1+1).reverse();
+        }
+
         window.zoomToCircuit = function() {
             const id = document.getElementById('circuitSelect').value;
-            // Xóa line cũ để vẽ lại line mới (tránh chồng màu)
             layers.main.clearLayers();
-            renderGlobalMap(); // Vẽ lại nền trước để đảm bảo các mạch khác vẫn còn
+            renderGlobalMap();
             
-            if(!id) return; // Nếu chọn "Toàn cảnh" thì xong
+            if(!id) return; 
 
-            // Reset path
-            currentPath = []; currentPathTotalDist = 0; 
-            document.getElementById('circuit-info').innerText = "";
-            document.getElementById('faultKm').value = ''; 
-            document.getElementById('result').style.display = 'none';
-
-            // Vẽ lại mạch được chọn để tính path (và có thể highlight nếu muốn)
             drawSingleCircuit(id, true);
             
             document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(2)} km`;
@@ -599,11 +603,9 @@
 
             for(let i=1; i<currentPath.length; i++) {
                 let p1 = currentPath[i-1], p2 = currentPath[i];
-                let segmentLen = p2.accDist - p1.accDist;
-                
                 if (targetDist >= (p1.accDist - 0.1) && targetDist <= (p2.accDist + 0.1)) {
+                    let segmentLen = p2.accDist - p1.accDist;
                     let ratio = segmentLen > 0 ? (targetDist - p1.accDist) / segmentLen : 0;
-                    
                     let lat = p1.lat + (p2.lat - p1.lat) * ratio;
                     let lng = p1.lng + (p2.lng - p1.lng) * ratio;
 
