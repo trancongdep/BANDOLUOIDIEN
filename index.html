@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.42</title>
+    <title>Hệ Thống Lưới Điện - Version 1.43</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -64,7 +64,7 @@
 
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        /* TABS (NHẬP LIỆU) */
+        /* TABS */
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
@@ -78,13 +78,23 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND & FAULT BOX */
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-bottom: 30px; }
+        /* LEGEND & FAULT BOX - ĐẨY CAO LÊN TRÁNH FOOTER */
+        .legend { 
+            background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; 
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; 
+            display: block; 
+            margin-bottom: 50px; /* Đẩy lên 50px */
+        }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
 
-        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-bottom: 30px; }
+        .fault-box { 
+            display: none; background: white; padding: 15px; border-radius: 8px; 
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
+            width: 260px; font-size: 0.9rem; 
+            margin-bottom: 50px; /* Đẩy lên 50px */
+        }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
         .fault-label { font-weight: bold; color: #555; }
@@ -120,9 +130,18 @@
 
     <div id="custom-confirm">
         <div class="win-dialog">
-            <div class="win-header"><span>Thông báo</span><button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeWinDialog()">×</button></div>
-            <div class="win-body"><i class="fas fa-question-circle win-icon"></i><span id="win-msg">...</span></div>
-            <div class="win-footer"><button class="win-btn primary" id="win-btn-yes">Đồng ý</button><button class="win-btn" onclick="closeWinDialog()">Hủy</button></div>
+            <div class="win-header">
+                <span>Thông báo</span>
+                <button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeWinDialog()">×</button>
+            </div>
+            <div class="win-body">
+                <i class="fas fa-question-circle win-icon"></i>
+                <span id="win-msg">...</span>
+            </div>
+            <div class="win-footer">
+                <button class="win-btn primary" id="win-btn-yes">Đồng ý</button>
+                <button class="win-btn" onclick="closeWinDialog()">Hủy</button>
+            </div>
         </div>
     </div>
 
@@ -132,11 +151,11 @@
             <button class="close-btn" onclick="closeSidebar()">×</button>
         </div>
         <div class="content">
-            
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
+                <label>Nhập từ File (Ghi đè/Gộp):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra (Strict)</button>
+                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions" style="display:none;">
                     <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
@@ -156,49 +175,73 @@
                 </div>
 
                 <div id="tab-pole" class="edit-section active">
-                    <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT" oninput="this.value=this.value.toUpperCase()">
-                    <label>Tên Trụ/MC:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171">
+                    <label>Tên Tuyến:</label>
+                    <input type="text" id="inp-pole-route" placeholder="VD: MAYCAT, AKHTTN" oninput="this.value = this.value.toUpperCase()">
+                    <label>Tên Trụ/MC:</label>
+                    <input type="text" id="inp-pole-name" placeholder="VD: 10, MC_171">
                     <label>Loại:</label>
                     <select id="inp-pole-type">
-                        <option value="TRU_DO">Trụ Đỡ</option><option value="TRU_NEO">Trụ Néo</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option>
+                        <option value="TRU_DO">Trụ Đỡ</option>
+                        <option value="TRU_NEO">Trụ Néo</option>
+                        <option value="MC">Máy Cắt</option>
+                        <option value="MOC">Mốc Cáp</option>
+                        <option value="HAM_CAP">Hầm Cáp</option>
                     </select>
-                    <label>Tọa độ: <button class="btn-pick" onclick="enableMapPick()">📍 Chấm bản đồ</button></label>
-                    <div style="display:flex;gap:5px;"><input type="number" id="inp-lat" placeholder="Vĩ độ"><input type="number" id="inp-lng" placeholder="Kinh độ"></div>
+                    <label>Tọa độ (Lat, Long): <button class="btn-pick" onclick="enableMapPick()">📍 Chấm bản đồ</button></label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="number" id="inp-lat" placeholder="Vĩ độ" step="0.000001">
+                        <input type="number" id="inp-lng" placeholder="Kinh độ" step="0.000001">
+                    </div>
                     <button class="action-btn btn-add" onclick="window.savePole()">LƯU TRỤ</button>
                 </div>
 
                 <div id="tab-seg" class="edit-section">
-                    <label>Mã Đoạn:</label><input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
+                    <label>Mã Đoạn (ID):</label>
+                    <input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
+                    
                     <label>Điểm ĐẦU:</label>
-                    <div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"><option>Tuyến...</option></select><select id="sel-seg-pole1"><option>Trụ...</option></select></div>
+                    <div style="display:flex; gap:5px;">
+                        <select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"><option>Tuyến...</option></select>
+                        <select id="sel-seg-pole1"><option>Trụ...</option></select>
+                    </div>
+
                     <label>Điểm CUỐI:</label>
-                    <div style="display:flex;gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"><option>Tuyến...</option></select><select id="sel-seg-pole2"><option>Trụ...</option></select></div>
-                    <label>Loại dây:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
+                    <div style="display:flex; gap:5px;">
+                        <select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"><option>Tuyến...</option></select>
+                        <select id="sel-seg-pole2"><option>Trụ...</option></select>
+                    </div>
+
+                    <label>Loại dây:</label>
+                    <select id="inp-seg-type">
+                        <option value="NOI">Dây Nổi</option>
+                        <option value="NGAM">Cáp Ngầm</option>
+                    </select>
                     <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU ĐOẠN</button>
                 </div>
 
                 <div id="tab-cir" class="edit-section">
-                    <label>Tên Mạch:</label><input type="text" id="inp-cir-id" list="list-circuits" placeholder="Nhập mới hoặc chọn...">
+                    <label>Tên Mạch:</label>
+                    <input type="text" id="inp-cir-id" list="list-circuits" placeholder="Chọn hoặc nhập mới...">
                     <datalist id="list-circuits"></datalist>
-                    <label>Chọn Đoạn thêm vào:</label><select id="sel-cir-seg"><option>-- Chọn đoạn --</option></select>
+                    
+                    <label>Chọn Đoạn thêm vào:</label>
+                    <select id="sel-cir-seg"><option>-- Chọn đoạn --</option></select>
+                    
                     <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM VÀO MẠCH</button>
                 </div>
             </div>
 
             <button class="accordion">3. Vận hành & Tìm Sự Cố</button>
             <div class="panel">
-                <label>Chọn Mạch (Zoom):</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()">
-                    <option value="">-- Toàn cảnh --</option>
+                    <option value="">-- Chọn mạch (Zoom) --</option>
                 </select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
-                <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
                 <div style="border-top: 1px dashed #ccc; margin: 15px 0;"></div>
-                <label>Nhập khoảng cách sự cố (Km):</label>
                 <input type="number" id="faultKm" step="0.01" placeholder="Nhập số Km..." />
                 <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu nguồn</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối nguồn</label>
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
                 </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
@@ -206,7 +249,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.42</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.43</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -222,7 +265,13 @@
     </script>
 
     <script>
-        let map = L.map('map').setView([10.762, 106.660], 12);
+        // --- 1. SETUP MAP ---
+        // zoomControl: false để tắt nút zoom mặc định ở góc trái
+        let map = L.map('map', { zoomControl: false }).setView([10.762, 106.660], 12);
+        
+        // Thêm nút zoom ở góc Phải
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
@@ -235,20 +284,21 @@
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
-        // MAP CLICK (Picking Logic)
         map.on('click', function(e) {
-            if(isPickingMap) {
+            if (isPickingMap) {
                 document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6);
                 document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6);
                 isPickingMap = false;
                 document.querySelector('.btn-pick').innerText = "📍 Chấm bản đồ";
                 document.querySelector('.btn-pick').style.background = "#ff9800";
-                openSidebar(); // Quay lại sidebar
+                openSidebar(); // Mở lại sidebar
                 alert("Đã lấy tọa độ!");
-            } else { closeSidebar(); }
+            } else {
+                closeSidebar();
+            }
         });
 
-        // ACCORDION
+        // --- UI ---
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
@@ -257,20 +307,19 @@
                 if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = panel.scrollHeight + "px";
             });
         }
+
         function refreshPanelHeight(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight=p.scrollHeight+"px"; }
 
-        // DATA EDITOR TABS
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
-            refreshDropdowns();
-            refreshPanelHeight('panel-entry');
+            refreshDropdowns(); refreshPanelHeight('panel-entry');
         }
         window.enableMapPick = function() { isPickingMap=true; closeSidebar(); let btn=document.querySelector('.btn-pick'); btn.innerText="Đang chọn..."; btn.style.background="red"; }
 
-        // DIALOG
+        // --- DIALOG ---
         let pendingAction = null; 
         window.showMCConfirm = function(mcName) {
             let currentState = appData.mcStates[mcName] !== false; 
@@ -286,6 +335,7 @@
             document.getElementById('custom-confirm').style.display = 'flex';
         }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; pendingAction = null; }
+        
         document.getElementById('win-btn-yes').onclick = function() {
             if (!pendingAction) return;
             if (pendingAction.type === 'mc') {
@@ -297,12 +347,12 @@
             closeWinDialog();
         };
 
-        // CONTROLS
+        // --- LEGEND ---
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
             div.id = "main-legend";
-            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt</div>`;
+            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>`;
             return div;
         };
         legendControl.addTo(map);
@@ -311,14 +361,14 @@
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
             div.id = "fault-info-box";
-            div.innerHTML = `<div class="fault-header"><span>SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
+            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Khoảng trụ:</span> <span id="fi-seg"></span></div><div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-addr"></span></div>`;
             return div;
         };
         faultControl.addTo(map);
-        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display='none'; document.getElementById('main-legend').style.display='block'; layers.fault.clearLayers(); }
+        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
 
-        // CORE LOGIC
-        function log(msg) { document.getElementById('console').innerHTML += `<div>> ${msg}</div>`; }
+        // --- DATA & EXPORT ---
+        function flexibleNorm(obj) { let n={}; Object.keys(obj).forEach(k=>{ let c=String(k).replace(/[^a-zA-Z0-9_]/g,"").toUpperCase(); let s=c; if(c.includes("MATUYEN")||c.includes("TUYEN")) s="TUYEN_TU"; if(c.includes("TUTRU")||c.includes("TRUTU")||c.includes("VITRI")) s="TRU_TU"; if(c.includes("MADOAN")) s="MA_DOAN"; if(c.includes("MADUONGDAY")) s="MA_DUONG_DAY"; n[s]=obj[k]; n[c]=obj[k]; }); if(!n.TUYEN_DEN) n.TUYEN_DEN=n.TUYEN_TU; if(!n.TRU_DEN&&n.DENTRU) n.TRU_DEN=n.DENTRU; return n; }
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
 
         window.analyzeFiles = function() {
@@ -327,19 +377,17 @@
             Promise.all(Array.from(input.files).map(readFile)).then(res => processSheets(Object.assign({}, ...res)));
         }
         function readFile(file) { return new Promise(r => { const rd = new FileReader(); rd.onload=e=>{ const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(file); }); }
-
+        
         function processSheets(sheets) {
-            // STRICT COLUMN CHECK
             const sPoles=Object.keys(sheets).find(n=>n.includes("TOA_DO")), sSegs=Object.keys(sheets).find(n=>n.includes("DM_DOAN")), sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
             if(!sPoles||!sSegs||!sCircs) return alert("Thiếu file!");
             
-            let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
+            let data = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} };
             
             let polesData = sheets[sPoles];
             if(polesData.length) {
                 let cMa=getCol(polesData[0],["MA_TUYEN"]), cTen=getCol(polesData[0],["TEN_TRU"]), cLat=getCol(polesData[0],["LAT"]), cLong=getCol(polesData[0],["LONG"]), cLoai=getCol(polesData[0],["LOAI_DIEM"]);
-                if(!cMa) return alert("Lỗi cột TOA_DO");
-                polesData.forEach(r => {
+                if(cMa) polesData.forEach(r => {
                     let l=String(r[cMa]).trim(), n=String(r[cTen]).trim(), t=cLoai?String(r[cLoai]).trim().toUpperCase():"TRU_DO";
                     if(l&&r[cLat]) { if(!data.poles[l]) data.poles[l]=[]; data.poles[l].push({name:n,lat:parseFloat(r[cLat]),lng:parseFloat(r[cLong]),type:t}); if(t.includes('MC')) data.mcStates[n]=true; }
                 });
@@ -347,19 +395,17 @@
             let segsData = sheets[sSegs];
             if(segsData.length) {
                 let cId=getCol(segsData[0],["MA_DOAN"]), cT1=getCol(segsData[0],["TUYEN_TU"]), cTr1=getCol(segsData[0],["TRU_TU"]), cT2=getCol(segsData[0],["TUYEN_DEN"]), cTr2=getCol(segsData[0],["TRU_DEN"]), cL=getCol(segsData[0],["LOAI_DIEM","LOAI"]);
-                if(!cId) return alert("Lỗi cột DM_DOAN");
-                segsData.forEach(r => { let id=r[cId]; if(id) data.segments[id]={id, type:(cL&&String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom:r[cT1], poleFrom:String(r[cTr1]).trim(), lineTo:r[cT2], poleTo:String(r[cTr2]).trim()}; });
+                if(cId) segsData.forEach(r => { let id=r[cId]; if(id) data.segments[id]={id, type:(cL&&String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom:r[cT1], poleFrom:String(r[cTr1]).trim(), lineTo:r[cT2], poleTo:String(r[cTr2]).trim()}; });
             }
             let circsData = sheets[sCircs];
             if(circsData.length) {
                 let cCid=getCol(circsData[0],["MA_DUONG_DAY"]), cSid=getCol(circsData[0],["MA_DOAN"]), cStt=getCol(circsData[0],["STT"]);
-                if(!cCid) return alert("Lỗi cột CAU_HINH");
-                circsData.forEach(r => { let cid=r[cCid], sid=r[cSid]; if(sid) { if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({segId:sid, order:parseInt(r[cStt]||999)}); } });
+                if(cCid) circsData.forEach(r => { let cid=r[cCid], sid=r[cSid]; if(sid) { if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({segId:sid, order:parseInt(r[cStt]||999)}); data.states[cid]=false; } });
                 for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             }
 
             stagingData = data;
-            document.getElementById('console').innerHTML = "✅ Dữ liệu OK!";
+            document.getElementById('console').innerHTML = "✅ Dữ liệu sẵn sàng!";
             document.getElementById('upload-actions').style.display = "block";
             refreshPanelHeight('panel-update');
         }
@@ -367,67 +413,17 @@
         function executeUpload(mode) {
             if(!stagingData) return;
             if(mode === 'replace') window.set(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(() => alert("Thay thế thành công!"));
-            else { 
-                let updates = {}; /* Logic merge */
-                Object.keys(stagingData.poles).forEach(k => updates[`he_thong_luoi_dien/poles/${k}`] = stagingData.poles[k]);
-                Object.keys(stagingData.segments).forEach(k => updates[`he_thong_luoi_dien/segments/${k}`] = stagingData.segments[k]);
-                Object.keys(stagingData.circuits).forEach(k => updates[`he_thong_luoi_dien/circuits/${k}`] = stagingData.circuits[k]);
-                if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k => updates[`he_thong_luoi_dien/mcStates/${k}`] = stagingData.mcStates[k]);
-                window.update(window.ref(window.db), updates).then(() => alert("Gộp thành công!")); 
-            }
-        }
-
-        // NEW: SAVE DATA FUNCTIONS
-        window.savePole = function() {
-            let line = document.getElementById('inp-pole-route').value.trim();
-            let name = document.getElementById('inp-pole-name').value.trim();
-            let type = document.getElementById('inp-pole-type').value;
-            let lat = document.getElementById('inp-lat').value;
-            let lng = document.getElementById('inp-lng').value;
-            if(!line || !name || !lat || !lng) return alert("Thiếu thông tin!");
-            
-            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/poles/${line}`)).then(snap => {
-                let list = snap.val() || [];
-                let idx = list.findIndex(p => p.name === name);
-                let newPole = { name, type, lat: parseFloat(lat), lng: parseFloat(lng) };
-                if(idx >= 0) list[idx] = newPole; else list.push(newPole);
-                window.set(window.ref(window.db, `he_thong_luoi_dien/poles/${line}`), list).then(() => {
-                    alert("Đã lưu Trụ!");
-                    // Nếu là MC, tạo state mặc định
-                    if(type === 'MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [name]: true });
-                });
-            });
-        }
-
-        window.saveSegment = function() {
-            let id = document.getElementById('inp-seg-id').value.trim();
-            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
-            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
-            if(!id || !l1 || !p1) return alert("Thiếu thông tin!");
-            let segObj = { id, type: document.getElementById('inp-seg-type').value, lineFrom: l1, poleFrom: p1, lineTo: l2, poleTo: p2 };
-            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), segObj).then(() => alert("Đã lưu Đoạn!"));
-        }
-
-        window.saveCircuitItem = function() {
-            let cid = document.getElementById('inp-cir-id').value.trim();
-            let sid = document.getElementById('sel-cir-seg').value;
-            if(!cid || !sid) return alert("Thiếu thông tin!");
-            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap => {
-                let list = snap.val() || [];
-                let newOrder = list.length + 1;
-                list.push({ segId: sid, order: newOrder });
-                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(() => alert("Đã lưu Mạch!"));
-            });
+            else { window.update(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(() => alert("Gộp thành công!")); }
         }
 
         window.refreshDropdowns = function() {
             let routes = Object.keys(appData.poles || {});
-            let op = '<option value="">Chọn Tuyến...</option>' + routes.map(r => `<option value="${r}">${r}</option>`).join('');
-            document.getElementById('sel-seg-line1').innerHTML = op; document.getElementById('sel-seg-line2').innerHTML = op;
-            let circs = Object.keys(appData.circuits || {});
-            document.getElementById('list-circuits').innerHTML = circs.map(c => `<option value="${c}">`).join('');
-            let segs = Object.keys(appData.segments || {});
-            document.getElementById('sel-cir-seg').innerHTML = '<option value="">-- Chọn đoạn --</option>' + segs.map(s => `<option value="${s}">${s}</option>`).join('');
+            let selOptions = '<option value="">Chọn Tuyến...</option>' + routes.map(r => `<option value="${r}">${r}</option>`).join('');
+            document.getElementById('sel-seg-line1').innerHTML = selOptions; document.getElementById('sel-seg-line2').innerHTML = selOptions;
+            let circuits = Object.keys(appData.circuits || {});
+            document.getElementById('list-circuits').innerHTML = circuits.map(c => `<option value="${c}">`).join('');
+            let segIds = Object.keys(appData.segments || {});
+            document.getElementById('sel-cir-seg').innerHTML = '<option value="">-- Chọn đoạn --</option>' + segIds.map(s => `<option value="${s}">${s}</option>`).join('');
         }
         window.updatePoleSelect = function(lid, pid) {
             let line = document.getElementById(lid).value;
@@ -435,8 +431,47 @@
             document.getElementById(pid).innerHTML = '<option value="">Chọn Trụ...</option>' + poles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
         }
 
+        window.savePole = function() {
+            let line = document.getElementById('inp-pole-route').value.trim();
+            let name = document.getElementById('inp-pole-name').value.trim();
+            let type = document.getElementById('inp-pole-type').value;
+            let lat = document.getElementById('inp-lat').value;
+            let lng = document.getElementById('inp-lng').value;
+            if(!line || !name || !lat || !lng) return alert("Vui lòng nhập đủ thông tin!");
+            let path = `he_thong_luoi_dien/poles/${line}`;
+            window.get(window.child(window.ref(window.db), path)).then(snap => {
+                let list = snap.val() || [];
+                let idx = list.findIndex(p => p.name === name);
+                let newPole = { name, type, lat: parseFloat(lat), lng: parseFloat(lng) };
+                if(idx >= 0) list[idx] = newPole; else list.push(newPole);
+                window.set(window.ref(window.db, path), list).then(() => { alert("Đã lưu Trụ!"); if(type === 'MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [name]: true }); });
+            });
+        }
+
+        window.saveSegment = function() {
+            let id = document.getElementById('inp-seg-id').value.trim();
+            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
+            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
+            if(!id || !l1 || !p1) return alert("Thiếu thông tin đoạn!");
+            let segObj = { id, type: document.getElementById('inp-seg-type').value, lineFrom: l1, poleFrom: p1, lineTo: l2, poleTo: p2 };
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), segObj).then(() => { alert("Đã lưu Đoạn!"); refreshDropdowns(); });
+        }
+
+        window.saveCircuitItem = function() {
+            let cid = document.getElementById('inp-cir-id').value.trim();
+            let sid = document.getElementById('sel-cir-seg').value;
+            if(!cid || !sid) return alert("Thiếu tên mạch hoặc chưa chọn đoạn!");
+            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap => {
+                let list = snap.val() || [];
+                let newOrder = list.length + 1;
+                list.push({ segId: sid, order: newOrder });
+                list.sort((a,b) => a.order - b.order);
+                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(() => alert("Đã lưu Mạch!"));
+            });
+        }
+
         window.exportToExcel = function() {
-            if(!appData.poles) return alert("Không có dữ liệu!");
+            if(!appData.poles) return alert("Không có dữ liệu để xuất!");
             let d1=[], d2=[], d3=[];
             for(let l in appData.poles) appData.poles[l].forEach(p => d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
             if(appData.segments) Object.values(appData.segments).forEach(s => d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
@@ -448,7 +483,7 @@
             XLSX.writeFile(wb, "DuLieuLuoiDien.xlsx");
         }
 
-        // --- APP START ---
+        // --- APP INIT ---
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
