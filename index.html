@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Lưới Điện - Version 1.43</title>
+    <title>Hệ Thống Lưới Điện - Version 1.44</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -13,9 +13,10 @@
         /* CSS CHUẨN */
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
+        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
-            height: calc(100% - 30px); 
+            height: calc(100% - 30px); /* Trừ chiều cao footer */
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
@@ -26,6 +27,8 @@
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
+        
+        /* FOOTER */
         .footer { 
             position: fixed; bottom: 0; left: 0; width: 100%; height: 30px;
             background: #212121; color: #eceff1; 
@@ -78,12 +81,14 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* LEGEND & FAULT BOX - ĐẨY CAO LÊN TRÁNH FOOTER */
+        /* --- LEGEND & FAULT BOX (FIXED POSITION) --- */
+        /* Đẩy margin-bottom lên 45px để tránh Footer (30px) */
         .legend { 
             background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; 
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; 
             display: block; 
-            margin-bottom: 50px; /* Đẩy lên 50px */
+            margin-bottom: 45px !important; /* QUAN TRỌNG: FIX LỖI CHE KHUẤT */
+            margin-right: 10px;
         }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
@@ -93,7 +98,8 @@
             display: none; background: white; padding: 15px; border-radius: 8px; 
             box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
             width: 260px; font-size: 0.9rem; 
-            margin-bottom: 50px; /* Đẩy lên 50px */
+            margin-bottom: 45px !important; /* QUAN TRỌNG: FIX LỖI CHE KHUẤT */
+            margin-right: 10px;
         }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
@@ -249,7 +255,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.43</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.44</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -265,13 +271,9 @@
     </script>
 
     <script>
-        // --- 1. SETUP MAP ---
-        // zoomControl: false để tắt nút zoom mặc định ở góc trái
+        // MAP SETUP (Zoom Top-Right)
         let map = L.map('map', { zoomControl: false }).setView([10.762, 106.660], 12);
-        
-        // Thêm nút zoom ở góc Phải
         L.control.zoom({ position: 'topright' }).addTo(map);
-
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
         
@@ -291,14 +293,12 @@
                 isPickingMap = false;
                 document.querySelector('.btn-pick').innerText = "📍 Chấm bản đồ";
                 document.querySelector('.btn-pick').style.background = "#ff9800";
-                openSidebar(); // Mở lại sidebar
+                openSidebar(); 
                 alert("Đã lấy tọa độ!");
-            } else {
-                closeSidebar();
-            }
+            } else { closeSidebar(); }
         });
 
-        // --- UI ---
+        // ACCORDION
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
@@ -307,9 +307,9 @@
                 if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = panel.scrollHeight + "px";
             });
         }
-
         function refreshPanelHeight(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight=p.scrollHeight+"px"; }
 
+        // TABS & DATA ENTRY
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -319,7 +319,7 @@
         }
         window.enableMapPick = function() { isPickingMap=true; closeSidebar(); let btn=document.querySelector('.btn-pick'); btn.innerText="Đang chọn..."; btn.style.background="red"; }
 
-        // --- DIALOG ---
+        // DIALOG
         let pendingAction = null; 
         window.showMCConfirm = function(mcName) {
             let currentState = appData.mcStates[mcName] !== false; 
@@ -347,12 +347,12 @@
             closeWinDialog();
         };
 
-        // --- LEGEND ---
+        // CONTROLS (FIXED POSITION)
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
             div.id = "main-legend";
-            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Có điện (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>`;
+            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div>`;
             return div;
         };
         legendControl.addTo(map);
@@ -361,14 +361,14 @@
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
             div.id = "fault-info-box";
-            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Khoảng trụ:</span> <span id="fi-seg"></span></div><div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-addr"></span></div>`;
+            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
             return div;
         };
         faultControl.addTo(map);
-        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
+        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display='none'; document.getElementById('main-legend').style.display='block'; layers.fault.clearLayers(); }
 
-        // --- DATA & EXPORT ---
-        function flexibleNorm(obj) { let n={}; Object.keys(obj).forEach(k=>{ let c=String(k).replace(/[^a-zA-Z0-9_]/g,"").toUpperCase(); let s=c; if(c.includes("MATUYEN")||c.includes("TUYEN")) s="TUYEN_TU"; if(c.includes("TUTRU")||c.includes("TRUTU")||c.includes("VITRI")) s="TRU_TU"; if(c.includes("MADOAN")) s="MA_DOAN"; if(c.includes("MADUONGDAY")) s="MA_DUONG_DAY"; n[s]=obj[k]; n[c]=obj[k]; }); if(!n.TUYEN_DEN) n.TUYEN_DEN=n.TUYEN_TU; if(!n.TRU_DEN&&n.DENTRU) n.TRU_DEN=n.DENTRU; return n; }
+        // LOGIC
+        function log(msg) { document.getElementById('console').innerHTML += `<div>> ${msg}</div>`; document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight; }
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
 
         window.analyzeFiles = function() {
@@ -416,74 +416,30 @@
             else { window.update(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(() => alert("Gộp thành công!")); }
         }
 
+        // DATA ENTRY & EXPORT
         window.refreshDropdowns = function() {
             let routes = Object.keys(appData.poles || {});
-            let selOptions = '<option value="">Chọn Tuyến...</option>' + routes.map(r => `<option value="${r}">${r}</option>`).join('');
-            document.getElementById('sel-seg-line1').innerHTML = selOptions; document.getElementById('sel-seg-line2').innerHTML = selOptions;
-            let circuits = Object.keys(appData.circuits || {});
-            document.getElementById('list-circuits').innerHTML = circuits.map(c => `<option value="${c}">`).join('');
-            let segIds = Object.keys(appData.segments || {});
-            document.getElementById('sel-cir-seg').innerHTML = '<option value="">-- Chọn đoạn --</option>' + segIds.map(s => `<option value="${s}">${s}</option>`).join('');
+            let op = '<option value="">Chọn Tuyến...</option>' + routes.map(r => `<option value="${r}">${r}</option>`).join('');
+            document.getElementById('sel-seg-line1').innerHTML = op; document.getElementById('sel-seg-line2').innerHTML = op;
+            let circs = Object.keys(appData.circuits || {});
+            document.getElementById('list-circuits').innerHTML = circs.map(c => `<option value="${c}">`).join('');
+            let segs = Object.keys(appData.segments || {});
+            document.getElementById('sel-cir-seg').innerHTML = '<option value="">-- Chọn đoạn --</option>' + segs.map(s => `<option value="${s}">${s}</option>`).join('');
         }
         window.updatePoleSelect = function(lid, pid) {
             let line = document.getElementById(lid).value;
             let poles = appData.poles[line] || [];
             document.getElementById(pid).innerHTML = '<option value="">Chọn Trụ...</option>' + poles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
         }
+        window.savePole = function() { /* Logic Save Pole v1.39 */ }
+        window.saveSegment = function() { /* Logic Save Seg v1.39 */ }
+        window.saveCircuitItem = function() { /* Logic Save Circuit v1.39 */ }
+        window.exportToExcel = function() { /* Logic Export v1.39 */ }
+        
+        // ... (Các hàm save/export giữ nguyên như v1.39, tôi rút gọn để vừa khung) ...
+        // Bạn copy lại hàm savePole, saveSegment, saveCircuitItem, exportToExcel từ v1.39 vào đây.
 
-        window.savePole = function() {
-            let line = document.getElementById('inp-pole-route').value.trim();
-            let name = document.getElementById('inp-pole-name').value.trim();
-            let type = document.getElementById('inp-pole-type').value;
-            let lat = document.getElementById('inp-lat').value;
-            let lng = document.getElementById('inp-lng').value;
-            if(!line || !name || !lat || !lng) return alert("Vui lòng nhập đủ thông tin!");
-            let path = `he_thong_luoi_dien/poles/${line}`;
-            window.get(window.child(window.ref(window.db), path)).then(snap => {
-                let list = snap.val() || [];
-                let idx = list.findIndex(p => p.name === name);
-                let newPole = { name, type, lat: parseFloat(lat), lng: parseFloat(lng) };
-                if(idx >= 0) list[idx] = newPole; else list.push(newPole);
-                window.set(window.ref(window.db, path), list).then(() => { alert("Đã lưu Trụ!"); if(type === 'MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [name]: true }); });
-            });
-        }
-
-        window.saveSegment = function() {
-            let id = document.getElementById('inp-seg-id').value.trim();
-            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
-            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
-            if(!id || !l1 || !p1) return alert("Thiếu thông tin đoạn!");
-            let segObj = { id, type: document.getElementById('inp-seg-type').value, lineFrom: l1, poleFrom: p1, lineTo: l2, poleTo: p2 };
-            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), segObj).then(() => { alert("Đã lưu Đoạn!"); refreshDropdowns(); });
-        }
-
-        window.saveCircuitItem = function() {
-            let cid = document.getElementById('inp-cir-id').value.trim();
-            let sid = document.getElementById('sel-cir-seg').value;
-            if(!cid || !sid) return alert("Thiếu tên mạch hoặc chưa chọn đoạn!");
-            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap => {
-                let list = snap.val() || [];
-                let newOrder = list.length + 1;
-                list.push({ segId: sid, order: newOrder });
-                list.sort((a,b) => a.order - b.order);
-                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(() => alert("Đã lưu Mạch!"));
-            });
-        }
-
-        window.exportToExcel = function() {
-            if(!appData.poles) return alert("Không có dữ liệu để xuất!");
-            let d1=[], d2=[], d3=[];
-            for(let l in appData.poles) appData.poles[l].forEach(p => d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
-            if(appData.segments) Object.values(appData.segments).forEach(s => d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
-            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i => d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId}));
-            let wb=XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1), "TOA_DO");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2), "DM_DOAN");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3), "CAU_HINH");
-            XLSX.writeFile(wb, "DuLieuLuoiDien.xlsx");
-        }
-
-        // --- APP INIT ---
+        // INIT & RENDER
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
@@ -615,6 +571,47 @@
             const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
             const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
             return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+        }
+
+        // --- RE-ADD MISSING SAVE FUNCTIONS (FIX V1.42) ---
+        window.savePole = function() {
+            let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
+            let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
+            if(!line||!name||!lat||!lng) return alert("Thiếu thông tin!");
+            let path=`he_thong_luoi_dien/poles/${line}`;
+            window.get(window.child(window.ref(window.db), path)).then(snap=>{
+                let list=snap.val()||[], idx=list.findIndex(p=>p.name===name);
+                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng)};
+                if(idx>=0) list[idx]=p; else list.push(p);
+                window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); });
+            });
+        }
+        window.saveSegment = function() {
+            let id=document.getElementById('inp-seg-id').value.trim();
+            let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
+            let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
+            if(!id||!l1||!p1) return alert("Thiếu thông tin!");
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:l1, poleFrom:p1, lineTo:l2, poleTo:p2}).then(()=>alert("Đã lưu!"));
+        }
+        window.saveCircuitItem = function() {
+            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value;
+            if(!cid||!sid) return alert("Thiếu thông tin!");
+            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{
+                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1});
+                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!"));
+            });
+        }
+        window.exportToExcel = function() {
+            if(!appData.poles) return alert("Không có dữ liệu!");
+            let d1=[], d2=[], d3=[];
+            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type}));
+            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type}));
+            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId}));
+            let wb=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH");
+            XLSX.writeFile(wb,"DuLieuLuoiDien.xlsx");
         }
     </script>
 </body>
