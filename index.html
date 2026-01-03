@@ -3,23 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 2.9</title>
+    <title>Hệ Thống Lưới Điện - Version 1.55 (Stable)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* CSS CHUẨN */
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
-        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
+        /* --- LAYOUT CORE --- */
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
-        
+        #map { 
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+            width: 100%; height: 100%; z-index: 1; 
+        }
+
+        /* --- CONTROLS --- */
+        #menu-toggle {
+            position: absolute; top: 10px; left: 10px; z-index: 2000;
+            background: #004d40; color: white; border: none;
+            padding: 10px 15px; border-radius: 4px; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold;
+        }
+
+        /* --- SIDEBAR & FOOTER (Mobile Safe) --- */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
+            /* Trừ chiều cao footer + vùng an toàn của điện thoại */
             bottom: calc(30px + env(safe-area-inset-bottom, 10px)); 
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
-            transition: left 0.3s ease-in-out; display: flex; flex-direction: column; 
+            transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
         #sidebar.active { left: 0; }
 
@@ -27,35 +39,84 @@
         .header h2 { margin: 0; font-size: 1.1rem; }
         .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
-        .footer { position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px; padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px); background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
-        .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        
+        .footer { 
+            position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px;
+            padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px);
+            background: #212121; color: #eceff1; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000;
+        }
+
+        /* --- ACCORDION & PANELS --- */
+        .accordion {
+            background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left;
+            outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd;
+            display: flex; justify-content: space-between; align-items: center;
+        }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; border-bottom: 1px solid #ddd; }
+
+        /* --- INPUTS & BUTTONS --- */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; color: white; background: #00796b; transition: 0.2s; }
+        
+        button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; background: #00796b; }
+        button.action-btn:hover { opacity: 0.9; }
         .btn-add { background: #1565c0; margin-top: 10px; margin-bottom: 25px !important; }
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
         .btn-export { background: #2e7d32; margin-top: 5px; }
+        .btn-find { background: #d32f2f; }
+
+        /* --- TABS --- */
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
         .edit-section { display: none; padding-bottom: 15px; }
         .edit-section.active { display: block; }
+
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
-        .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
+
+        /* --- LEGEND & FAULT BOX (FIXED POSITION) --- */
+        /* Đẩy lên 45px + safe-area để không bị Footer che */
+        .legend { 
+            background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; 
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; 
+            display: block; margin-right: 10px;
+            margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important;
+        }
+        .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
-        .legend-icon { width: 14px; height: 14px; margin-right: 6px; border: 1px solid #999; }
-        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
+        .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+
+        .fault-box { 
+            display: none; background: white; padding: 15px; border-radius: 8px; 
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
+            width: 260px; font-size: 0.9rem; margin-right: 10px;
+            margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important;
+        }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
+        .fault-label { font-weight: bold; color: #555; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
+
+        /* --- ICONS --- */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        .icon-source { border-radius: 50%; border: 2px solid white; color: white; font-weight: bold; font-size: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        .icon-mc-on { background: #d32f2f; border: 2px solid white; border-radius: 2px; font-size: 9px; z-index: 2000 !important; color: white; }
+        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; font-size: 9px; z-index: 2000 !important; color: white; }
+        .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; border: 1px solid white; }
+        .icon-tru-do { background: #1976d2; border-radius: 50%; border: 1px solid white; }
+        
+        /* --- DIALOG --- */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -63,15 +124,8 @@
         .win-body { padding: 20px; background: white; display: flex; align-items: center; gap: 15px; }
         .win-icon { font-size: 2rem; color: #0078d7; }
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
-        .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; }
+        .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
-        
-        /* ICONS */
-        .icon-source { border-radius: 50%; border: 2px solid white; color: white; font-weight: bold; font-size: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 5px rgba(0,0,0,0.5); z-index: 3000 !important; }
-        .icon-mc-on { background: #d32f2f; border: 2px solid white; border-radius: 2px; font-size: 9px; color: white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align:center; }
-        .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; font-size: 9px; color: white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align:center; }
-        .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; border: 1px solid white; width: 10px !important; height: 10px !important; }
-        .icon-tru-do { background: #1976d2; border-radius: 50%; border: 1px solid white; width: 8px !important; height: 8px !important; }
     </style>
 </head>
 <body>
@@ -81,25 +135,25 @@
 
     <div id="custom-confirm">
         <div class="win-dialog">
-            <div class="win-header"><span>Xác nhận</span><button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeWinDialog()">×</button></div>
+            <div class="win-header"><span>Thông báo</span><button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeWinDialog()">×</button></div>
             <div class="win-body"><i class="fas fa-question-circle win-icon"></i><span id="win-msg">...</span></div>
             <div class="win-footer"><button class="win-btn primary" id="win-btn-yes">Đồng ý</button><button class="win-btn" onclick="closeWinDialog()">Hủy</button></div>
         </div>
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>HỆ THỐNG ĐIỆN V2.9</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
-        
+        <div class="header"><h2>HỆ THỐNG ĐIỆN V1.55</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
+            
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
-                <label>Nhập từ File Excel:</label>
+                <label>Nhập từ File (Ghi đè/Gộp):</label>
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
-                <button class="action-btn" onclick="window.analyzeFiles()">Nạp & Kiểm tra</button>
+                <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions" style="display:none;">
-                    <button class="action-btn" style="background:#2e7d32;" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
-                    <button class="action-btn" style="background:#c62828;" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
+                    <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
+                    <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
                 </div>
                 <hr>
                 <button class="action-btn btn-export" onclick="window.exportToExcel()">XUẤT RA EXCEL</button>
@@ -116,7 +170,7 @@
                 
                 <div id="tab-pole" class="edit-section active">
                     <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT" oninput="this.value=this.value.toUpperCase()">
-                    <label>Tên Điểm:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171, NGUON_220">
+                    <label>Tên Điểm:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171">
                     <label>Loại:</label>
                     <select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ</option><option value="TRU_NEO">Trụ Néo</option><option value="MC">Máy Cắt</option><option value="NGUON">Nguồn</option><option value="THANH_CAI">Thanh Cái</option></select>
                     <label>Điện áp (Nguồn):</label><input type="number" id="inp-pole-volt">
@@ -124,7 +178,7 @@
                     <div style="display:flex;gap:5px;"><input type="number" id="inp-lat" placeholder="Lat"><input type="number" id="inp-lng" placeholder="Lng"></div>
                     <button class="action-btn btn-add" onclick="window.savePole()">LƯU ĐIỂM</button>
                 </div>
-                
+
                 <div id="tab-seg" class="edit-section">
                     <label>Mã Đoạn:</label><input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
                     <label>Điểm ĐẦU:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"></select><select id="sel-seg-pole1"></select></div>
@@ -136,7 +190,7 @@
                 <div id="tab-cir" class="edit-section">
                     <label>Tên Mạch:</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
                     <label>Chọn Đoạn:</label><select id="sel-cir-seg"></select>
-                    <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM VÀO MẠCH</button>
+                    <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM</button>
                 </div>
 
                 <div id="tab-area" class="edit-section">
@@ -151,6 +205,7 @@
                 <label>Chọn Mạch (Zoom & Tính dài):</label>
                 <select id="circuitSelect" onchange="window.zoomToTarget()"><option value="">-- Toàn cảnh --</option></select>
                 <div id="circuit-info" style="font-size:0.9rem; color:#00695c; margin-top:5px; font-weight:bold; background:#e8f5e9; padding:5px; border-radius:4px; text-align:center;"></div>
+                
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
                 <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
                 <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label><label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
@@ -160,7 +215,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 2.9</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.55</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -176,10 +231,11 @@
     </script>
 
     <script>
-        // MAP SETUP
+        // --- 1. SETUP MAP ---
         let map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([16.0, 106.0], 6);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        
+
+        // Extent Control
         L.Control.Extent = L.Control.extend({
             options: { position: 'topright' },
             onAdd: function(map) {
@@ -190,18 +246,20 @@
             }
         });
         map.addControl(new L.Control.Extent());
+        
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
 
         map.createPane('busbarPane'); map.getPane('busbarPane').style.zIndex = 400;
         map.createPane('linePane'); map.getPane('linePane').style.zIndex = 450;
 
+        // --- LAYERS ---
         let layers = {
             areas: L.layerGroup().addTo(map),
             busbar: L.layerGroup().addTo(map),
             line: L.layerGroup().addTo(map),
             highlight: L.layerGroup().addTo(map),
-            points: L.layerGroup().addTo(map), 
+            points: L.layerGroup().addTo(map),
             mc: L.layerGroup().addTo(map),
             source: L.layerGroup().addTo(map),
             fault: L.layerGroup().addTo(map)
@@ -209,14 +267,13 @@
 
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, areas: [] };
         let stagingData = null;
-        let globalPoleMap = {};
+        let activeBusbars = {};
         let currentPath = []; let currentPathTotalDist = 0;
         let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null; let isPickingMap = false;
-        let activeBusbars = {};
 
         const VOLTAGE_COLORS = { 500: '#2196F3', 220: '#F44336', 110: '#2E7D32', 35: '#FF9800', 22: '#FFC107', 0: '#000000', 'DEFAULT': '#607D8B' };
 
-        // VISIBILITY
+        // --- VISIBILITY ---
         const ZOOM_THRESHOLD = 15;
         function updateLayerVisibility() {
             let z = map.getZoom();
@@ -228,12 +285,13 @@
         }
         map.on('zoomend', updateLayerVisibility);
 
-        // UI & EVENT HANDLERS
+        // --- UI ---
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         document.getElementById('menu-toggle').onclick = openSidebar;
         document.querySelector('.close-btn').onclick = closeSidebar;
 
+        // --- ACCORDION ---
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
@@ -244,6 +302,7 @@
         }
         function refreshPanelHeight(pid) { let p=document.getElementById(pid); if(p && p.style.maxHeight) p.style.maxHeight = (p.scrollHeight+100)+"px"; }
 
+        // --- TABS & MAP PICK ---
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -274,7 +333,7 @@
             });
         }
 
-        // SAVE DATA
+        // --- SAVE DATA (CRUD) ---
         window.savePole = function() {
             let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
             let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
@@ -283,7 +342,7 @@
             let path=`he_thong_luoi_dien/poles/${line}`;
             window.get(window.child(window.ref(window.db), path)).then(snap=>{
                 let list=snap.val()||[], idx=list.findIndex(p=>p.name===name);
-                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng), voltage: volt?parseInt(volt):0, line: line};
+                let p={name, type, lat:parseFloat(lat), lng:parseFloat(lng), voltage: volt?parseInt(volt):0};
                 if(idx>=0) list[idx]=p; else list.push(p);
                 window.set(window.ref(window.db, path), list).then(()=>{ alert("Lưu Điểm OK"); if(type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); });
             });
@@ -294,8 +353,7 @@
             let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
             if(!id) return alert("Thiếu Mã Đoạn");
             window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {
-                id, type:document.getElementById('inp-seg-type').value, 
-                fromLine:l1, fromNode:p1, toLine:l2, toNode:p2
+                id, type:document.getElementById('inp-seg-type').value, fromLine:l1, fromNode:p1, toLine:l2, toNode:p2
             }).then(()=>alert("Lưu Đoạn OK"));
         }
         window.saveCircuitItem = function() {
@@ -306,8 +364,21 @@
                 window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Thêm vào mạch OK"));
             });
         }
-
-        // CONFIRM & UPLOAD
+        window.refreshDropdowns = function() {
+            let routes=Object.keys(appData.poles||{});
+            let op='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+            document.getElementById('sel-seg-line1').innerHTML=op; document.getElementById('sel-seg-line2').innerHTML=op;
+            let circs=Object.keys(appData.circuits||{});
+            document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join('');
+            let segs=Object.keys(appData.segments||{});
+            document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join('');
+        }
+        window.updatePoleSelect = function(lid, pid) {
+            let line=document.getElementById(lid).value; let poles=appData.poles[line]||[];
+            document.getElementById(pid).innerHTML='<option value="">Chọn Điểm...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+        }
+        
+        // --- DIALOG ---
         let pendingAction = null; 
         window.showMCConfirm = function(mcName) {
             let cur = appData.mcStates[mcName] !== false; 
@@ -328,7 +399,7 @@
             closeWinDialog();
         };
 
-        // EXCEL IMPORT
+        // --- IMPORT ---
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().toUpperCase().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
         window.analyzeFiles = function() { const input = document.getElementById('excelFile'); if(!input.files.length) return alert("Chưa chọn file"); Promise.all(Array.from(input.files).map(readFile)).then(res => processSheets(Object.assign({}, ...res))); }
         function readFile(file) { return new Promise(r => { const rd=new FileReader(); rd.onload=e=>{ const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(file); }); }
@@ -338,39 +409,26 @@
             if(!sPoles||!sSegs) return alert("Thiếu TOA_DO hoặc DM_DOAN!");
 
             let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
-            globalPoleMap = {};
-
+            
             let pData = sheets[sPoles];
             let cMa=getCol(pData[0],["MA_TUYEN"]), cTen=getCol(pData[0],["TEN_DIEM","TEN_TRU"]), cLat=getCol(pData[0],["LAT"]), cLng=getCol(pData[0],["LONG"]), cLoai=getCol(pData[0],["LOAI_DIEM"]), cVol=getCol(pData[0],["DIEN_AP"]);
-            
             pData.forEach(r => {
                 let l=String(r[cMa]||"OTHER").trim(), n=String(r[cTen]).trim();
                 let type = cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO";
                 let volt = cVol ? parseInt(r[cVol]) : 0;
-                
                 if(r[cLat]) {
                     if(!data.poles[l]) data.poles[l]=[];
-                    let num = parseInt((n.match(/\d+/) || [0])[0]);
-                    let pObj = { name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLng]), type:type, voltage:volt, line:l, sort:num };
-                    data.poles[l].push(pObj);
-                    globalPoleMap[n] = pObj; globalPoleMap[l+"_"+n] = pObj;
+                    data.poles[l].push({ name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLng]), type:type, voltage:volt });
                     if(type==='MC') data.mcStates[n] = true;
                 }
             });
-            for(let l in data.poles) data.poles[l].sort((a,b)=>a.sort-b.sort);
 
             let sData = sheets[sSegs];
-            let cId=getCol(sData[0],["MA_DOAN"]), cT1=getCol(sData[0],["TUYEN_TU"]), cN1=getCol(sData[0],["TRU_TU"]), cT2=getCol(sData[0],["TUYEN_DEN"]), cN2=getCol(sData[0],["TRU_DEN"]), cL=getCol(sData[0],["LOAI"]);
-            
+            let cId=getCol(sData[0],["MA_DOAN"]), cT1=getCol(sData[0],["TUYEN_TU"]), cN1=getCol(sData[0],["TRU_TU","DIEM_TU"]), cT2=getCol(sData[0],["TUYEN_DEN"]), cN2=getCol(sData[0],["TRU_DEN","DIEM_DEN"]), cL=getCol(sData[0],["LOAI"]);
             sData.forEach(r => {
                 let id = r[cId];
                 if(id) {
-                    data.segments[id] = {
-                        id: id,
-                        type: cL ? String(r[cL]).trim().toUpperCase() : "NOI",
-                        fromLine: String(r[cT1]).trim(), fromNode: String(r[cN1]).trim(),
-                        toLine: String(r[cT2]).trim(), toNode: String(r[cN2]).trim()
-                    };
+                    data.segments[id] = { id: id, type: cL ? String(r[cL]).trim().toUpperCase() : "NOI", fromLine: r[cT1], fromNode: String(r[cN1]).trim(), toLine: r[cT2], toNode: String(r[cN2]).trim() };
                 }
             });
 
@@ -379,10 +437,7 @@
                 let cCid=getCol(sheets[sCircs][0],["MA_DUONG_DAY"]), cSid=getCol(sheets[sCircs][0],["MA_DOAN"]), cStt=getCol(sheets[sCircs][0],["STT"]);
                 sheets[sCircs].forEach(r => {
                     let cid = r[cCid], sid = r[cSid];
-                    if(sid) {
-                        if(!data.circuits[cid]) data.circuits[cid]=[];
-                        data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
-                    }
+                    if(sid) { if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) }); }
                 });
             }
 
@@ -405,8 +460,7 @@
                 window.update(refRoot, updates).then(()=>alert("Đã gộp!"));
             }
         }
-
-        // --- EXPORT ---
+        
         window.exportToExcel = function() {
             if(!appData.poles) return alert("Không có dữ liệu!");
             let d1=[], d2=[], d3=[];
@@ -417,28 +471,24 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH");
-            XLSX.writeFile(wb,"DuLieuLuoiDien_V2.xlsx");
+            XLSX.writeFile(wb,"DuLieuLuoiDien_V1.55.xlsx");
         }
 
-        // --- RENDER & TOPOLOGY ---
+        // --- RENDER & LOGIC ---
         function buildAdjacencyList() {
             appData.adjList = {}; activeBusbars = {}; 
-            let nodeMap = globalPoleMap; 
-
-            if(appData.segments) {
-                Object.values(appData.segments).forEach(seg => {
-                    if(seg.type === 'THANH_CAI') {
-                        let p1 = nodeMap[seg.fromLine+"_"+seg.fromNode] || nodeMap[seg.fromNode];
-                        let p2 = nodeMap[seg.toLine+"_"+seg.toNode] || nodeMap[seg.toNode];
-                        if(p1 && p2) { activeBusbars[seg.fromNode] = { p1, p2 }; activeBusbars[seg.toNode] = { p1, p2 }; }
-                    }
-                    if(!appData.adjList[seg.fromNode]) appData.adjList[seg.fromNode] = [];
-                    if(!appData.adjList[seg.toNode]) appData.adjList[seg.toNode] = [];
-                    
-                    appData.adjList[seg.fromNode].push({ to: seg.toNode, id: seg.id, type: seg.type });
-                    appData.adjList[seg.toNode].push({ to: seg.fromNode, id: seg.id, type: seg.type });
-                });
-            }
+            let nodeMap = {};
+            for(let l in appData.poles) appData.poles[l].forEach(p => nodeMap[p.name] = p);
+            if(appData.segments) Object.values(appData.segments).forEach(seg => {
+                if(seg.type === 'THANH_CAI') {
+                    let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
+                    if(p1 && p2) { activeBusbars[seg.fromNode] = { p1, p2 }; activeBusbars[seg.toNode] = { p1, p2 }; }
+                }
+                if(!appData.adjList[seg.fromNode]) appData.adjList[seg.fromNode] = [];
+                if(!appData.adjList[seg.toNode]) appData.adjList[seg.toNode] = [];
+                appData.adjList[seg.fromNode].push({ to: seg.toNode, id: seg.id, type: seg.type });
+                appData.adjList[seg.toNode].push({ to: seg.fromNode, id: seg.id, type: seg.type });
+            });
             return nodeMap;
         }
 
@@ -466,8 +516,7 @@
             }
             if(appData.segments) Object.values(appData.segments).forEach(seg => {
                 if (segColors[seg.id] === null || segColors[seg.id] === undefined) {
-                    let p1 = nodeMap[seg.fromLine+"_"+seg.fromNode] || nodeMap[seg.fromNode];
-                    let p2 = nodeMap[seg.toLine+"_"+seg.toNode] || nodeMap[seg.toNode];
+                    let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
                     let v = (p1 && p1.voltage) ? p1.voltage : ((p2 && p2.voltage) ? p2.voltage : 'DEFAULT');
                     segColors[seg.id] = v;
                 }
@@ -475,16 +524,41 @@
             return segColors;
         }
 
+        // OFFSET Calculation
+        let segmentCounts = {};
+        function getSegmentKey(p1, p2) { let k1=p1.lat+"_"+p1.lng, k2=p2.lat+"_"+p2.lng; return (k1<k2)?(k1+"|"+k2):(k2+"|"+k1); }
+        function calculateOffsets() { 
+            segmentCounts={}; 
+            let nodeMap = {}; for(let l in appData.poles) appData.poles[l].forEach(p=>nodeMap[p.name]=p);
+
+            if(appData.circuits) Object.keys(appData.circuits).forEach(cid=>{ 
+                appData.circuits[cid].forEach(item=>{ 
+                    let def=appData.segments[item.segId]; 
+                    if(def){ 
+                        let p1=nodeMap[def.fromNode], p2=nodeMap[def.toNode]; 
+                        if(p1&&p2){ let k=getSegmentKey(p1,p2); if(!segmentCounts[k]) segmentCounts[k]=[]; segmentCounts[k].push(cid); } 
+                    } 
+                }); 
+            }); 
+        }
+
+        function getProjectedPoint(P, A, B) {
+            let x = P.lng, y = P.lat, x1 = A.lng, y1 = A.lat, x2 = B.lng, y2 = B.lat;
+            let A_to_P = { x: x - x1, y: y - y1 }, A_to_B = { x: x2 - x1, y: y2 - y1 };
+            let AB_sq = A_to_B.x*A_to_B.x + A_to_B.y*A_to_B.y;
+            if (AB_sq === 0) return A;
+            let t = Math.max(0, Math.min(1, (A_to_P.x*A_to_B.x + A_to_P.y*A_to_B.y) / AB_sq));
+            return { lat: y1 + t * A_to_B.y, lng: x1 + t * A_to_B.x };
+        }
+
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
                 if(val) {
                     appData = val; if(!appData.mcStates) appData.mcStates = {};
-                    globalPoleMap = {};
-                    if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => { globalPoleMap[p.name] = p; globalPoleMap[l+"_"+p.name] = p; });
-                    
                     let nodeMap = buildAdjacencyList();
                     let segColors = tracePowerFlow(nodeMap);
+                    calculateOffsets();
                     renderMap(nodeMap, segColors);
                     updateUI();
                 }
@@ -494,18 +568,18 @@
         function updateUI() {
             const s = document.getElementById('circuitSelect');
             s.innerHTML = '<option value="">-- Toàn cảnh --</option>';
-            if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o = document.createElement('option'); o.value = k; o.text = k; s.add(o); });
+            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
+                let o = document.createElement('option'); o.value = k; o.text = k; s.add(o);
+            });
             refreshDropdowns();
         }
 
-        function getProjectedPoint(P, A, B) {
-            let x = P.lng, y = P.lat, x1 = A.lng, y1 = A.lat, x2 = B.lng, y2 = B.lat;
-            let A_to_P = { x: x - x1, y: y - y1 };
-            let A_to_B = { x: x2 - x1, y: y2 - y1 };
-            let AB_sq = A_to_B.x*A_to_B.x + A_to_B.y*A_to_B.y;
-            if (AB_sq === 0) return A;
-            let t = Math.max(0, Math.min(1, (A_to_P.x*A_to_B.x + A_to_P.y*A_to_B.y) / AB_sq));
-            return { lat: y1 + t * A_to_B.y, lng: x1 + t * A_to_B.x };
+        function createIcon(type, name, isClosed=true) {
+            let cls='my-icon icon-tru-do', sz=[12,12], html='';
+            if(type.includes('MC')) { cls=isClosed?'my-icon icon-mc-on':'my-icon icon-mc-off'; sz=[24,14]; html=name.slice(-3); }
+            else if(type.includes('NEO')) { cls='my-icon icon-tru-neo'; sz=[10,10]; }
+            else if(type.includes('MOC')) { cls='my-icon icon-moc'; sz=[8,8]; }
+            return L.divIcon({ className: cls, html: html, iconSize: sz });
         }
 
         function renderMap(nodeMap, segColors) {
@@ -540,10 +614,8 @@
             });
 
             if(appData.segments) Object.values(appData.segments).forEach(seg => {
-                let p1 = nodeMap[seg.fromLine+"_"+seg.fromNode] || nodeMap[seg.fromNode];
-                let p2 = nodeMap[seg.toLine+"_"+seg.toNode] || nodeMap[seg.toNode];
+                let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
                 if(!p1 || !p2) return;
-
                 let color = VOLTAGE_COLORS[segColors[seg.id]] || VOLTAGE_COLORS['DEFAULT'];
                 let weight = 3; let points = [ [p1.lat, p1.lng], [p2.lat, p2.lng] ];
                 
@@ -574,6 +646,16 @@
         };
         legendControl.addTo(map);
 
+        var faultControl = L.control({position: 'bottomright'});
+        faultControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'fault-box');
+            div.id = "fault-info-box";
+            div.innerHTML = `<div class="fault-header"><span>SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
+            return div;
+        };
+        faultControl.addTo(map);
+        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
+
         window.zoomToTarget = function() {
             let cid = document.getElementById('circuitSelect').value;
             layers.highlight.clearLayers(); currentPath = []; currentPathTotalDist = 0;
@@ -585,24 +667,34 @@
             }
 
             if(appData.circuits && appData.circuits[cid]) {
-                let nodeMap = globalPoleMap; // Use global map
+                let nodeMap = {}; for(let l in appData.poles) appData.poles[l].forEach(p => nodeMap[p.name] = p);
                 let bounds = [];
                 
                 appData.circuits[cid].forEach(item => {
                     let seg = appData.segments[item.segId];
                     if(seg) {
-                        let p1 = nodeMap[seg.fromLine+"_"+seg.fromNode] || nodeMap[seg.fromNode];
-                        let p2 = nodeMap[seg.toLine+"_"+seg.toNode] || nodeMap[seg.toNode];
+                        let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
                         if(p1 && p2) {
-                            currentPathTotalDist += getDist(p1.lat, p1.lng, p2.lat, p2.lng);
-                            bounds.push([p1.lat, p1.lng]); bounds.push([p2.lat, p2.lng]);
-                            L.polyline([[p1.lat, p1.lng],[p2.lat, p2.lng]], {color:'yellow', weight:6, opacity:0.5}).addTo(layers.highlight);
+                            let dist = getDist(p1.lat, p1.lng, p2.lat, p2.lng);
+                            currentPathTotalDist += dist;
                             
-                            // Build path logic can be complex with un-ordered segments. 
-                            // For V2.9 simply storing all points for search
-                             if(currentPath.length===0) currentPath.push({lat:p1.lat, lng:p1.lng, accDist:0, name:p1.name});
-                             let lastDist = currentPath[currentPath.length-1].accDist;
-                             currentPath.push({lat:p2.lat, lng:p2.lng, accDist: lastDist + getDist(p1.lat, p1.lng, p2.lat, p2.lng), name: p2.name});
+                            // Build Path for Fault Finding
+                            if(currentPath.length === 0) currentPath.push({lat:p1.lat, lng:p1.lng, accDist:0, name:p1.name});
+                            let lastDist = currentPath[currentPath.length-1].accDist;
+                            currentPath.push({lat:p2.lat, lng:p2.lng, accDist: lastDist+dist, name:p2.name});
+
+                            bounds.push([p1.lat, p1.lng]); bounds.push([p2.lat, p2.lng]);
+                            
+                            // Highlight with OFFSET logic if exists
+                            let offset = 0;
+                            let key = getSegmentKey(p1, p2);
+                            let list = segmentCounts[key];
+                            if (list && list.length > 1) {
+                                let idx = list.indexOf(cid);
+                                if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; }
+                            }
+                            
+                            L.polyline([[p1.lat, p1.lng],[p2.lat, p2.lng]], {color:'yellow', weight:6, opacity:0.5, offset: offset}).addTo(layers.highlight);
                         }
                     }
                 });
@@ -615,7 +707,6 @@
             layers.fault.clearLayers();
             let km = parseFloat(document.getElementById('faultKm').value);
             if(isNaN(km) || currentPath.length < 2) return alert("Chọn mạch trước!");
-            
             let target = km * 1000;
             let dir = document.querySelector('input[name="faultDir"]:checked').value;
             if(dir === 'end') target = currentPathTotalDist - target;
@@ -626,13 +717,22 @@
                 let p1=currentPath[i-1], p2=currentPath[i];
                 if(target >= (p1.accDist-0.1) && target <= (p2.accDist+0.1)) {
                     let ratio = (target - p1.accDist) / (p2.accDist - p1.accDist);
-                    let lat = p1.lat + (p2.lat - p1.lat)*ratio, lng = p1.lng + (p2.lng - p1.lng)*ratio;
+                    let lat = p1.lat + (p2.lat - p1.lat)*ratio;
+                    let lng = p1.lng + (p2.lng - p1.lng)*ratio;
+                    
+                    document.getElementById('main-legend').style.display='none';
+                    document.getElementById('fault-info-box').style.display='block';
+                    document.getElementById('fi-name').innerText=document.getElementById('circuitSelect').value;
+                    document.getElementById('fi-dist').innerText=`${km} km`;
+                    document.getElementById('fi-seg').innerHTML=`${p1.name} -> ${p2.name}`;
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`;
+                    
                     L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:''})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
                     map.setView([lat,lng], 16); closeSidebar(); return;
                 }
             }
         }
-        
+
         function getDist(lat1,lon1,lat2,lon2) {
             const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
             const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
