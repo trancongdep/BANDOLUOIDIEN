@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 2.4</title>
+    <title>Hệ Thống Lưới Điện - Version 2.5</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -36,7 +36,7 @@
             font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; 
         }
         
-        /* ACCORDION & PANELS */
+        /* ACCORDION */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
@@ -66,9 +66,6 @@
         .icon-mc-off { background: #388e3c; border: 2px solid white; border-radius: 2px; font-size: 9px; z-index: 2000 !important; color: white; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
-        
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
-        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
 
         /* LEGEND & FAULT BOX */
         .legend { background: rgba(255, 255, 255, 0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
@@ -89,6 +86,12 @@
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
+        
+        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
+        .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
+        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
     </style>
 </head>
 <body>
@@ -105,7 +108,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>HỆ THỐNG ĐIỆN V2.4</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>HỆ THỐNG ĐIỆN V2.5</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <div class="panel">
                 <label>1. Cập nhật Dữ liệu:</label>
@@ -167,7 +170,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 2.4</div>
+    <div class="footer">Copyright TCD software @2026 - Version 2.5</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -183,10 +186,11 @@
     </script>
 
     <script>
-        // INIT MAP
+        // MAP SETUP
         let map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([16.0, 106.0], 6);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        L.Control.Extent = L.Control.extend({
+        
+        var ExtentControl = L.Control.extend({
             options: { position: 'topright' },
             onAdd: function(map) {
                 var btn = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
@@ -195,14 +199,15 @@
                 return btn;
             }
         });
-        map.addControl(new L.Control.Extent());
+        map.addControl(new ExtentControl());
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
 
         map.createPane('busbarPane'); map.getPane('busbarPane').style.zIndex = 400;
         map.createPane('linePane'); map.getPane('linePane').style.zIndex = 450;
 
-        let layers = { areas: L.layerGroup().addTo(map), busbar: L.layerGroup().addTo(map), line: L.layerGroup().addTo(map), highlight: L.layerGroup().addTo(map), points: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), source: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
+        // FIXED LAYER GROUPS
+        let layers = { areas: L.layerGroup().addTo(map), busbar: L.layerGroup().addTo(map), line: L.layerGroup().addTo(map), highlight: L.layerGroup().addTo(map), points: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), source: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), important: L.layerGroup().addTo(map) };
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, areas: [] };
         let stagingData = null;
         let currentPath = []; let currentPathTotalDist = 0;
@@ -210,6 +215,18 @@
         let activeBusbars = {};
 
         const VOLTAGE_COLORS = { 500: '#2196F3', 220: '#F44336', 110: '#2E7D32', 35: '#FF9800', 22: '#FFC107', 0: '#000000', 'DEFAULT': '#607D8B' };
+
+        // ZOOM VISIBILITY FIX: Only hide minor points (poles)
+        const ZOOM_THRESHOLD = 15;
+        function updateLayerVisibility() {
+            let z = map.getZoom();
+            if (z < ZOOM_THRESHOLD) {
+                if (map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
+            } else {
+                if (!map.hasLayer(layers.minor)) map.addLayer(layers.minor);
+            }
+        }
+        map.on('zoomend', updateLayerVisibility);
 
         // UI LOGIC
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
@@ -225,7 +242,6 @@
             } else { closeSidebar(); }
         });
 
-        // ACCORDION HANDLER (INDEPENDENT)
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
@@ -236,7 +252,6 @@
         }
         function refreshPanelHeight(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight+100)+"px"; }
 
-        // DATA ENTRY
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -257,6 +272,7 @@
                 window.set(window.ref(window.db,'he_thong_luoi_dien/areas'), areas).then(()=>{ alert("Lưu vùng OK"); pickingMode=null; if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints=[]; });
             });
         }
+
         window.savePole = function() {
             let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
             let type=document.getElementById('inp-pole-type').value, lat=document.getElementById('inp-lat').value, lng=document.getElementById('inp-lng').value;
@@ -275,7 +291,10 @@
             let l1=document.getElementById('sel-seg-line1').value, p1=document.getElementById('sel-seg-pole1').value;
             let l2=document.getElementById('sel-seg-line2').value, p2=document.getElementById('sel-seg-pole2').value;
             if(!id) return alert("Thiếu Mã Đoạn");
-            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, fromLine:l1, fromNode:p1, toLine:l2, toNode:p2}).then(()=>alert("Lưu Đoạn OK"));
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {
+                id, type:document.getElementById('inp-seg-type').value, 
+                fromLine:l1, fromNode:p1, toLine:l2, toNode:p2
+            }).then(()=>alert("Lưu Đoạn OK"));
         }
         window.saveCircuitItem = function() {
             let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value;
@@ -284,6 +303,19 @@
                 let list=snap.val()||[]; list.push({segId:sid, order:list.length+1});
                 window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Thêm vào mạch OK"));
             });
+        }
+        window.refreshDropdowns = function() {
+            let routes=Object.keys(appData.poles||{});
+            let op='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+            document.getElementById('sel-seg-line1').innerHTML=op; document.getElementById('sel-seg-line2').innerHTML=op;
+            let circs=Object.keys(appData.circuits||{});
+            document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join('');
+            let segs=Object.keys(appData.segments||{});
+            document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join('');
+        }
+        window.updatePoleSelect = function(lid, pid) {
+            let line=document.getElementById(lid).value; let poles=appData.poles[line]||[];
+            document.getElementById(pid).innerHTML='<option value="">Chọn Điểm...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
         }
 
         // CONFIRM & UPLOAD
@@ -307,7 +339,6 @@
             closeWinDialog();
         };
 
-        // EXCEL LOGIC
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
@@ -317,58 +348,72 @@
         function readFile(file) { return new Promise(r => { const rd=new FileReader(); rd.onload=e=>{ const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(file); }); }
         
         function processSheets(sheets) {
-            // ... (Logic import giữ nguyên từ v2.1/2.2) ...
-            // Rút gọn để đảm bảo an toàn:
             const sPoles=Object.keys(sheets).find(n=>n.includes("TOA_DO"));
             const sSegs=Object.keys(sheets).find(n=>n.includes("DM_DOAN"));
-            const sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
-            if(!sPoles||!sSegs) return alert("Thiếu TOA_DO/DM_DOAN");
+            if(!sPoles||!sSegs) return alert("Thiếu TOA_DO hoặc DM_DOAN!");
 
             let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
             
-            // Import POLES
-            sheets[sPoles].forEach(r => {
-                let l=String(r[getCol(r,["MA_TUYEN"])]).trim(), n=String(r[getCol(r,["TEN_DIEM","TEN_TRU"])]).trim();
-                let type=getCol(r,["LOAI_DIEM"])?String(r[getCol(r,["LOAI_DIEM"])]).trim().toUpperCase():"TRU_DO";
-                let volt=getCol(r,["DIEN_AP"])?parseInt(r[getCol(r,["DIEN_AP"])]):0;
-                if(r[getCol(r,["LAT"])]) {
+            let pData = sheets[sPoles];
+            let cMa=getCol(pData[0],["MA_TUYEN"]), cTen=getCol(pData[0],["TEN_DIEM","TEN_TRU"]), cLat=getCol(pData[0],["LAT"]), cLng=getCol(pData[0],["LONG"]), cLoai=getCol(pData[0],["LOAI_DIEM"]), cVol=getCol(pData[0],["DIEN_AP"]);
+            
+            pData.forEach(r => {
+                let l=String(r[cMa]||"OTHER").trim(), n=String(r[cTen]).trim();
+                let type = cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO";
+                let volt = cVol ? parseInt(r[cVol]) : 0;
+                
+                if(r[cLat]) {
                     if(!data.poles[l]) data.poles[l]=[];
-                    data.poles[l].push({name:n, lat:parseFloat(r[getCol(r,["LAT"])]), lng:parseFloat(r[getCol(r,["LONG"])]), type:type, voltage:volt});
-                    if(type==='MC') data.mcStates[n]=true;
+                    data.poles[l].push({ name:n, lat:parseFloat(r[cLat]), lng:parseFloat(r[cLng]), type:type, voltage:volt });
+                    if(type==='MC') data.mcStates[n] = true;
                 }
             });
 
-            // Import SEGMENTS
-            sheets[sSegs].forEach(r => {
-                let id=r[getCol(r,["MA_DOAN"])];
-                if(id) data.segments[id] = { id:id, type: getCol(r,["LOAI"])?String(r[getCol(r,["LOAI"])]).trim().toUpperCase():"NOI", fromLine:r[getCol(r,["TUYEN_TU"])], fromNode:String(r[getCol(r,["TRU_TU","DIEM_TU"])]).trim(), toLine:r[getCol(r,["TUYEN_DEN"])], toNode:String(r[getCol(r,["TRU_DEN","DIEM_DEN"])]).trim() };
+            let sData = sheets[sSegs];
+            let cId=getCol(sData[0],["MA_DOAN"]), cT1=getCol(sData[0],["TUYEN_TU"]), cN1=getCol(sData[0],["TRU_TU","DIEM_TU"]), cT2=getCol(sData[0],["TUYEN_DEN"]), cN2=getCol(sData[0],["TRU_DEN","DIEM_DEN"]), cL=getCol(sData[0],["LOAI"]);
+            
+            sData.forEach(r => {
+                let id = r[cId];
+                if(id) {
+                    data.segments[id] = {
+                        id: id,
+                        type: cL ? String(r[cL]).trim().toUpperCase() : "NOI",
+                        fromLine: r[cT1], fromNode: String(r[cN1]).trim(),
+                        toLine: r[cT2], toNode: String(r[cN2]).trim()
+                    };
+                }
             });
 
-            // Import CIRCUITS
-            if(sCircs) {
+            const sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
+            if (sCircs && sheets[sCircs]) {
                 let cCid=getCol(sheets[sCircs][0],["MA_DUONG_DAY"]), cSid=getCol(sheets[sCircs][0],["MA_DOAN"]), cStt=getCol(sheets[sCircs][0],["STT"]);
-                sheets[sCircs].forEach(r=>{
-                    let cid=r[cCid], sid=r[cSid];
-                    if(sid) { if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({segId:sid, order:parseInt(r[cStt]||999)}); }
+                sheets[sCircs].forEach(r => {
+                    let cid = r[cCid], sid = r[cSid];
+                    if(sid) {
+                        if(!data.circuits[cid]) data.circuits[cid]=[];
+                        data.circuits[cid].push({ segId:sid, order:parseInt(r[cStt]||999) });
+                    }
                 });
             }
 
             stagingData = data;
-            document.getElementById('upload-actions').style.display = "block";
             document.getElementById('console').innerHTML = "✅ Dữ liệu sẵn sàng!";
+            document.getElementById('upload-actions').style.display = "block";
+            refreshPanelHeight('panel-update');
         }
 
         function executeUpload(mode) {
             if(!stagingData) return;
             let refRoot = window.ref(window.db, 'he_thong_luoi_dien');
-            if(mode==='replace') window.set(refRoot, stagingData).then(()=>alert("Thay thế OK!"));
-            else {
-                let updates={};
-                Object.keys(stagingData.poles).forEach(k=>updates[`poles/${k}`]=stagingData.poles[k]);
-                Object.keys(stagingData.segments).forEach(k=>updates[`segments/${k}`]=stagingData.segments[k]);
-                if(stagingData.circuits) Object.keys(stagingData.circuits).forEach(k=>updates[`circuits/${k}`]=stagingData.circuits[k]);
-                if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k=>updates[`mcStates/${k}`]=true);
-                window.update(refRoot, updates).then(()=>alert("Gộp OK!"));
+            if(mode === 'replace') {
+                window.set(refRoot, stagingData).then(()=>alert("Đã thay thế!"));
+            } else {
+                let updates = {};
+                Object.keys(stagingData.poles).forEach(k => updates[`poles/${k}`] = stagingData.poles[k]);
+                Object.keys(stagingData.segments).forEach(k => updates[`segments/${k}`] = stagingData.segments[k]);
+                if(stagingData.circuits) Object.keys(stagingData.circuits).forEach(k => updates[`circuits/${k}`] = stagingData.circuits[k]);
+                if(stagingData.mcStates) Object.keys(stagingData.mcStates).forEach(k => updates[`mcStates/${k}`] = true);
+                window.update(refRoot, updates).then(()=>alert("Đã gộp!"));
             }
         }
 
@@ -385,12 +430,76 @@
             XLSX.writeFile(wb,"DuLieuLuoiDien_V2.xlsx");
         }
 
-        // --- RENDER & TOPOLOGY ---
+        // --- TOPOLOGY & RENDER ---
+        function buildAdjacencyList() {
+            appData.adjList = {}; activeBusbars = {}; 
+            let nodeMap = {};
+            for(let l in appData.poles) appData.poles[l].forEach(p => nodeMap[p.name] = p);
+
+            if(appData.segments) {
+                Object.values(appData.segments).forEach(seg => {
+                    if(seg.type === 'THANH_CAI') {
+                        let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
+                        if(p1 && p2) {
+                            activeBusbars[seg.fromNode] = { p1, p2 };
+                            activeBusbars[seg.toNode] = { p1, p2 };
+                        }
+                    }
+                    if(!appData.adjList[seg.fromNode]) appData.adjList[seg.fromNode] = [];
+                    if(!appData.adjList[seg.toNode]) appData.adjList[seg.toNode] = [];
+                    
+                    appData.adjList[seg.fromNode].push({ to: seg.toNode, id: seg.id, type: seg.type });
+                    appData.adjList[seg.toNode].push({ to: seg.fromNode, id: seg.id, type: seg.type });
+                });
+            }
+            return nodeMap;
+        }
+
+        function tracePowerFlow(nodeMap) {
+            let segColors = {}; if(appData.segments) Object.keys(appData.segments).forEach(k => segColors[k] = null);
+            let queue = [];
+            for(let l in appData.poles) appData.poles[l].forEach(p => { if(p.type === 'NGUON') queue.push({ node: p.name, voltage: p.voltage }); });
+            let visited = {}; 
+            while(queue.length > 0) {
+                let curr = queue.shift();
+                let u = curr.node, volt = curr.voltage;
+                
+                // SAFE CHECK FOR NODE EXISTENCE (Fix v2.4 crash)
+                if (!nodeMap[u]) continue; 
+
+                if (visited[u] >= volt) continue;
+                visited[u] = volt;
+                
+                let neighbors = appData.adjList[u] || [];
+                neighbors.forEach(edge => {
+                    let canPass = true;
+                    let currNodeInfo = nodeMap[u];
+                    if (currNodeInfo && currNodeInfo.type === 'MC' && appData.mcStates[u] === false) canPass = false;
+                    
+                    if (canPass) {
+                        if ((segColors[edge.id] || 0) < volt) segColors[edge.id] = volt;
+                        queue.push({ node: edge.to, voltage: volt });
+                    }
+                });
+            }
+            if(appData.segments) {
+                Object.values(appData.segments).forEach(seg => {
+                    if (segmentColors[seg.id] === null || segmentColors[seg.id] === undefined) {
+                        let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
+                        let v = (p1 && p1.voltage) ? p1.voltage : ((p2 && p2.voltage) ? p2.voltage : 'DEFAULT');
+                        segmentColors[seg.id] = v;
+                    }
+                });
+            }
+            return segColors;
+        }
+
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
                 if(val) {
-                    appData = val; if(!appData.mcStates) appData.mcStates={};
+                    appData = val;
+                    if(!appData.mcStates) appData.mcStates = {};
                     let nodeMap = buildAdjacencyList();
                     let segColors = tracePowerFlow(nodeMap);
                     renderMap(nodeMap, segColors);
@@ -402,117 +511,110 @@
         function updateUI() {
             const s = document.getElementById('circuitSelect');
             s.innerHTML = '<option value="">-- Toàn cảnh --</option>';
-            if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); });
+            if(appData.circuits) Object.keys(appData.circuits).forEach(k => {
+                let o = document.createElement('option'); o.value = k; o.text = k; s.add(o);
+            });
             refreshDropdowns();
         }
 
-        function buildAdjacencyList() {
-            appData.adjList = {}; activeBusbars = {}; let nodeMap = {};
-            for(let l in appData.poles) appData.poles[l].forEach(p => nodeMap[p.name] = p);
-            if(appData.segments) Object.values(appData.segments).forEach(seg => {
-                if(seg.type === 'THANH_CAI') {
-                    let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
-                    if(p1 && p2) { activeBusbars[seg.fromNode] = { p1, p2 }; activeBusbars[seg.toNode] = { p1, p2 }; }
-                }
-                if(!appData.adjList[seg.fromNode]) appData.adjList[seg.fromNode] = [];
-                if(!appData.adjList[seg.toNode]) appData.adjList[seg.toNode] = [];
-                appData.adjList[seg.fromNode].push({ to: seg.toNode, id: seg.id });
-                appData.adjList[seg.toNode].push({ to: seg.fromNode, id: seg.id });
-            });
-            return nodeMap;
-        }
-
-        function tracePowerFlow(nodeMap) {
-            let segColors = {}; if(appData.segments) Object.keys(appData.segments).forEach(k => segColors[k] = null);
-            let queue = [];
-            for(let l in appData.poles) appData.poles[l].forEach(p => { if(p.type === 'NGUON') queue.push({ node: p.name, voltage: p.voltage }); });
-            let visited = {};
-            while(queue.length > 0) {
-                let curr = queue.shift();
-                let u = curr.node, volt = curr.voltage;
-                if(visited[u] >= volt) continue;
-                visited[u] = volt;
-                let neighbors = appData.adjList[u] || [];
-                neighbors.forEach(edge => {
-                    let canPass = true;
-                    if(nodeMap[u] && nodeMap[u].type === 'MC' && appData.mcStates[u] === false) canPass = false;
-                    if(canPass) {
-                        if((segColors[edge.id] || 0) < volt) segColors[edge.id] = volt;
-                        queue.push({ node: edge.to, voltage: volt });
-                    }
-                });
-            }
-            // Fallback
-            if(appData.segments) Object.values(appData.segments).forEach(seg => {
-                if(segColors[seg.id] === null) {
-                    let p1=nodeMap[seg.fromNode], p2=nodeMap[seg.toNode];
-                    let v = (p1&&p1.voltage)?p1.voltage:((p2&&p2.voltage)?p2.voltage:'DEFAULT');
-                    segColors[seg.id] = v;
-                }
-            });
-            return segColors;
+        function getProjectedPoint(P, A, B) {
+            let x = P.lng, y = P.lat, x1 = A.lng, y1 = A.lat, x2 = B.lng, y2 = B.lat;
+            let A_to_P = { x: x - x1, y: y - y1 };
+            let A_to_B = { x: x2 - x1, y: y2 - y1 };
+            let AB_sq = A_to_B.x*A_to_B.x + A_to_B.y*A_to_B.y;
+            if (AB_sq === 0) return A;
+            let t = Math.max(0, Math.min(1, (A_to_P.x*A_to_B.x + A_to_P.y*A_to_B.y) / AB_sq));
+            return { lat: y1 + t * A_to_B.y, lng: x1 + t * A_to_B.x };
         }
 
         function renderMap(nodeMap, segColors) {
             Object.values(layers).forEach(l => l.clearLayers());
-            
-            // Render Areas
+            updateLayerVisibility(); // Always check visibility on render
+
+            let z = map.getZoom();
+            let showPoles = z >= 15;
+
             if(appData.areas) appData.areas.forEach(a => {
-                let c = '#9e9e9e'; if(a.type==='TBA') c='#ff9800';
-                L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(a.name);
+                let c = '#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548';
+                L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
             });
 
-            // Nodes
-            for(let l in appData.poles) appData.poles[l].forEach(p => {
-                let type=p.type, target=null, icon=null, zIdx=0;
-                if(type==='NGUON') { target=layers.source; zIdx=2000; icon=L.divIcon({className:'', html:`<div class="icon-source" style="background:${VOLTAGE_COLORS[p.voltage]||'#607D8B'};width:24px;height:24px;">${p.voltage}</div>`, iconSize:[24,24]}); }
-                else if(type==='MC') {
-                    target=layers.mc; 
-                    let isOn=appData.mcStates[p.name]!==false;
-                    let label=p.name.match(/\d{3}$/)?p.name.match(/\d{3}$/)[0]:p.name.slice(-3);
-                    icon=L.divIcon({className:isOn?'icon-mc-on':'icon-mc-off', html:label, iconSize:[24,14]});
-                } else if(type!=='THANH_CAI' && type!=='DIEM_NOI') {
-                    target=layers.points; icon=L.divIcon({className:(type==='TRU_NEO')?'icon-tru-neo':'icon-tru-do', iconSize:[10,10]});
-                }
-                if(target && icon) {
-                    let m=L.marker([p.lat,p.lng],{icon, zIndexOffset:zIdx}).addTo(target);
-                    if(type==='MC') m.on('click',()=>window.showMCConfirm(p.name)); else m.bindPopup(p.name);
-                }
-            });
+            for(let l in appData.poles) {
+                appData.poles[l].forEach(p => {
+                    let type = p.type, target = null, icon = null, zIdx = 0;
+                    if (type === 'NGUON') {
+                        target = layers.source; zIdx = 2000;
+                        let color = VOLTAGE_COLORS[p.voltage] || '#607D8B';
+                        icon = L.divIcon({ className: '', html: `<div class="icon-source" style="background:${color}; width:24px; height:24px;">${p.voltage}</div>`, iconSize: [24, 24] });
+                    } else if (type === 'MC') {
+                        target = layers.mc;
+                        let isOn = appData.mcStates[p.name] !== false;
+                        let cls = isOn ? 'icon-mc-on' : 'icon-mc-off';
+                        let label = p.name.match(/\d{3}$/) ? p.name.match(/\d{3}$/)[0] : p.name.slice(-3);
+                        icon = L.divIcon({ className: cls, html: label, iconSize: [24, 14] });
+                    } else if (type === 'THANH_CAI' || type === 'DIEM_NOI') { return; } 
+                    else {
+                        if(showPoles) {
+                            target = layers.points;
+                            let cls = (type==='TRU_NEO')?'icon-tru-neo':'icon-tru-do';
+                            icon = L.divIcon({ className: cls, iconSize: [10, 10] });
+                        }
+                    }
 
-            // Segments
-            if(appData.segments) Object.values(appData.segments).forEach(seg => {
-                let p1=nodeMap[seg.fromNode], p2=nodeMap[seg.toNode];
-                if(!p1||!p2) return;
-                let color=VOLTAGE_COLORS[segColors[seg.id]]||'#000';
-                let pts=[[p1.lat,p1.lng], [p2.lat,p2.lng]];
-                
-                if(seg.type==='THANH_CAI') { L.polyline(pts,{color, weight:6, pane:'busbarPane'}).addTo(layers.busbar); return; }
-                
-                let busInfo = activeBusbars[seg.fromNode] || activeBusbars[seg.toNode];
-                if(busInfo) {
-                    let bn=activeBusbars[seg.fromNode]?p1:p2, on=(bn===p1)?p2:p1;
-                    let H=getProjectedPoint(on, busInfo.p1, busInfo.p2);
-                    pts=[[on.lat,on.lng], [H.lat,H.lng]];
-                }
-                L.polyline(pts,{color, weight:3, pane:'linePane'}).addTo(layers.line);
-            });
+                    if (target && icon) {
+                        let m = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: zIdx }).addTo(target);
+                        if(type === 'MC') m.on('click', () => window.showMCConfirm(p.name));
+                        else m.bindPopup(p.name);
+                    }
+                });
+            }
+
+            if(appData.segments) {
+                Object.values(appData.segments).forEach(seg => {
+                    let p1 = nodeMap[seg.fromNode], p2 = nodeMap[seg.toNode];
+                    if(!p1 || !p2) return;
+
+                    let colorCode = segColors[seg.id];
+                    let color = VOLTAGE_COLORS[colorCode] || VOLTAGE_COLORS['DEFAULT'];
+                    
+                    let weight = 3;
+                    let points = [ [p1.lat, p1.lng], [p2.lat, p2.lng] ];
+                    
+                    if (seg.type === 'THANH_CAI') {
+                        weight = 6;
+                        L.polyline(points, {color: color, weight: weight, pane: 'busbarPane'}).addTo(layers.busbar);
+                        return;
+                    }
+
+                    let busbarInfo = activeBusbars[seg.fromNode] || activeBusbars[seg.toNode];
+                    if (busbarInfo) {
+                        let busNode = activeBusbars[seg.fromNode] ? p1 : p2;
+                        let otherNode = (busNode === p1) ? p2 : p1;
+                        let H = getProjectedPoint(otherNode, busbarInfo.p1, busbarInfo.p2);
+                        points = [ [otherNode.lat, otherNode.lng], [H.lat, H.lng] ];
+                    }
+                    L.polyline(points, {color: color, weight: weight, pane: 'linePane'}).addTo(layers.line);
+                });
+            }
         }
 
-        // --- MATH HELPER ---
-        function getProjectedPoint(P, A, B) {
-            let x=P.lng, y=P.lat, x1=A.lng, y1=A.lat, x2=B.lng, y2=B.lat;
-            let dx=x2-x1, dy=y2-y1, t=((x-x1)*dx + (y-y1)*dy) / (dx*dx+dy*dy);
-            t=Math.max(0,Math.min(1,t));
-            return {lat: y1+t*dy, lng: x1+t*dx};
-        }
-        function getDist(lat1,lon1,lat2,lon2) {
-            const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
-            const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-            return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-        }
+        map.on('zoomend', () => {
+            if (appData.poles) {
+                let nodeMap = buildAdjacencyList(); 
+                let segColors = tracePowerFlow(nodeMap);
+                renderMap(nodeMap, segColors);
+            }
+        });
 
-        // --- ZOOM & CALC LENGTH (FIXED) ---
+        var legendControl = L.control({position: 'bottomright'});
+        legendControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `<h4>ĐIỆN ÁP</h4><div class="legend-item"><span class="legend-icon" style="background:#2196F3"></span> 500 kV</div><div class="legend-item"><span class="legend-icon" style="background:#F44336"></span> 220 kV</div><div class="legend-item"><span class="legend-icon" style="background:#2E7D32"></span> 110 kV</div><div class="legend-item"><span class="legend-icon" style="background:#000"></span> Mất điện</div>`;
+            return div;
+        };
+        legendControl.addTo(map);
+
+        // --- ZOOM TO TARGET & CALC LENGTH ---
         window.zoomToTarget = function() {
             let cid = document.getElementById('circuitSelect').value;
             layers.highlight.clearLayers();
@@ -542,7 +644,7 @@
                             currentPath.push({lat:p2.lat, lng:p2.lng, accDist: lastDist+dist, name:p2.name});
 
                             bounds.push([p1.lat, p1.lng]); bounds.push([p2.lat, p2.lng]);
-                            L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]], {color:'yellow', weight:6, opacity:0.5}).addTo(layers.highlight);
+                            L.polyline([[p1.lat, p1.lng],[p2.lat, p2.lng]], {color:'yellow', weight:6, opacity:0.5}).addTo(layers.highlight);
                         }
                     }
                 });
@@ -583,50 +685,10 @@
             }
         }
 
-        // --- LAYER VISIBILITY ---
-        map.on('zoomend', () => {
-            let z = map.getZoom();
-            if(z<15) { 
-                if(map.hasLayer(layers.points)) map.removeLayer(layers.points); 
-                if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
-            } else { 
-                if(!map.hasLayer(layers.points)) map.addLayer(layers.points);
-                if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc);
-            }
-        });
-        
-        // CONTROLS
-        var legendControl = L.control({position: 'bottomright'});
-        legendControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'legend');
-            div.id = "main-legend";
-            div.innerHTML = `<h4>ĐIỆN ÁP</h4><div class="legend-item"><span class="legend-icon" style="background:#2196F3"></span> 500 kV</div><div class="legend-item"><span class="legend-icon" style="background:#F44336"></span> 220 kV</div><div class="legend-item"><span class="legend-icon" style="background:#2E7D32"></span> 110 kV</div><div class="legend-item"><span class="legend-icon" style="background:#000"></span> Mất điện</div>`;
-            return div;
-        };
-        legendControl.addTo(map);
-
-        var faultControl = L.control({position: 'bottomright'});
-        faultControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'fault-box');
-            div.id = "fault-info-box";
-            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
-            return div;
-        };
-        faultControl.addTo(map);
-        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
-
-        window.refreshDropdowns = function() {
-            let routes=Object.keys(appData.poles||{});
-            let op='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join('');
-            document.getElementById('sel-seg-line1').innerHTML=op; document.getElementById('sel-seg-line2').innerHTML=op;
-            let circs=Object.keys(appData.circuits||{});
-            document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join('');
-            let segs=Object.keys(appData.segments||{});
-            document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join('');
-        }
-        window.updatePoleSelect = function(lid, pid) {
-            let line=document.getElementById(lid).value; let poles=appData.poles[line]||[];
-            document.getElementById(pid).innerHTML='<option value="">Chọn Điểm...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+        function getDist(lat1,lon1,lat2,lon2) {
+            const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+            const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
         }
     </script>
 </body>
