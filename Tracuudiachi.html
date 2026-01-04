@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu Tọa độ Thông minh v1.1</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #1a73e8;
+            text-align: center;
+            font-size: 24px;
+        }
+        .instruction {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 20px;
+            text-align: center;
+            background: #e8f0fe;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #202124;
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: monospace;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #dadce0;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+        .result-item {
+            margin-bottom: 10px;
+        }
+        .label-res {
+            font-weight: bold;
+            font-size: 13px;
+            color: #5f6368;
+            text-transform: uppercase;
+        }
+        .value-res {
+            font-size: 16px;
+            color: #202124;
+            line-height: 1.5;
+        }
+        .coords-debug {
+            font-family: monospace;
+            color: #d93025;
+            background: #fce8e6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .map-link {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #1a73e8;
+            font-weight: 600;
+        }
+        .map-link:hover {
+            text-decoration: underline;
+        }
+        .loading {
+            text-align: center;
+            color: #5f6368;
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📍 Tra cứu Địa chỉ OSM</h2>
+    
+    <div class="instruction">
+        Hỗ trợ định dạng Việt Nam:<br>
+        <code>10,7603659, 106,6853132</code>
+    </div>
+
+    <div class="form-group">
+        <label for="rawCoords">Dán tọa độ vào đây:</label>
+        <textarea id="rawCoords" placeholder="Ví dụ: 10,7603659, 106,6853132"></textarea>
+    </div>
+
+    <button id="btnSearch" onclick="processAndSearch()">🔍 Tìm địa chỉ</button>
+    
+    <div id="loading" class="loading">Đang kết nối OpenStreetMap...</div>
+
+    <div id="result">
+        <div class="result-item">
+            <div class="label-res">Tọa độ đã xử lý:</div>
+            <div class="value-res"><span id="parsedCoords" class="coords-debug"></span></div>
+        </div>
+        <div class="result-item">
+            <div class="label-res">Địa chỉ tìm được:</div>
+            <div id="addressText" class="value-res" style="font-weight: 500;"></div>
+        </div>
+        <a id="mapLink" href="#" target="_blank" class="map-link">Xem trên bản đồ lớn &rarr;</a>
+    </div>
+</div>
+
+<script>
+    async function processAndSearch() {
+        const rawInput = document.getElementById('rawCoords').value;
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        const btn = document.getElementById('btnSearch');
+
+        // Reset UI
+        resultDiv.style.display = 'none';
+        
+        if (!rawInput.trim()) {
+            alert("Vui lòng nhập tọa độ!");
+            return;
+        }
+
+        // --- BƯỚC 1: XỬ LÝ CHUỖI ĐẦU VÀO (PARSING) ---
+        // Mục tiêu: Chuyển "10,123, 106,456" thành lat=10.123, lon=106.456
+        let lat, lon;
+        
+        try {
+            // 1. Chuẩn hóa: Xóa khoảng trắng thừa
+            let cleanStr = rawInput.trim();
+            
+            // 2. Phát hiện định dạng: 
+            // Nếu chuỗi chứa dấu phẩy giữa các số (Ví dụ: "10,123" thay vì "10.123")
+            // Ta dùng Regex để tìm dấu phẩy ngăn cách 2 tọa độ.
+            // Logic: Tìm nơi có ", " (phẩy + khoảng trắng) hoặc tách đôi chuỗi dựa trên số lượng dấu phẩy.
+            
+            let parts;
+            
+            // Trường hợp 1: Dùng dấu chấm chuẩn (10.123, 106.123)
+            if (cleanStr.includes('.') && !cleanStr.includes(',,')) {
+                parts = cleanStr.split(/[\s,]+/); // Tách bằng phẩy hoặc khoảng trắng
+            } 
+            // Trường hợp 2: Dùng toàn dấu phẩy (10,123, 106,123)
+            else {
+                // Thay thế ", " (phẩy cách) thành ký tự đặc biệt "|" để tách
+                // Giả định người dùng copy có khoảng trắng sau dấu phẩy ngăn cách
+                if (cleanStr.includes(', ')) {
+                    let temp = cleanStr.replace(', ', '|'); 
+                    parts = temp.split('|');
+                } else {
+                    // Nếu dính liền (10,123,106,123), ta cắt đôi mảng
+                    let rawParts = cleanStr.split(',');
+                    if (rawParts.length === 4) {
+                        parts = [
+                            rawParts[0] + '.' + rawParts[1],
+                            rawParts[2] + '.' + rawParts[3]
+                        ];
+                    } else if (rawParts.length === 2) {
+                        parts = rawParts; // Có thể là 10.123,106.123
+                    }
+                }
+            }
+
+            // Lọc lấy số và thay dấu phẩy thành dấu chấm cho từng phần
+            const numbers = parts.map(p => {
+                // Giữ lại số, dấu chấm, dấu trừ. Thay dấu phẩy thành chấm.
+                let processed = p.replace(/,/g, '.').replace(/[^0-9.-]/g, '');
+                return parseFloat(processed);
+            }).filter(n => !isNaN(n));
+
+            if (numbers.length < 2) throw new Error("Không nhận diện được 2 toạ độ.");
+
+            lat = numbers[0];
+            lon = numbers[1];
+
+            // Validate cơ bản Việt Nam (Lat ~8-23, Lon ~102-109) - Optional
+            
+        } catch (e) {
+            alert("Không thể đọc được tọa độ. Vui lòng kiểm tra lại định dạng.\nNên nhập: 10,7603659, 106,6853132");
+            return;
+        }
+
+        // Hiển thị tọa độ đã hiểu
+        document.getElementById('parsedCoords').textContent = `Lat: ${lat} | Lon: ${lon}`;
+
+        // --- BƯỚC 2: GỌI API OPENSTREETMAP ---
+        loadingDiv.style.display = 'block';
+        btn.disabled = true;
+
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Accept-Language': 'vi' // Yêu cầu trả về tiếng Việt
+                }
+            });
+
+            if (!response.ok) throw new Error("Lỗi kết nối API");
+
+            const data = await response.json();
+
+            // --- BƯỚC 3: HIỂN THỊ KẾT QUẢ ---
+            if (data.error) {
+                document.getElementById('addressText').textContent = "Không tìm thấy địa chỉ (Có thể tọa độ nằm giữa biển/rừng).";
+            } else {
+                document.getElementById('addressText').textContent = data.display_name;
+                
+                // Cập nhật link map
+                const mapLink = document.getElementById('mapLink');
+                mapLink.href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`;
+            }
+            
+            resultDiv.style.display = 'block';
+
+        } catch (err) {
+            alert("Lỗi: " + err.message);
+        } finally {
+            loadingDiv.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
