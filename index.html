@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.80</title>
+    <title>Hệ Thống Lưới Điện - Version 1.81</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -112,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.80</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.81</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -171,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.80</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.81</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -203,7 +203,6 @@
             else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); }
         });
 
-        // UI ACCORDION FIX
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
@@ -217,7 +216,6 @@
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
-        // --- MASTER UI REFRESH ---
         window.refreshAllUI = function() {
             let routes = Object.keys(appData.poles || {});
             let op = '<option value="">Chọn Tuyến...</option>' + routes.map(r => `<option value="${r}">${r}</option>`).join('');
@@ -233,7 +231,6 @@
             s.value = cur;
         }
 
-        // --- PARSER ---
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
             if(!input.files.length) return alert("Chưa chọn file");
@@ -250,7 +247,6 @@
             return true;
         }
 
-        // V1.80: SAFE PARSING
         function safeFloat(val) {
             if(val === undefined || val === null) return NaN;
             if(typeof val === 'number') return val;
@@ -322,7 +318,7 @@
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.80!");
+            log("✅ Dữ liệu hợp lệ V1.81!");
             if(sourceReport.length > 0) alert(`Đã tìm thấy ${sourceReport.length} nguồn điện:\n` + sourceReport.join("\n"));
             else alert("CẢNH BÁO: Không tìm thấy bất kỳ nguồn điện nào (LOAI_DIEM = NGUON)!");
             
@@ -339,7 +335,6 @@
             else window.update(window.ref(window.db, 'he_thong_luoi_dien'), stagingData).then(() => alert("Gộp thành công!"));
         }
 
-        // --- ACTIONS ---
         window.updatePoleSelect = function(lid, pid) {
             let line = document.getElementById(lid).value;
             let poles = appData.poles[line] || [];
@@ -409,12 +404,10 @@
             });
         }
 
-        // --- POWER FLOW LOGIC ---
         function calculatePowerFlow() {
             powerState = {}; 
             let adj = {}; 
             
-            // Build Graph
             if(!appData.segments) return;
             Object.values(appData.segments).forEach(s => {
                 let u = `${s.lineFrom}|${s.poleFrom}`;
@@ -503,7 +496,6 @@
                     icon = L.divIcon({className: 'my-icon icon-tru-do', iconSize:[10,10]});
                 }
 
-                // CHECK VALID COORDS V1.80
                 if(!isNaN(p.lat) && !isNaN(p.lng)) {
                     let marker = L.marker([p.lat,p.lng], {icon: icon}).addTo(isMC?layers.mc:layers.minor);
                     marker.bindPopup(`<b>${p.name}</b><br>Tuyến: ${l}<br>Điện áp: ${volt}kV`);
@@ -522,7 +514,6 @@
                 <div class="legend-item"><span class="legend-icon" style="border:2px solid green;background:none;"></span> MC Mở</div>`;
         }
 
-        // --- DRAWING ---
         function drawSingleCircuit(cid, calcPath) {
             let segs = appData.circuits[cid];
             if(calcPath) { currentPath=[]; currentPathTotalDist=0; }
@@ -534,13 +525,11 @@
                 let p1 = getPoleExact(def.lineFrom, def.poleFrom);
                 let p2 = getPoleExact(def.lineTo, def.poleTo);
                 
-                // Fallback Global Search
                 if(!p1) p1 = getPoleGlobal(def.poleFrom);
                 if(!p2) p2 = getPoleGlobal(def.poleTo);
 
                 if(!p1 || !p2) return;
 
-                // Trace or Fallback
                 let pts = [];
                 if (p1.foundRoute && p2.foundRoute && p1.foundRoute === p2.foundRoute) {
                     let list = appData.poles[p1.foundRoute];
@@ -555,13 +544,11 @@
                 }
                 if(pts.length < 2) pts = [p1, p2];
 
-                // Voltage Coloring Logic
                 let v1 = powerState[`${def.lineFrom}|${p1.name}`] || 0;
                 let v2 = powerState[`${def.lineTo}|${p2.name}`] || 0;
                 let volt = Math.min(v1, v2); 
                 let color = getVoltageColor(volt);
                 
-                // Filter NaN Coords
                 let validPts = pts.filter(p => !isNaN(p.lat) && !isNaN(p.lng));
                 if(validPts.length > 1) {
                     let poly = L.polyline(validPts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
@@ -591,7 +578,6 @@
             }
         }
 
-        // --- UTILS ---
         function getPoleExact(line, name) {
             if(!appData.poles[line]) return null;
             let p = appData.poles[line].find(p => p.name === name);
@@ -611,7 +597,6 @@
             return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
         }
 
-        // --- DIALOG & EVENTS ---
         window.showMCConfirm = function(mcName) {
             let isOpen = appData.mcStates[mcName] === false;
             document.getElementById('win-msg').innerHTML = `Máy cắt <b>${mcName}</b> đang ${isOpen?'MỞ':'ĐÓNG'}.<br>Bạn muốn chuyển sang <b>${isOpen?'ĐÓNG':'MỞ'}</b>?`;
@@ -632,7 +617,6 @@
             closeWinDialog();
         }
         
-        // FIXED SWITCH TAB + REFRESH UI V1.80
         window.switchTab = (id) => { 
             document.querySelectorAll('.edit-section').forEach(e=>e.classList.remove('active')); 
             document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
@@ -653,7 +637,6 @@
             }
         });
 
-        // INIT CLOUD
         window.listenCloud = function() {
             window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => {
                 let val = snap.val();
@@ -661,7 +644,7 @@
                     appData = val; 
                     if(!appData.mcStates) appData.mcStates={}; 
                     renderGlobalMap();
-                    refreshAllUI(); // FORCE ALL
+                    refreshAllUI(); 
                 }
             });
         }
@@ -673,7 +656,31 @@
             drawSingleCircuit(id, true);
         }
         
-        // --- FIX V1.80: ROBUST FAULT FINDING + UI FIX ---
+        // --- FIX V1.81: STATIC HTML STRUCTURE ---
+        var faultControl = L.control({position: 'bottomright'});
+        faultControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'fault-box');
+            div.id = "fault-info-box";
+            // Pre-build structure
+            div.innerHTML = `
+                <div class="fault-header">
+                    <span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ <span id="fi-cname"></span></span>
+                    <button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button>
+                </div>
+                <div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div>
+                <div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div>
+                <div class="fault-row"><span id="fi-addr"></span></div>
+            `;
+            return div;
+        };
+        faultControl.addTo(map);
+
+        window.closeFaultInfo = function() { 
+            document.getElementById('fault-info-box').style.display = 'none'; 
+            document.getElementById('main-legend').style.display = 'block'; 
+            layers.fault.clearLayers(); 
+        }
+
         window.findFault = function() {
             try {
                 layers.fault.clearLayers();
@@ -686,24 +693,22 @@
                 let cName = document.getElementById('circuitSelect').value;
                 let res = document.getElementById('result');
                 
-                if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
+                if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.innerHTML='⚠️ Vui lòng chọn mạch trước!'; return; }
 
                 let targetDist = kmInput * 1000;
                 if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
 
                 if (targetDist < -50 || targetDist > currentPathTotalDist + 50) {
-                    res.style.display = 'block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
+                    res.style.display = 'block'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
                 }
 
                 let found = false;
                 let bestDiff = Infinity;
                 let bestP = null;
 
-                // 1. Precise Scan
                 for(let i=1; i<currentPath.length; i++) {
                     let p1=currentPath[i-1], p2=currentPath[i];
                     
-                    // FIX V1.80: NaN Safeguard
                     if(!p1 || !p2 || isNaN(p1.lat) || isNaN(p1.lng) || isNaN(p2.lat) || isNaN(p2.lng)) continue;
 
                     let segLen = p2.accDist - p1.accDist;
@@ -721,51 +726,32 @@
                     }
                 }
 
-                // 2. Snap Mode (Fallback)
                 if(!found && bestP) {
                     showFaultMarker(bestP.lat, bestP.lng, cName, kmInput, bestP.name, "Điểm gần nhất");
                     found = true;
                 }
 
                 if(!found) {
-                    res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Không tìm thấy tọa độ (Lỗi tính toán cục bộ).`;
+                    res.style.display='block'; res.innerHTML = `⚠️ Không tìm thấy tọa độ.`;
                 }
             } catch (err) {
-                alert("Lỗi thuật toán tìm kiếm: " + err.message + "\n" + err.stack);
+                alert("Lỗi: " + err.message);
             }
         }
 
+        // V1.81 FIX: Update Values Only
         function showFaultMarker(lat, lng, cName, km, p1Name, p2Name) {
             document.getElementById('main-legend').style.display='none';
             document.getElementById('fault-info-box').style.display='block';
             
-            // FIX V1.80: Use querySelector or correct ID in HTML if needed. But here I fix the HTML structure
-            let box = document.getElementById('fault-info-box');
-            box.innerHTML = `
-                <div class="fault-header" id="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ ${cName}</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button></div>
-                <div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist">${km} km</span></div>
-                <div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg">${p1Name} <i class="fas fa-arrow-right"></i> ${p2Name}</span></div>
-                <div class="fault-row"><span id="fi-addr"><a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a></span></div>
-            `;
-            // NOTE: The above approach replaces innerHTML entirely, avoiding the ID lookup issue of previous children.
+            document.getElementById('fi-cname').innerText = cName;
+            document.getElementById('fi-dist').innerText = `${km} km`;
+            document.getElementById('fi-seg').innerHTML = `${p1Name} <i class="fas fa-arrow-right"></i> ${p2Name}`;
+            document.getElementById('fi-addr').innerHTML = `<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`;
             
             L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
             map.setView([lat,lng], 16); closeSidebar(); 
         }
-        
-        window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
-
-        // Control Addition (Adjusted V1.80)
-        var faultControl = L.control({position: 'bottomright'});
-        faultControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'fault-box');
-            div.id = "fault-info-box";
-            // Initial Empty Structure
-            div.innerHTML = ``;
-            return div;
-        };
-        faultControl.addTo(map);
-
     </script>
 </body>
 </html>
