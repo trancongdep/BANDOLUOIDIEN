@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.67</title>
+    <title>Hệ Thống Lưới Điện - Version 1.68</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -112,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.67</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.68</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -171,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.67</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.68</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -273,7 +273,7 @@
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.67!");
+            log("✅ Dữ liệu hợp lệ V1.68!");
             document.getElementById('upload-actions').style.display = 'block';
             refreshPanelHeight('panel-update');
         }
@@ -381,7 +381,7 @@
                 <div class="legend-item"><span class="legend-icon" style="border:2px solid green;background:none;"></span> MC Mở</div>`;
         }
 
-        // --- FIXED: RESTORED TRACE PATH LOGIC (V1.67) ---
+        // --- FIXED: HYBRID DRAWING LOGIC (V1.68) ---
         function drawSingleCircuit(cid, calcPath) {
             let segs = appData.circuits[cid];
             if(calcPath) { currentPath=[]; currentPathTotalDist=0; }
@@ -394,9 +394,8 @@
                 let p2 = getPoleExact(def.lineTo, def.poleTo);
                 if(!p1 || !p2) return;
 
-                // Determine Points Array (Trace or Direct)
+                // 1. Try to Trace (Preferred for Long Lines)
                 let pts = [];
-                // If same route, trace the poles
                 if (def.lineFrom === def.lineTo) {
                     let list = appData.poles[def.lineFrom];
                     if(list) {
@@ -405,13 +404,14 @@
                         if(i1 > -1 && i2 > -1) {
                             if(i1 <= i2) pts = list.slice(i1, i2+1);
                             else pts = list.slice(i2, i1+1).reverse();
-                        } else pts = [p1, p2]; // Fallback
-                    } else pts = [p1, p2];
-                } else {
-                    pts = [p1, p2]; // Different routes = Direct connection
+                        }
+                    }
                 }
+                
+                // 2. Fallback (If tracing failed OR lines are different)
+                if(pts.length < 2) pts = [p1, p2];
 
-                // Calculate Max Voltage on the segment for coloring
+                // Calculate Max Voltage
                 let v1 = powerState[`${def.lineFrom}|${p1.name}`] || 0;
                 let v2 = powerState[`${def.lineTo}|${p2.name}`] || 0;
                 let volt = Math.max(v1, v2);
@@ -429,7 +429,6 @@
             
             if(calcPath) {
                 let volt = 0;
-                // Heuristic to show circuit voltage
                 if(currentPath.length > 0) {
                      let startKey = `${currentPath[0].route}|${currentPath[0].name}`;
                      volt = powerState[startKey] || 0;
