@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.66</title>
+    <title>Hệ Thống Lưới Điện - Version 1.67</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -76,6 +76,9 @@
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .fault-row { margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 3px; }
+        .fault-label { font-weight: bold; color: #555; }
+        .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -93,6 +96,7 @@
         .icon-moc { background: #7b1fa2; border-radius: 0px; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
+        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -108,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.66</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.67</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -167,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.66</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.67</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -189,7 +193,7 @@
 
         let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, areas: [] };
-        let powerState = {}; // Stores voltage per node key (Route|Name)
+        let powerState = {}; 
         let stagingData = null;
         let currentPath = [], currentPathTotalDist = 0;
         let pickingMode = null, tempAreaPoints = [], tempAreaPoly = null;
@@ -214,7 +218,7 @@
         function checkColumns(row, required, sheetName) {
             let missing = required.filter(field => !row.hasOwnProperty(field));
             if(missing.length > 0) {
-                alert(`LỖI FILE: Sheet [${sheetName}] thiếu cột bắt buộc: ${missing.join(', ')}. Vui lòng kiểm tra chính xác tên cột (không dấu cách thừa, đúng hoa/thường).`);
+                alert(`LỖI FILE: Sheet [${sheetName}] thiếu cột bắt buộc: ${missing.join(', ')}. Vui lòng kiểm tra chính xác tên cột.`);
                 return false;
             }
             return true;
@@ -222,15 +226,13 @@
 
         function processSheets(sheets) {
             let sPoles = sheets['TOA_DO'], sSegs = sheets['DM_DOAN'], sCircs = sheets['CAU_HINH'];
-            if(!sPoles || !sSegs || !sCircs) return alert("LỖI: File thiếu Sheet. Cần 3 sheet tên chính xác là: TOA_DO, DM_DOAN, CAU_HINH");
+            if(!sPoles || !sSegs || !sCircs) return alert("LỖI: Thiếu Sheet. Cần: TOA_DO, DM_DOAN, CAU_HINH");
 
             let data = { poles: {}, segments: {}, circuits: {}, mcStates: {} };
 
             // 1. TOA_DO
             if(sPoles.length && !checkColumns(sPoles[0], ['MA_TUYEN','TEN_TRU','LAT','LONG','LOAI_DIEM'], 'TOA_DO')) return;
-            // Check DIEN_AP existence
-            let hasDienAp = sPoles[0].hasOwnProperty('DIEN_AP');
-            if(!hasDienAp) return alert("LỖI: Sheet TOA_DO thiếu cột [DIEN_AP] để xác định cấp điện áp nguồn.");
+            if(!sPoles[0].hasOwnProperty('DIEN_AP')) return alert("LỖI: Sheet TOA_DO thiếu cột [DIEN_AP].");
 
             sPoles.forEach(r => {
                 let l = String(r.MA_TUYEN).trim();
@@ -241,17 +243,17 @@
                 let dienAp = r.DIEN_AP ? parseInt(r.DIEN_AP) : 0;
                 
                 data.poles[l].push({ name: n, lat: parseFloat(r.LAT), lng: parseFloat(r.LONG), type: type, voltage: dienAp });
-                if(type === 'MC') data.mcStates[n] = true; // Default Closed
+                if(type === 'MC') data.mcStates[n] = true; 
             });
 
             // 2. DM_DOAN
             if(sSegs.length && !checkColumns(sSegs[0], ['MA_DOAN','TUYEN_TU','TRU_TU','TUYEN_DEN','TRU_DEN','LOAI'], 'DM_DOAN')) return;
             sSegs.forEach((r, idx) => {
                 let id = String(r.MA_DOAN).trim();
-                // Integrity Check
                 let t1 = String(r.TUYEN_TU).trim(), tr1 = String(r.TRU_TU).trim();
                 let t2 = String(r.TUYEN_DEN).trim(), tr2 = String(r.TRU_DEN).trim();
                 
+                // Integrity Check
                 if(!data.poles[t1] || !data.poles[t1].find(p=>p.name===tr1)) 
                     log(`CẢNH BÁO: Dòng ${idx+2} (DM_DOAN) - Không tìm thấy trụ [${tr1}] thuộc tuyến [${t1}]`);
                 if(!data.poles[t2] || !data.poles[t2].find(p=>p.name===tr2)) 
@@ -271,7 +273,7 @@
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.66!");
+            log("✅ Dữ liệu hợp lệ V1.67!");
             document.getElementById('upload-actions').style.display = 'block';
             refreshPanelHeight('panel-update');
         }
@@ -286,8 +288,8 @@
 
         // --- POWER FLOW LOGIC (BFS) ---
         function calculatePowerFlow() {
-            powerState = {}; // Reset
-            let adj = {}; // Graph: NodeKey -> [Neighbors]
+            powerState = {}; 
+            let adj = {}; 
             
             // Build Graph
             if(!appData.segments) return;
@@ -299,8 +301,6 @@
             });
 
             let queue = [];
-            
-            // Init Sources
             if(appData.poles) {
                 for(let line in appData.poles) {
                     appData.poles[line].forEach(p => {
@@ -313,24 +313,20 @@
                 }
             }
 
-            // BFS
             let visited = new Set(queue);
             while(queue.length > 0) {
                 let uKey = queue.shift();
                 let voltage = powerState[uKey];
                 
-                // Check if U is an Open MC? If so, it stops flow TO neighbors?
-                // Logic: If U is MC and Open, it is energized itself (at connection), but DOES NOT pass to V.
                 let uName = uKey.split('|')[1];
-                let uPole = getPoleGlobal(uName); // Helper
+                let uPole = getPoleGlobal(uName); 
                 if(uPole && uPole.type === 'MC' && appData.mcStates[uName] === false) {
-                    continue; // Stop propagation from this node
+                    continue; 
                 }
 
                 if(adj[uKey]) {
                     adj[uKey].forEach(vKey => {
                         if(!visited.has(vKey)) {
-                            // If V is Open MC, it still gets energized (input side), but will stop next loop
                             powerState[vKey] = voltage;
                             visited.add(vKey);
                             queue.push(vKey);
@@ -340,18 +336,16 @@
             }
         }
 
-        // --- RENDER ---
         function getVoltageColor(v) {
-            if(v === 500) return '#2196F3'; // Blue
-            if(v === 220) return '#d32f2f'; // Red
-            if(v === 110) return '#2e7d32'; // Green
-            return '#424242'; // Dark Gray (No Power)
+            if(v === 500) return '#2196F3'; 
+            if(v === 220) return '#d32f2f'; 
+            if(v === 110) return '#2e7d32'; 
+            return '#424242'; 
         }
 
         function renderGlobalMap() {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.mc.clearLayers();
-            
-            calculatePowerFlow(); // Recalculate status
+            calculatePowerFlow(); 
 
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type === 'MC';
@@ -360,13 +354,10 @@
                 let volt = powerState[key] || 0;
                 let color = getVoltageColor(volt);
                 
-                // Icon Logic
                 let icon;
                 if(isMC) {
                     let isOpen = appData.mcStates[p.name] === false;
-                    let cls = isOpen ? 'my-icon icon-mc-off' : 'my-icon icon-mc-on'; // Green=Off, Red=On standard? Or user said "MC đóng cắt đơn thuần"? 
-                    // User said: "Máy cắt chỉ đóng vai trò thiết bị đóng cắt". 
-                    // Let's keep Standard: Red=Closed(On), Green=Open(Off)
+                    let cls = isOpen ? 'my-icon icon-mc-off' : 'my-icon icon-mc-on';
                     icon = L.divIcon({className: cls, html:'MC', iconSize:[16,16]});
                 } else if(isSrc) {
                     icon = L.divIcon({className: 'my-icon', html:`<i class="fas fa-bolt" style="color:${color}"></i>`, iconSize:[16,16]});
@@ -381,7 +372,6 @@
 
             if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
             
-            // Legend Update
             document.querySelector('.legend').innerHTML = `<h4>CHÚ THÍCH</h4>
                 <div class="legend-item"><span class="legend-icon" style="background:#2196F3;"></span> 500kV</div>
                 <div class="legend-item"><span class="legend-icon" style="background:#d32f2f;"></span> 220kV</div>
@@ -391,6 +381,7 @@
                 <div class="legend-item"><span class="legend-icon" style="border:2px solid green;background:none;"></span> MC Mở</div>`;
         }
 
+        // --- FIXED: RESTORED TRACE PATH LOGIC (V1.67) ---
         function drawSingleCircuit(cid, calcPath) {
             let segs = appData.circuits[cid];
             if(calcPath) { currentPath=[]; currentPathTotalDist=0; }
@@ -398,30 +389,54 @@
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(!def) return;
+                
                 let p1 = getPoleExact(def.lineFrom, def.poleFrom);
                 let p2 = getPoleExact(def.lineTo, def.poleTo);
                 if(!p1 || !p2) return;
 
-                let key1 = `${def.lineFrom}|${p1.name}`;
-                let volt = powerState[key1] || 0; // Segment color follows Source side? Or Max? Usually uniform
-                // If one end has voltage, wire has voltage (unless broken, but segments are wires)
-                // Use max voltage of 2 ends
-                let v2 = powerState[`${def.lineTo}|${p2.name}`] || 0;
-                volt = Math.max(volt, v2);
+                // Determine Points Array (Trace or Direct)
+                let pts = [];
+                // If same route, trace the poles
+                if (def.lineFrom === def.lineTo) {
+                    let list = appData.poles[def.lineFrom];
+                    if(list) {
+                        let i1 = list.findIndex(p => p.name === def.poleFrom);
+                        let i2 = list.findIndex(p => p.name === def.poleTo);
+                        if(i1 > -1 && i2 > -1) {
+                            if(i1 <= i2) pts = list.slice(i1, i2+1);
+                            else pts = list.slice(i2, i1+1).reverse();
+                        } else pts = [p1, p2]; // Fallback
+                    } else pts = [p1, p2];
+                } else {
+                    pts = [p1, p2]; // Different routes = Direct connection
+                }
 
+                // Calculate Max Voltage on the segment for coloring
+                let v1 = powerState[`${def.lineFrom}|${p1.name}`] || 0;
+                let v2 = powerState[`${def.lineTo}|${p2.name}`] || 0;
+                let volt = Math.max(v1, v2);
                 let color = getVoltageColor(volt);
-                let pts = [p1, p2]; // Simplify for now (straight lines between poles)
                 
                 let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
+                
                 if(calcPath) {
-                    currentPathTotalDist += getDist(p1.lat,p1.lng, p2.lat,p2.lng);
-                    currentPath.push({...p2, accDist: currentPathTotalDist}); // Approx
+                    pts.forEach((p, i) => {
+                        if (i > 0) currentPathTotalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                        currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
+                    });
                 }
             });
             
             if(calcPath) {
-                let volt = powerState[`${segs[0].lineFrom}|${segs[0].poleFrom}`] || 0; // Approx circuit voltage
+                let volt = 0;
+                // Heuristic to show circuit voltage
+                if(currentPath.length > 0) {
+                     let startKey = `${currentPath[0].route}|${currentPath[0].name}`;
+                     volt = powerState[startKey] || 0;
+                }
                 document.getElementById('status-text').innerHTML = `<span style="color:${getVoltageColor(volt)}">Điện áp: ${volt}kV</span>`;
+                document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`;
+                if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng]));
             }
         }
 
@@ -497,14 +512,45 @@
             layers.main.clearLayers();
             drawSingleCircuit(id, true);
         }
+        
         window.findFault = function() {
-            // Re-use existing fault logic (simplified for brevity)
-            // ... (Keep existing fault logic if needed, or ask user to re-implement if lost in brevity)
-            // Assuming Fault logic is critical, I will include basic version
-            let km = parseFloat(document.getElementById('faultKm').value);
-            if(!currentPath.length || isNaN(km)) return alert("Chọn mạch và nhập Km!");
-            // ... (Basic math) ...
-            alert("Chức năng tìm sự cố đã sẵn sàng (Logic cũ)");
+            layers.fault.clearLayers();
+            document.getElementById('result').style.display='none'; 
+            document.getElementById('fault-info-box').style.display='none';
+            document.getElementById('main-legend').style.display='block';
+
+            let kmInput = parseFloat(document.getElementById('faultKm').value);
+            let direction = document.querySelector('input[name="faultDir"]:checked').value;
+            let cName = document.getElementById('circuitSelect').value;
+            let res = document.getElementById('result');
+            
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
+
+            let targetDist = kmInput * 1000;
+            if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
+
+            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) {
+                res.style.display = 'block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
+            }
+
+            for(let i=1; i<currentPath.length; i++) {
+                let p1=currentPath[i-1], p2=currentPath[i];
+                if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) {
+                    let ratio = (p2.accDist > p1.accDist) ? (targetDist-p1.accDist)/(p2.accDist-p1.accDist) : 0;
+                    let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio;
+                    
+                    document.getElementById('main-legend').style.display='none';
+                    document.getElementById('fault-info-box').style.display='block';
+                    document.getElementById('fault-header').innerHTML=`<span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ ${cName}</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button>`;
+                    document.getElementById('fi-name').innerText=cName;
+                    document.getElementById('fi-dist').innerText=`${kmInput} km`;
+                    document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`;
+                    
+                    L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+                    map.setView([lat,lng], 16); closeSidebar(); return;
+                }
+            }
         }
     </script>
 </body>
