@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tra cứu Sự cố Lưới điện (Geo & Weather v2.1)</title>
+    <title>Tra cứu Sự cố Lưới điện v2.2</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #eef2f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
-        h2 { margin-top: 0; color: #b71c1c; text-align: center; margin-bottom: 5px; } /* Màu đỏ cảnh báo */
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 650px; }
+        h2 { margin-top: 0; color: #b71c1c; text-align: center; margin-bottom: 5px; }
         .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 20px; font-style: italic; }
         
         .form-group { margin-bottom: 15px; }
@@ -23,71 +23,68 @@
         #result { margin-top: 25px; display: none; }
         .section-title { font-weight: bold; font-size: 14px; color: #444; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; margin-top: 20px; text-transform: uppercase; }
         
-        /* Grid Layout cho thông số */
-        .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .param-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border-left: 4px solid #ccc; }
-        .param-label { font-size: 12px; color: #666; }
-        .param-value { font-size: 18px; font-weight: bold; color: #222; margin-top: 2px; }
-        .param-unit { font-size: 12px; color: #888; font-weight: normal; }
+        /* Grid Weather */
+        .weather-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .param-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border-left: 3px solid #ccc; }
+        .param-label { font-size: 11px; color: #666; text-transform: uppercase; }
+        .param-value { font-size: 16px; font-weight: bold; color: #222; margin-top: 2px; }
+        .param-unit { font-size: 11px; color: #888; font-weight: normal; }
 
-        /* Highlight box */
-        .danger-box { border-left-color: #d32f2f; background-color: #ffebee; }
-        .safe-box { border-left-color: #2e7d32; }
+        /* Report Box */
+        .report-box { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; background: #fff; }
+        .risk-level { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; margin-bottom: 5px;}
+        .risk-high { background-color: #d32f2f; }
+        .risk-med { background-color: #f57c00; }
+        .risk-low { background-color: #388e3c; }
+        
+        .report-text { font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; }
 
         .loading { text-align: center; color: #666; display: none; margin-top: 10px; }
-        .address-text { font-size: 14px; margin-bottom: 5px; }
         .coords-debug { font-family: monospace; font-size: 12px; color: #d32f2f; background: #ffebee; padding: 2px 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>⚡ Điều tra Sự cố Lưới điện</h2>
-    <div class="subtitle">Tra cứu Địa chỉ & Dữ liệu Thời tiết Quá khứ</div>
+    <h2>⚡ Phân tích Sự cố Lưới điện</h2>
+    <div class="subtitle">Version 2.2: Tích hợp đánh giá rủi ro Sét</div>
     
     <div class="form-group">
-        <label>1. Tọa độ cột điện/sự cố:</label>
+        <label>1. Tọa độ sự cố:</label>
         <textarea id="rawCoords" placeholder="Ví dụ: 10,8238318, 106,7448612"></textarea>
     </div>
 
     <div class="form-group">
-        <label>2. Thời điểm xảy ra sự cố:</label>
+        <label>2. Thời gian xảy ra (Giờ:Phút Ngày/Tháng/Năm):</label>
         <input type="datetime-local" id="queryTime">
     </div>
 
-    <button id="btnSearch" onclick="processAndSearch()">🔍 Phân tích dữ liệu</button>
-    <div id="loading" class="loading">Đang tải dữ liệu vệ tinh & trạm quan trắc...</div>
+    <button id="btnSearch" onclick="processAndSearch()">🔍 Phân tích nguyên nhân</button>
+    <div id="loading" class="loading">Đang tải dữ liệu từ trạm khí tượng...</div>
 
     <div id="result">
-        <div class="section-title">📍 Vị trí địa lý</div>
-        <div id="addressText" class="address-text"></div>
+        <div class="section-title">📍 Vị trí & Thời gian</div>
+        <div id="addressText" style="font-size:14px; margin-bottom:5px;"></div>
         <span id="parsedCoords" class="coords-debug"></span>
 
-        <div class="section-title">⛈️ Thời tiết tại thời điểm sự cố</div>
-        
-        <div id="thunderAlert" style="display:none; background:#d32f2f; color:white; padding:10px; border-radius:6px; margin-bottom:15px; text-align:center; font-weight:bold;">
-            ⚠️ CẢNH BÁO: CÓ DÔNG SÉT / BÃO (Thunderstorm)
-        </div>
-
+        <div class="section-title">📊 Số liệu quan trắc</div>
         <div class="weather-grid">
-            <div class="param-box" id="windBox">
-                <div class="param-label">Tốc độ Gió TB (10m)</div>
-                <div class="param-value"><span id="wSpeed">--</span> <span class="param-unit">km/h</span></div>
-            </div>
-            <div class="param-box danger-box">
-                <div class="param-label">Gió giật mạnh nhất (Gusts)</div>
+            <div class="param-box" style="border-left-color: #d32f2f;">
+                <div class="param-label">Gió giật (Gusts)</div>
                 <div class="param-value"><span id="wGust">--</span> <span class="param-unit">km/h</span></div>
             </div>
             <div class="param-box">
-                <div class="param-label">Hướng gió</div>
-                <div class="param-value" style="font-size:16px;"><span id="wDirTxt">--</span> <span class="param-unit" id="wDirDeg">(--°)</span></div>
+                <div class="param-label">Tốc độ gió TB</div>
+                <div class="param-value"><span id="wSpeed">--</span> <span class="param-unit">km/h</span></div>
             </div>
-
-            <div class="param-box" id="rainBox">
-                <div class="param-label">Lượng mưa (Precipitation)</div>
+            <div class="param-box">
+                <div class="param-label">Hướng gió</div>
+                <div class="param-value" style="font-size:14px;"><span id="wDirTxt">--</span></div>
+            </div>
+            <div class="param-box" style="border-left-color: #1976d2;">
+                <div class="param-label">Lượng mưa</div>
                 <div class="param-value"><span id="wRain">--</span> <span class="param-unit">mm</span></div>
             </div>
-            
             <div class="param-box">
                 <div class="param-label">Nhiệt độ</div>
                 <div class="param-value"><span id="wTemp">--</span> <span class="param-unit">°C</span></div>
@@ -97,21 +94,26 @@
                 <div class="param-value"><span id="wHum">--</span> <span class="param-unit">%</span></div>
             </div>
         </div>
+
+        <div class="section-title">🛡️ Nhận định khả năng Sét & Sự cố</div>
         
-        <div style="margin-top:15px; padding:10px; background:#e3f2fd; border-radius:6px;">
-            <div class="param-label">Diễn biến thời tiết:</div>
-            <div id="wDesc" style="font-weight:600; color:#0d47a1;">--</div>
+        <div class="report-box" id="lightningReportBox">
+            <div id="lightningBadge" class="risk-level risk-low">RỦI RO SÉT: THẤP</div>
+            <div id="lightningComment" class="report-text">--</div>
         </div>
 
-        <div style="font-size: 11px; color: #888; margin-top: 15px; text-align: center;">
-            Dữ liệu cung cấp bởi Open-Meteo Archive API. <br>
-            Lưu ý: Số liệu là ước tính mô phỏng (Reanalysis), dùng để tham khảo điều tra sơ bộ.
+        <div class="report-box" id="windReportBox">
+            <div id="windBadge" class="risk-level risk-low">RỦI RO GIÓ/MƯA: THẤP</div>
+            <div id="windComment" class="report-text">--</div>
+        </div>
+
+        <div style="font-size: 11px; color: #888; margin-top: 15px; text-align: right;">
+            Dữ liệu: Open-Meteo Archive API (Mô hình ERA5 Reanalysis).
         </div>
     </div>
 </div>
 
 <script>
-    // Set default time to Now
     window.onload = function() {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -130,25 +132,21 @@
         if (!rawInput.trim()) { alert("Chưa nhập tọa độ!"); return; }
         if (!timeInput) { alert("Chưa chọn thời gian!"); return; }
 
-        // --- 1. XỬ LÝ TỌA ĐỘ ---
         let lat, lon;
         try {
             let cleanStr = rawInput.trim();
             let parts;
-            if (cleanStr.includes('.') && !cleanStr.includes(',,')) {
-                parts = cleanStr.split(/[\s,]+/);
-            } else {
+            if (cleanStr.includes('.') && !cleanStr.includes(',,')) { parts = cleanStr.split(/[\s,]+/); } 
+            else { 
                 if (cleanStr.includes(', ')) { let temp = cleanStr.replace(', ', '|'); parts = temp.split('|'); }
                 else { let rawParts = cleanStr.split(','); if (rawParts.length === 4) parts = [rawParts[0]+'.'+rawParts[1], rawParts[2]+'.'+rawParts[3]]; else if (rawParts.length === 2) parts = rawParts; }
             }
             const numbers = parts.map(p => parseFloat(p.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))).filter(n => !isNaN(n));
             if (numbers.length < 2) throw new Error("Format");
             lat = numbers[0]; lon = numbers[1];
-        } catch (e) { alert("Lỗi tọa độ. Vui lòng kiểm tra lại."); return; }
+        } catch (e) { alert("Lỗi tọa độ."); return; }
 
-        document.getElementById('parsedCoords').textContent = `LAT: ${lat} | LON: ${lon}`;
-
-        // --- 2. GỌI API ---
+        document.getElementById('parsedCoords').textContent = `${lat}, ${lon}`;
         loadingDiv.style.display = 'block';
         btn.disabled = true;
 
@@ -158,61 +156,39 @@
 
             const [addrData, weatherData] = await Promise.all([addrPromise, weatherPromise]);
 
-            // Hiển thị Địa chỉ
-            document.getElementById('addressText').textContent = addrData.display_name || "Không tìm thấy địa chỉ";
+            document.getElementById('addressText').textContent = addrData.display_name || "N/A";
 
-            // Hiển thị Thời tiết
             if (weatherData) {
+                // Hiển thị số liệu
                 document.getElementById('wTemp').textContent = weatherData.temperature_2m;
                 document.getElementById('wHum').textContent = weatherData.relative_humidity_2m;
-                
-                // Mưa
                 document.getElementById('wRain').textContent = weatherData.precipitation;
-                document.getElementById('rainBox').style.borderLeftColor = weatherData.precipitation > 0 ? '#1976d2' : '#ccc';
-
-                // Gió
                 document.getElementById('wSpeed').textContent = weatherData.wind_speed_10m;
                 document.getElementById('wGust').textContent = weatherData.wind_gusts_10m;
                 
-                // Hướng gió
                 const dir = weatherData.wind_direction_10m;
-                document.getElementById('wDirDeg').textContent = `(${dir}°)`;
-                document.getElementById('wDirTxt').textContent = getWindDirection(dir);
-                
-                // Mã thời tiết & Cảnh báo Sét
-                const wCode = weatherData.weather_code;
-                document.getElementById('wDesc').textContent = getWeatherDesc(wCode);
-                
-                // Mã 95, 96, 99 là Dông bão
-                if ([95, 96, 99].includes(wCode)) {
-                    document.getElementById('thunderAlert').style.display = 'block';
-                } else {
-                    document.getElementById('thunderAlert').style.display = 'none';
-                }
+                document.getElementById('wDirTxt').textContent = `${getWindDirection(dir)} (${dir}°)`;
+
+                // --- LOGIC NHẬN XÉT (ANALYSIS) ---
+                analyzeLightning(weatherData.weather_code, weatherData.precipitation);
+                analyzeWindFlashover(weatherData.wind_gusts_10m, weatherData.precipitation, weatherData.relative_humidity_2m);
             } else {
-                document.getElementById('wDesc').textContent = "Không có dữ liệu cho thời gian này.";
+                document.getElementById('lightningComment').textContent = "Không có dữ liệu lịch sử.";
             }
 
             resultDiv.style.display = 'block';
 
-        } catch (err) {
-            alert("Lỗi: " + err.message);
-        } finally {
-            loadingDiv.style.display = 'none';
-            btn.disabled = false;
-        }
+        } catch (err) { alert("Lỗi: " + err.message); } 
+        finally { loadingDiv.style.display = 'none'; btn.disabled = false; }
     }
 
     async function fetchWeather(lat, lon, isoTimeStr) {
         const inputDate = new Date(isoTimeStr);
-        const today = new Date();
-        today.setHours(0,0,0,0);
+        const today = new Date(); today.setHours(0,0,0,0);
         const dateStr = isoTimeStr.split('T')[0];
         const isPast = inputDate < today;
         
-        // Thêm tham số: wind_speed_10m, wind_direction_10m, wind_gusts_10m, precipitation, weather_code
         const params = "hourly=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation";
-        
         let url = isPast 
             ? `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateStr}&end_date=${dateStr}&${params}&timezone=auto`
             : `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&start_date=${dateStr}&end_date=${dateStr}&${params}&timezone=auto`;
@@ -220,7 +196,6 @@
         const res = await fetch(url);
         const data = await res.json();
         if (!data.hourly) return null;
-
         const hourIndex = inputDate.getHours();
         return {
             temperature_2m: data.hourly.temperature_2m[hourIndex],
@@ -233,30 +208,66 @@
         };
     }
 
-    function getWindDirection(deg) {
-        if (deg >= 337.5 || deg < 22.5) return "Bắc (N)";
-        if (deg >= 22.5 && deg < 67.5) return "Đông Bắc (NE)";
-        if (deg >= 67.5 && deg < 112.5) return "Đông (E)";
-        if (deg >= 112.5 && deg < 157.5) return "Đông Nam (SE)";
-        if (deg >= 157.5 && deg < 202.5) return "Nam (S)";
-        if (deg >= 202.5 && deg < 247.5) return "Tây Nam (SW)";
-        if (deg >= 247.5 && deg < 292.5) return "Tây (W)";
-        if (deg >= 292.5 && deg < 337.5) return "Tây Bắc (NW)";
-        return "--";
+    // --- LOGIC CHUYÊN GIA ---
+    function analyzeLightning(code, rain) {
+        const badge = document.getElementById('lightningBadge');
+        const text = document.getElementById('lightningComment');
+        
+        // Mã WMO: 95, 96, 99 là Thunderstorm
+        // Mã 80, 81, 82 là Mưa rào (Showers) - thường là tiền đề của dông
+        
+        if ([95, 96, 99].includes(code)) {
+            badge.className = "risk-level risk-high";
+            badge.textContent = "RỦI RO: CAO (ĐÃ CÓ DÔNG)";
+            text.innerHTML = `⚠️ <b>Phát hiện hoạt động Dông/Sét (Thunderstorm).</b><br>Dữ liệu ghi nhận mã thời tiết ${code}. Khả năng rất cao sự cố do sét đánh trực tiếp vào đường dây hoặc sét lan truyền gây quá điện áp.`;
+        } else if ([80, 81, 82].includes(code) || (rain > 5 && [61, 63, 65].includes(code))) {
+            badge.className = "risk-level risk-med";
+            badge.textContent = "RỦI RO: TRUNG BÌNH";
+            text.innerHTML = `⚠️ <b>Mưa rào nặng hạt/Mưa lớn.</b><br>Mã thời tiết ${code}. Tuy chưa khẳng định có sấm chớp, nhưng điều kiện khí quyển bất ổn định. Cần kiểm tra kỹ dấu vết phóng điện trên sứ cách điện.`;
+        } else {
+            badge.className = "risk-level risk-low";
+            badge.textContent = "RỦI RO: THẤP";
+            text.innerHTML = `Thời tiết ghi nhận mã ${code}. Chủ yếu là mưa nhỏ hoặc không mưa. Ít có khả năng sự cố do sét đánh, trừ khi là "sét đánh giữa trời quang" (hiếm gặp).`;
+        }
     }
 
-    function getWeatherDesc(code) {
-        const map = {
-            0: "Quang đãng (Clear sky)", 1: "Nắng nhẹ", 2: "Có mây", 3: "Âm u",
-            45: "Sương mù", 48: "Sương muối",
-            51: "Mưa phùn nhẹ", 53: "Mưa phùn vừa", 55: "Mưa phùn dày",
-            61: "Mưa nhỏ", 63: "Mưa vừa", 65: "Mưa to",
-            80: "Mưa rào nhẹ", 81: "Mưa rào vừa", 82: "Mưa rào rất to",
-            95: "⚡ DÔNG SÉT (Thunderstorm)", 
-            96: "⚡ DÔNG SÉT + Mưa đá nhẹ", 
-            99: "⚡ DÔNG SÉT + Mưa đá nặng"
-        };
-        return map[code] || `Mã: ${code}`;
+    function analyzeWindFlashover(gust, rain, humidity) {
+        const badge = document.getElementById('windBadge');
+        const text = document.getElementById('windComment');
+        
+        // Gió giật > 60km/h là nguy hiểm cho lưới điện (Cấp 7-8)
+        let risk = 0; // 0: Low, 1: Med, 2: High
+        let causes = [];
+
+        if (gust >= 60) { risk = 2; causes.push("Gió lốc mạnh gây đổ cây/rung lắc dây"); }
+        else if (gust >= 40) { risk = 1; causes.push("Gió giật khá mạnh"); }
+
+        if (rain > 0 && humidity > 90) {
+            // Mưa + Ẩm cao
+            if (gust >= 30) { 
+                risk = Math.max(risk, 1); 
+                causes.push("Mưa kèm gió làm ướt sứ, giảm dòng rò (Flashover)"); 
+            }
+        }
+
+        if (risk === 2) {
+            badge.className = "risk-level risk-high";
+            badge.textContent = "NGUY CƠ SỰ CỐ CƠ HỌC: CAO";
+            text.innerHTML = `🛑 <b>Cảnh báo nghiêm trọng:</b> ${causes.join(" + ")}. Tốc độ gió giật ${gust} km/h có thể gây đứt dây hoặc đổ vật thể vào đường dây.`;
+        } else if (risk === 1) {
+            badge.className = "risk-level risk-med";
+            badge.textContent = "NGUY CƠ: TRUNG BÌNH";
+            text.innerHTML = `⚠️ <b>Lưu ý:</b> ${causes.join(". ")}. Cần kiểm tra hành lang tuyến xem có cây cối va quẹt do gió không.`;
+        } else {
+            badge.className = "risk-level risk-low";
+            badge.textContent = "NGUY CƠ CƠ HỌC: THẤP";
+            text.innerHTML = `Gió giật ${gust} km/h ở mức an toàn. Ít khả năng sự cố do lực tác động của gió.`;
+        }
+    }
+
+    function getWindDirection(deg) {
+        const dirs = ["Bắc (N)", "Đông Bắc (NE)", "Đông (E)", "Đông Nam (SE)", "Nam (S)", "Tây Nam (SW)", "Tây (W)", "Tây Bắc (NW)"];
+        return dirs[Math.round(deg / 45) % 8];
     }
 </script>
 
