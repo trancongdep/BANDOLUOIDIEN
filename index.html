@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.77</title>
+    <title>Hệ Thống Lưới Điện - Version 1.79</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -112,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.77</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.79</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -171,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.77</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.79</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -250,6 +250,22 @@
             return true;
         }
 
+        // FIX V1.79: SUPER SAFE PARSING
+        function safeFloat(val) {
+            if(val === undefined || val === null) return NaN;
+            if(typeof val === 'number') return val;
+            let s = String(val).trim().replace(',', '.');
+            if(s === "") return NaN;
+            return parseFloat(s);
+        }
+        function safeInt(val) {
+            if(val === undefined || val === null) return 0;
+            if(typeof val === 'number') return Math.floor(val);
+            let s = String(val).trim();
+            if(s === "") return 0;
+            return parseInt(s) || 0;
+        }
+
         function processSheets(sheets) {
             let sPoles = sheets['TOA_DO'], sSegs = sheets['DM_DOAN'], sCircs = sheets['CAU_HINH'];
             if(!sPoles || !sSegs || !sCircs) return alert("LỖI: Thiếu Sheet. Cần: TOA_DO, DM_DOAN, CAU_HINH");
@@ -259,7 +275,7 @@
 
             // 1. TOA_DO
             if(sPoles.length && !checkColumns(sPoles[0], ['MA_TUYEN','TEN_TRU','LAT','LONG','LOAI_DIEM'], 'TOA_DO')) return;
-            if(!sPoles[0].hasOwnProperty('DIEN_AP')) return alert("LỖI: Sheet TOA_DO thiếu cột [DIEN_AP].");
+            // Removed DIEN_AP strict check to prevent crash if column missing, assume 0.
 
             sPoles.forEach(r => {
                 let l = String(r.MA_TUYEN).trim().toUpperCase(); 
@@ -271,9 +287,15 @@
                 let type = rawType;
                 if(rawType === "NGUỒN" || rawType === "NGUON") type = "NGUON";
                 
-                let dienAp = r.DIEN_AP ? parseInt(r.DIEN_AP) : 0;
+                let dienAp = safeInt(r.DIEN_AP); // FIX V1.79
                 
-                data.poles[l].push({ name: n, lat: parseFloat(r.LAT), lng: parseFloat(r.LONG), type: type, voltage: dienAp });
+                data.poles[l].push({ 
+                    name: n, 
+                    lat: safeFloat(r.LAT), 
+                    lng: safeFloat(r.LONG), 
+                    type: type, 
+                    voltage: dienAp 
+                });
                 if(type === 'MC') data.mcStates[n] = true; 
                 if(type === 'NGUON') sourceReport.push(`${n} (${dienAp}kV)`);
             });
@@ -299,12 +321,12 @@
                 let cid = String(r.MA_DUONG_DAY).trim();
                 let sid = String(r.MA_DOAN).trim();
                 if(!data.circuits[cid]) data.circuits[cid] = [];
-                data.circuits[cid].push({ segId: sid, order: parseInt(r.STT) });
+                data.circuits[cid].push({ segId: sid, order: safeInt(r.STT) });
             });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.77!");
+            log("✅ Dữ liệu hợp lệ V1.79!");
             if(sourceReport.length > 0) alert(`Đã tìm thấy ${sourceReport.length} nguồn điện:\n` + sourceReport.join("\n"));
             else alert("CẢNH BÁO: Không tìm thấy bất kỳ nguồn điện nào (LOAI_DIEM = NGUON)!");
             
@@ -485,9 +507,12 @@
                     icon = L.divIcon({className: 'my-icon icon-tru-do', iconSize:[10,10]});
                 }
 
-                let marker = L.marker([p.lat,p.lng], {icon: icon}).addTo(isMC?layers.mc:layers.minor);
-                marker.bindPopup(`<b>${p.name}</b><br>Tuyến: ${l}<br>Điện áp: ${volt}kV`);
-                if(isMC) marker.on('click', () => window.showMCConfirm(p.name));
+                // FIX V1.79: Check Valid LatLng before Marker
+                if(!isNaN(p.lat) && !isNaN(p.lng)) {
+                    let marker = L.marker([p.lat,p.lng], {icon: icon}).addTo(isMC?layers.mc:layers.minor);
+                    marker.bindPopup(`<b>${p.name}</b><br>Tuyến: ${l}<br>Điện áp: ${volt}kV`);
+                    if(isMC) marker.on('click', () => window.showMCConfirm(p.name));
+                }
             });
 
             if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
@@ -532,17 +557,23 @@
                 // Voltage Coloring Logic
                 let v1 = powerState[`${def.lineFrom}|${p1.name}`] || 0;
                 let v2 = powerState[`${def.lineTo}|${p2.name}`] || 0;
-                
                 let volt = Math.min(v1, v2); 
-                
                 let color = getVoltageColor(volt);
                 
-                let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
+                // FIX V1.79: Filter NaN Coordinates
+                let validPts = pts.filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+                if(validPts.length > 1) {
+                    let poly = L.polyline(validPts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
+                }
                 
                 if(calcPath) {
-                    pts.forEach((p, i) => {
-                        if (i > 0) currentPathTotalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
-                        currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
+                    validPts.forEach((p, i) => {
+                        let d = 0;
+                        if (i > 0) d = getDist(validPts[i-1].lat, validPts[i-1].lng, p.lat, p.lng);
+                        if (d > 0 || i === 0) {
+                            currentPathTotalDist += d;
+                            currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
+                        }
                     });
                 }
             });
@@ -572,6 +603,8 @@
             return null;
         }
         function getDist(lat1,lon1,lat2,lon2) {
+            // Fix V1.79: NaN check
+            if(isNaN(lat1)||isNaN(lon1)||isNaN(lat2)||isNaN(lon2)) return 0;
             const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
             const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
             return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
@@ -598,7 +631,7 @@
             closeWinDialog();
         }
         
-        // FIXED SWITCH TAB + REFRESH UI V1.77
+        // FIXED SWITCH TAB + REFRESH UI V1.79
         window.switchTab = (id) => { 
             document.querySelectorAll('.edit-section').forEach(e=>e.classList.remove('active')); 
             document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
@@ -639,7 +672,7 @@
             drawSingleCircuit(id, true);
         }
         
-        // --- FIX V1.77: ROBUST FAULT FINDING ---
+        // --- FIX V1.79: ROBUST FAULT FINDING + NAN CHECK + DEBUG ALERT ---
         window.findFault = function() {
             try {
                 layers.fault.clearLayers();
@@ -668,12 +701,13 @@
                 // 1. Precise Scan
                 for(let i=1; i<currentPath.length; i++) {
                     let p1=currentPath[i-1], p2=currentPath[i];
-                    if(!p1 || !p2 || isNaN(p1.lat) || isNaN(p1.lng)) continue; // Safety check
+                    
+                    // FIX V1.79: NaN Safeguard
+                    if(!p1 || !p2 || isNaN(p1.lat) || isNaN(p1.lng) || isNaN(p2.lat) || isNaN(p2.lng)) continue;
 
                     let segLen = p2.accDist - p1.accDist;
                     if(segLen <= 0) continue; 
 
-                    // Keep track of closest point in case exact match fails
                     let diff1 = Math.abs(targetDist - p1.accDist);
                     if(diff1 < bestDiff) { bestDiff = diff1; bestP = p1; }
 
@@ -696,7 +730,7 @@
                     res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Không tìm thấy tọa độ (Lỗi tính toán cục bộ).`;
                 }
             } catch (err) {
-                alert("Lỗi thuật toán tìm kiếm: " + err.message);
+                alert("Lỗi thuật toán tìm kiếm: " + err.message + "\n" + err.stack);
             }
         }
 
