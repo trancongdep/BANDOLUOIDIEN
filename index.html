@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.82</title>
+    <title>Hệ Thống Lưới Điện - Version 1.83</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -112,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.82</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.83</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -148,7 +148,7 @@
                     <label>Từ:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"></select><select id="sel-seg-pole1"></select></div>
                     <label>Đến:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"></select><select id="sel-seg-pole2"></select></div>
                     <label>Loại:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
-                    <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU ĐOẠN</button>
+                    <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU Đoạn</button>
                 </div>
                 <div id="tab-cir" class="edit-section"><label>Tên Mạch:</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist><label>Chọn Đoạn:</label><select id="sel-cir-seg"></select><button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM VÀO MẠCH</button></div>
                 <div id="tab-area" class="edit-section">
@@ -171,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.82</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.83</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -321,7 +321,7 @@
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.82!");
+            log("✅ Dữ liệu hợp lệ V1.83!");
             if(sourceReport.length > 0) alert(`Đã tìm thấy ${sourceReport.length} nguồn điện:\n` + sourceReport.join("\n"));
             else alert("CẢNH BÁO: Không tìm thấy bất kỳ nguồn điện nào (LOAI_DIEM = NGUON)!");
             
@@ -557,11 +557,12 @@
                     let poly = L.polyline(validPts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
                 }
                 
+                // BACK TO BASICS (V1.55 LOGIC): Robust Path Building
                 if(calcPath) {
                     validPts.forEach((p, i) => {
                         let d = 0;
                         if (i > 0) d = getDist(validPts[i-1].lat, validPts[i-1].lng, p.lat, p.lng);
-                        if (d > 0 || i === 0) {
+                        if (d > 0 || i === 0) { // Keep even start point
                             currentPathTotalDist += d;
                             currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
                         }
@@ -647,7 +648,7 @@
                     appData = val; 
                     if(!appData.mcStates) appData.mcStates={}; 
                     renderGlobalMap();
-                    refreshAllUI(); // FORCE ALL
+                    refreshAllUI(); 
                 }
             });
         }
@@ -659,12 +660,12 @@
             drawSingleCircuit(id, true);
         }
         
-        // --- FIX V1.82: REWRITE FAULT BOX COMPLETELY ---
+        // --- FIX V1.83: FAULT BOX & FINDING (SIMPLIFIED V1.55) ---
         var faultControl = L.control({position: 'bottomright'});
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
             div.id = "fault-info-box";
-            div.style.display = 'none'; // Hidden by default
+            div.style.display = 'none'; 
             return div;
         };
         faultControl.addTo(map);
@@ -679,9 +680,8 @@
             try {
                 layers.fault.clearLayers();
                 document.getElementById('result').style.display='none'; 
+                document.getElementById('fault-info-box').style.display='none';
                 document.getElementById('main-legend').style.display='block';
-                // Reset box
-                document.getElementById('fault-info-box').style.display = 'none';
 
                 let kmInput = parseFloat(document.getElementById('faultKm').value);
                 let direction = document.querySelector('input[name="faultDir"]:checked').value;
@@ -697,44 +697,30 @@
                     res.style.display = 'block'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
                 }
 
-                let found = false;
-                let bestDiff = Infinity;
-                let bestP = null;
-
+                // BACK TO BASICS: SIMPLE LOOP (V1.55)
                 for(let i=1; i<currentPath.length; i++) {
                     let p1=currentPath[i-1], p2=currentPath[i];
                     
-                    if(!p1 || !p2 || isNaN(p1.lat) || isNaN(p1.lng) || isNaN(p2.lat) || isNaN(p2.lng)) continue;
-
-                    let segLen = p2.accDist - p1.accDist;
-                    if(segLen <= 0) continue; 
-
-                    let diff1 = Math.abs(targetDist - p1.accDist);
-                    if(diff1 < bestDiff) { bestDiff = diff1; bestP = p1; }
-
                     if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) {
-                        let ratio = (targetDist - p1.accDist) / segLen;
-                        let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio;
+                        let segLen = p2.accDist - p1.accDist;
+                        let ratio = (segLen > 0) ? (targetDist - p1.accDist) / segLen : 0;
+                        
+                        let lat = p1.lat + (p2.lat-p1.lat)*ratio;
+                        let lng = p1.lng + (p2.lng-p1.lng)*ratio;
+                        
                         showFaultMarker(lat, lng, cName, kmInput, p1.name, p2.name);
-                        found = true;
-                        break;
+                        return; // Found & Done
                     }
                 }
+                
+                res.style.display='block'; res.innerHTML = `⚠️ Không tìm thấy tọa độ (Ngoài vùng phủ).`;
 
-                if(!found && bestP) {
-                    showFaultMarker(bestP.lat, bestP.lng, cName, kmInput, bestP.name, "Điểm gần nhất");
-                    found = true;
-                }
-
-                if(!found) {
-                    res.style.display='block'; res.innerHTML = `⚠️ Không tìm thấy tọa độ.`;
-                }
             } catch (err) {
                 alert("Lỗi: " + err.message);
             }
         }
 
-        // V1.82 FIX: OVERWRITE HTML CONTENT TO AVOID ID CONFLICTS
+        // V1.83: SAFE UI UPDATE
         function showFaultMarker(lat, lng, cName, km, p1Name, p2Name) {
             document.getElementById('main-legend').style.display='none';
             let box = document.getElementById('fault-info-box');
