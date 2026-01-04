@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.76</title>
+    <title>Hệ Thống Lưới Điện - Version 1.77</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -112,7 +112,7 @@
     </div>
 
     <div id="sidebar">
-        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.76</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
+        <div class="header"><h2>QUẢN LÝ LƯỚI ĐIỆN V1.77</h2><button class="close-btn" onclick="closeSidebar()">×</button></div>
         <div class="content">
             <button class="accordion">1. Cập nhật & Xuất Excel</button>
             <div class="panel" id="panel-update">
@@ -171,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="footer">Copyright TCD software @2025 - Version 1.76</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.77</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -304,7 +304,7 @@
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
 
             stagingData = data;
-            log("✅ Dữ liệu hợp lệ V1.76!");
+            log("✅ Dữ liệu hợp lệ V1.77!");
             if(sourceReport.length > 0) alert(`Đã tìm thấy ${sourceReport.length} nguồn điện:\n` + sourceReport.join("\n"));
             else alert("CẢNH BÁO: Không tìm thấy bất kỳ nguồn điện nào (LOAI_DIEM = NGUON)!");
             
@@ -539,17 +539,10 @@
                 
                 let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), {color: color, weight: calcPath?5:2}).addTo(layers.main);
                 
-                // Fix V1.76: Filter duplicate/zero-length segments in path
                 if(calcPath) {
                     pts.forEach((p, i) => {
-                        let d = 0;
-                        if (i > 0) d = getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
-                        
-                        // Avoid adding points if distance is 0 (duplicate node)
-                        if (d > 0 || i === 0) {
-                            currentPathTotalDist += d;
-                            currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
-                        }
+                        if (i > 0) currentPathTotalDist += getDist(pts[i-1].lat, pts[i-1].lng, p.lat, p.lng);
+                        currentPath.push({ ...p, accDist: currentPathTotalDist, route: def.lineFrom });
                     });
                 }
             });
@@ -605,7 +598,7 @@
             closeWinDialog();
         }
         
-        // FIXED SWITCH TAB + REFRESH UI V1.76
+        // FIXED SWITCH TAB + REFRESH UI V1.77
         window.switchTab = (id) => { 
             document.querySelectorAll('.edit-section').forEach(e=>e.classList.remove('active')); 
             document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
@@ -646,55 +639,78 @@
             drawSingleCircuit(id, true);
         }
         
-        // --- FIX V1.76: ROBUST FAULT FINDING ---
+        // --- FIX V1.77: ROBUST FAULT FINDING ---
         window.findFault = function() {
-            layers.fault.clearLayers();
-            document.getElementById('result').style.display='none'; 
-            document.getElementById('fault-info-box').style.display='none';
-            document.getElementById('main-legend').style.display='block';
+            try {
+                layers.fault.clearLayers();
+                document.getElementById('result').style.display='none'; 
+                document.getElementById('fault-info-box').style.display='none';
+                document.getElementById('main-legend').style.display='block';
 
-            let kmInput = parseFloat(document.getElementById('faultKm').value);
-            let direction = document.querySelector('input[name="faultDir"]:checked').value;
-            let cName = document.getElementById('circuitSelect').value;
-            let res = document.getElementById('result');
-            
-            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
+                let kmInput = parseFloat(document.getElementById('faultKm').value);
+                let direction = document.querySelector('input[name="faultDir"]:checked').value;
+                let cName = document.getElementById('circuitSelect').value;
+                let res = document.getElementById('result');
+                
+                if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; }
 
-            let targetDist = kmInput * 1000;
-            if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
+                let targetDist = kmInput * 1000;
+                if (direction === 'end') targetDist = currentPathTotalDist - (kmInput * 1000);
 
-            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) {
-                res.style.display = 'block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
-            }
-
-            let found = false;
-            for(let i=1; i<currentPath.length; i++) {
-                let p1=currentPath[i-1], p2=currentPath[i];
-                // FIX: Skip zero-length segments to prevent NaN
-                let segLen = p2.accDist - p1.accDist;
-                if(segLen <= 0) continue; 
-
-                if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) {
-                    let ratio = (targetDist - p1.accDist) / segLen;
-                    let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio;
-                    
-                    document.getElementById('main-legend').style.display='none';
-                    document.getElementById('fault-info-box').style.display='block';
-                    document.getElementById('fault-header').innerHTML=`<span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ ${cName}</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button>`;
-                    document.getElementById('fi-name').innerText=cName;
-                    document.getElementById('fi-dist').innerText=`${kmInput} km`;
-                    document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`;
-                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`;
-                    
-                    L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
-                    map.setView([lat,lng], 16); closeSidebar(); 
-                    found = true;
-                    break;
+                if (targetDist < -50 || targetDist > currentPathTotalDist + 50) {
+                    res.style.display = 'block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi! Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)}km`; return;
                 }
+
+                let found = false;
+                let bestDiff = Infinity;
+                let bestP = null;
+
+                // 1. Precise Scan
+                for(let i=1; i<currentPath.length; i++) {
+                    let p1=currentPath[i-1], p2=currentPath[i];
+                    if(!p1 || !p2 || isNaN(p1.lat) || isNaN(p1.lng)) continue; // Safety check
+
+                    let segLen = p2.accDist - p1.accDist;
+                    if(segLen <= 0) continue; 
+
+                    // Keep track of closest point in case exact match fails
+                    let diff1 = Math.abs(targetDist - p1.accDist);
+                    if(diff1 < bestDiff) { bestDiff = diff1; bestP = p1; }
+
+                    if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) {
+                        let ratio = (targetDist - p1.accDist) / segLen;
+                        let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio;
+                        showFaultMarker(lat, lng, cName, kmInput, p1.name, p2.name);
+                        found = true;
+                        break;
+                    }
+                }
+
+                // 2. Snap Mode (Fallback)
+                if(!found && bestP) {
+                    showFaultMarker(bestP.lat, bestP.lng, cName, kmInput, bestP.name, "Điểm gần nhất");
+                    found = true;
+                }
+
+                if(!found) {
+                    res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Không tìm thấy tọa độ (Lỗi tính toán cục bộ).`;
+                }
+            } catch (err) {
+                alert("Lỗi thuật toán tìm kiếm: " + err.message);
             }
-            if(!found) {
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Không tìm thấy tọa độ (Lỗi tính toán cục bộ).`;
-            }
+        }
+
+        function showFaultMarker(lat, lng, cName, km, p1Name, p2Name) {
+            document.getElementById('main-legend').style.display='none';
+            document.getElementById('fault-info-box').style.display='block';
+            document.getElementById('fault-header').innerHTML=`<span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ ${cName}</span><button class="btn-close-fault" onclick="window.closeFaultInfo()">X</button>`;
+            document.getElementById('fi-name').innerText=cName;
+            document.getElementById('fi-dist').innerText=`${km} km`;
+            document.getElementById('fi-seg').innerHTML=`${p1Name} <i class="fas fa-arrow-right"></i> ${p2Name}`;
+            document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`;
+            
+            L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+            map.setView([lat,lng], 16); closeSidebar(); 
         }
     </script>
 </body>
