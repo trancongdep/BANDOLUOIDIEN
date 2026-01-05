@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.60</title>
+    <title>Hệ Thống Lưới Điện - Version 1.61</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* --- LAYOUT & CORE --- */
+        /* --- GIỮ NGUYÊN CSS --- */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
@@ -156,7 +156,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.60</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.61</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -172,6 +172,7 @@
     </script>
 
     <script>
+        // CONFIG
         let map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([10.762, 106.660], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri', maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
@@ -199,11 +200,7 @@
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         function isEditMode() { let panel = document.getElementById('panel-entry'); return panel.style.maxHeight && panel.style.maxHeight !== '0px'; }
         
-        // --- FIX: ĐỊNH NGHĨA GLOBAL CHO REFRESH PANEL ---
-        window.refreshPanelHeight = function(pid) { 
-            let p=document.getElementById(pid); 
-            if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 100) + "px"; 
-        }
+        window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 100) + "px"; }
 
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) { acc[i].addEventListener("click", function() { for (var j = 0; j < acc.length; j++) { if (acc[j] !== this && acc[j].classList.contains("active")) { acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; } } this.classList.toggle("active"); var panel = this.nextElementSibling; if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 100) + "px"; }); }
@@ -242,13 +239,25 @@
                 let cId=getCol(r,["MA_DOAN"]), cT1=getCol(r,["TUYEN_TU"]), cTr1=getCol(r,["TRU_TU"]), cT2=getCol(r,["TUYEN_DEN"]), cTr2=getCol(r,["TRU_DEN"]), cL=getCol(r,["LOAI_DIEM","LOAI"]);
                 if(cId && r[cId]) { data.segments[r[cId]] = { id: r[cId], type: (cL&&String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom: r[cT1], poleFrom: String(r[cTr1]).trim(), lineTo: r[cT2], poleTo: String(r[cTr2]).trim() }; }
             });
+
+            // --- FIX LỖI UNDEFINED TRONG MẠCH ---
             sheets[sCircs].forEach(r => {
                 let cCid=getCol(r,["MA_DUONG_DAY"]), cSid=getCol(r,["MA_DOAN"]), cStt=getCol(r,["STT"]);
-                if(cCid && r[cCid]) { let cid=r[cCid]; if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({segId: r[cSid], order: parseInt(r[cStt]||999)}); }
+                // Kiểm tra kỹ r[cSid] có giá trị không
+                if(cCid && r[cCid] && cSid && r[cSid]) { 
+                    let cid=r[cCid]; 
+                    if(!data.circuits[cid]) data.circuits[cid]=[]; 
+                    data.circuits[cid].push({
+                        segId: String(r[cSid]).trim(), // Ép kiểu string để tránh undefined
+                        order: parseInt(r[cStt]||999)
+                    }); 
+                }
             });
+            // ------------------------------------
+
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
             window.stagingData = data; document.getElementById('upload-actions').style.display = "block"; 
-            window.refreshPanelHeight('panel-update'); // GỌI HÀM GLOBAL
+            window.refreshPanelHeight('panel-update');
             return true;
         }
         
@@ -363,7 +372,7 @@
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
         window.updatePoleSelect = function(lid, pid) { let line=document.getElementById(lid).value, poles=appData.poles[line]||[]; document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); }
-        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v160.xlsx"); }
+        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v161.xlsx"); }
     </script>
 </body>
 </html>
