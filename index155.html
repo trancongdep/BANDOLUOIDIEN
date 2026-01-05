@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.55</title>
+    <title>Hệ Thống Lưới Điện - Version 1.56</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* --- LAYOUT FIX (V1.55) --- */
+        /* --- LAYOUT FIX (V1.56) --- */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             font-family: 'Segoe UI', sans-serif; 
-            overflow: hidden; /* Ngăn cuộn trang web */
+            overflow: hidden; 
             background: #f0f2f5;
         }
         
@@ -22,7 +22,7 @@
             position: absolute; 
             top: 0; left: 0; right: 0; bottom: 0; 
             width: 100%; height: 100%; 
-            z-index: 1; /* Nằm dưới cùng */
+            z-index: 1; 
         }
 
         /* --- UI COMPONENTS --- */
@@ -37,7 +37,7 @@
         /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
-            bottom: calc(30px + env(safe-area-inset-bottom, 10px)); /* Cách footer */
+            bottom: calc(30px + env(safe-area-inset-bottom, 10px)); 
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column;
         }
@@ -67,12 +67,15 @@
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
-        .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; border-bottom: 1px solid #ddd; }
+        .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
 
         /* INPUTS & ACTIONS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
-        .btn-check { background: #00796b; } .btn-merge { background: #2e7d32; } .btn-replace { background: #c62828; } .btn-find { background: #d32f2f; }
+        .btn-check { background: #00796b; } 
+        .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
+        .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
+        .btn-find { background: #d32f2f; }
         .btn-add { background: #1565c0; margin-top: 10px; margin-bottom: 25px !important; }
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
@@ -87,7 +90,11 @@
         .edit-section.active { display: block; }
         
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
+        
+        /* UPDATE: Flexbox for Merge/Replace buttons */
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
+
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.9rem; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
@@ -135,6 +142,10 @@
         .icon-cot-moc { background: #4a148c; border-radius: 2px 2px 0 0; border-bottom: none; }
         .icon-ham-cap { background: #5d4037; border-radius: 4px; font-family: sans-serif; }
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
+        
+        /* Custom Extent Button */
+        .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
+        .leaflet-control-custom:hover { background: #f4f4f4; }
     </style>
 </head>
 <body>
@@ -163,9 +174,11 @@
                 <input type="file" id="excelFile" accept=".csv, .xlsx" multiple />
                 <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Chờ file...</div>
-                <div id="upload-actions" style="display:none;">
-                    <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
-                    <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
+                <div id="upload-actions">
+                    <div class="upload-btn-row">
+                        <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
+                        <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
+                    </div>
                 </div>
                 <hr>
                 <button class="action-btn btn-export" onclick="window.exportToExcel()">XUẤT EXCEL</button>
@@ -238,7 +251,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2025 - Version 1.55</div>
+    <div class="footer">Copyright TCD software @2025 - Version 1.56</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -254,11 +267,32 @@
     </script>
 
     <script>
-        let map = L.map('map', { zoomControl: false }).setView([10.762, 106.660], 12);
+        // CONFIG MAP - Enable deep zoom
+        let map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([10.762, 106.660], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Esri'}).addTo(map);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {opacity:0.4}).addTo(map);
+
+        // Add Tiles with MaxNativeZoom to allow over-zooming
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri', maxNativeZoom: 19, maxZoom: 22
+        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            opacity:0.4, maxNativeZoom: 19, maxZoom: 22
+        }).addTo(map);
         
+        // EXTENT CONTROL (Custom Button)
+        L.Control.Extent = L.Control.extend({
+            onAdd: function(map) {
+                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                container.innerHTML = '🏠'; // Icon nhà
+                container.title = "Toàn cảnh";
+                container.style.fontSize = '18px';
+                container.onclick = function(e) { e.preventDefault(); window.zoomToExtent(); }
+                return container;
+            }
+        });
+        // Add below zoom control (topright)
+        new L.Control.Extent({ position: 'topright' }).addTo(map);
+
         map.createPane('areaPane'); map.getPane('areaPane').style.zIndex = 200;
         
         let layers = { 
@@ -302,13 +336,22 @@
             } else { closeSidebar(); }
         });
 
-        // UI ACCORDION FIX
+        // UI ACCORDION LOGIC (Exclusive Open)
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) {
             acc[i].addEventListener("click", function() {
+                // Close all others
+                for (var j = 0; j < acc.length; j++) {
+                    if (acc[j] !== this && acc[j].classList.contains("active")) {
+                        acc[j].classList.remove("active");
+                        acc[j].nextElementSibling.style.maxHeight = null;
+                    }
+                }
+                // Toggle current
                 this.classList.toggle("active");
                 var panel = this.nextElementSibling;
-                if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 50) + "px";
+                if (panel.style.maxHeight) panel.style.maxHeight = null; 
+                else panel.style.maxHeight = (panel.scrollHeight + 50) + "px";
             });
         }
         function refreshPanelHeight(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 50) + "px"; }
@@ -324,6 +367,14 @@
         window.enableMapPick = function(mode) { 
             pickingMode = mode; closeSidebar(); 
             if(mode==='pole') { let btn=document.querySelector('.btn-pick'); btn.innerText="Đang chọn..."; btn.style.background="red"; }
+        }
+        
+        window.zoomToExtent = function() {
+            if(layers.main.getLayers().length > 0) {
+                map.fitBounds(layers.main.getBounds());
+            } else {
+                map.setView([10.762, 106.660], 12);
+            }
         }
 
         // --- AREA DRAWING ---
@@ -401,19 +452,30 @@
         window.closeFaultInfo = function() { document.getElementById('fault-info-box').style.display = 'none'; document.getElementById('main-legend').style.display = 'block'; layers.fault.clearLayers(); }
 
         // CORE LOGIC
-        function log(msg) { document.getElementById('console').innerHTML += `<div>> ${msg}</div>`; document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight; }
+        function log(msg, clear=false) { 
+            let c = document.getElementById('console');
+            if(clear) c.innerHTML = '';
+            c.innerHTML += `<div>> ${msg}</div>`; 
+            c.scrollTop = c.scrollHeight; 
+        }
         function getCol(row, candidates) { let k=Object.keys(row); for(let c of candidates){ let m=k.find(key=>key.trim().replace(/^\uFEFF/,'')===c); if(m) return m; } return null; }
 
         window.analyzeFiles = function() {
             const input = document.getElementById('excelFile');
-            if(!input.files.length) return alert("Chưa chọn file");
-            Promise.all(Array.from(input.files).map(readFile)).then(res => processSheets(Object.assign({}, ...res)));
+            log("Đang đọc file...", true); // Xóa trắng và báo
+            if(!input.files.length) { log("❌ Chưa chọn file!"); return; }
+            
+            Promise.all(Array.from(input.files).map(readFile)).then(res => {
+                let success = processSheets(Object.assign({}, ...res));
+                if(success) log("✅ Kiểm tra thành công! Hãy chọn thao tác.");
+                else log("❌ Dữ liệu không hợp lệ hoặc thiếu file.");
+            }).catch(e => log("❌ Lỗi đọc file: " + e.message));
         }
         function readFile(file) { return new Promise(r => { const rd = new FileReader(); rd.onload=e=>{ const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(file); }); }
         
         function processSheets(sheets) {
             const sPoles=Object.keys(sheets).find(n=>n.includes("TOA_DO")), sSegs=Object.keys(sheets).find(n=>n.includes("DM_DOAN")), sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
-            if(!sPoles||!sSegs||!sCircs) return alert("Thiếu file!");
+            if(!sPoles||!sSegs||!sCircs) { log("Thiếu sheet (TOA_DO, DM_DOAN, CAU_HINH)!"); return false; }
             
             let data = { poles: {}, segments: {}, circuits: {}, states: {}, mcStates: {} };
             
@@ -438,9 +500,9 @@
             }
 
             stagingData = data;
-            document.getElementById('console').innerHTML = "✅ Dữ liệu sẵn sàng!";
             document.getElementById('upload-actions').style.display = "block";
             refreshPanelHeight('panel-update');
+            return true;
         }
 
         function executeUpload(mode) {
@@ -525,13 +587,19 @@
         }
 
         function createIcon(type, name, isClosed=true) {
-            let cls='my-icon icon-tru-do', sz=[12,12];
-            if(type.includes('MC')) { cls=isClosed?'my-icon icon-mc-on':'my-icon icon-mc-off'; sz=[16,16]; }
+            let cls='my-icon icon-tru-do', sz=[12,12], label = '';
+            if(type.includes('MC')) { 
+                cls=isClosed?'my-icon icon-mc-on':'my-icon icon-mc-off'; sz=[22,16]; // Tăng size cho MC
+                // Tách lấy số hiệu sau dấu _
+                let parts = name.split('_');
+                label = parts.length > 1 ? parts[parts.length-1] : name;
+            }
             else if(type.includes('NEO')) cls='my-icon icon-tru-neo';
             else if(type.includes('MOC')) { cls='my-icon icon-moc'; sz=[8,8]; }
             else if(type.includes('COT')) { cls='my-icon icon-cot-moc'; sz=[10,14]; }
             else if(type.includes('HAM')) { cls='my-icon icon-ham-cap'; sz=[14,10]; }
-            return L.divIcon({ className: cls, html: type.includes('MC')?'MC':'', iconSize: sz });
+            
+            return L.divIcon({ className: cls, html: label, iconSize: sz });
         }
 
         function renderGlobalMap() {
@@ -551,7 +619,7 @@
                     else if(a.type === 'CONSTRUCTION') color = '#ffeb3b';
                     else if(a.type === 'FOUNDATION') color = '#795548';
                     L.polygon(a.points, {color: color, fillColor: color, fillOpacity: 0.3, weight: 1})
-                     .addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
+                      .addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
                 });
             }
 
