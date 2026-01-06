@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -198,5 +199,172 @@
                 if(p1 && p2 && !simulationOnly) { let key = getSegmentKey(p1, p2); let list = segmentCounts[key]; if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } } }
                 if(pts.length) { 
                     if (!simulationOnly) { let isCable=def.type.includes("NGAM"); L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main).bindPopup(`<b>${circuitId}</b><br>${statusText}`); }
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({lat: p.lat, lng
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({lat: p.lat, lng: p.lng, accDist:currentPathTotalDist, name: p.name}); }); 
+                }
+            });
+        }
+        
+        let segmentCounts = {};
+        function getSegmentKey(p1, p2) { let k1=p1.lat+"_"+p1.lng, k2=p2.lat+"_"+p2.lng; return (k1<k2)?(k1+"|"+k2):(k2+"|"+k1); }
+        function calculateOffsets() { segmentCounts={}; if(appData.circuits) Object.keys(appData.circuits).forEach(cid=>{ appData.circuits[cid].forEach(item=>{ let def=appData.segments[item.segId]; if(def){ let p1=getPoleExact(def.lineFrom,def.poleFrom), p2=getPoleExact(def.lineTo,def.poleTo); if(p1&&p2){ let k=getSegmentKey(p1,p2); if(!segmentCounts[k]) segmentCounts[k]=[]; segmentCounts[k].push(cid); } } }); }); }
+        function getPoleExact(line, name) { if(!appData.poles[line]) return null; return appData.poles[line].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); }
+        function getPoleGlobal(name) { for(let l in appData.poles) { let p=appData.poles[l].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); if(p) return {...p, foundRoute:l}; } return null; }
+        function getDist(lat1,lon1,lat2,lon2) { const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180; const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+        
+        function getPointsForSegment(seg) {
+            if(!seg) return [];
+            let p1 = getPoleExact(seg.lineFrom, seg.poleFrom) || getPoleGlobal(seg.poleFrom);
+            let p2 = getPoleExact(seg.lineTo, seg.poleTo) || getPoleGlobal(seg.poleTo);
+            if(!p1 || !p2) return [];
+            let r1 = p1.foundRoute || seg.lineFrom; let r2 = p2.foundRoute || seg.lineTo;
+            if (r1 === r2) {
+                let routePoles = appData.poles[r1];
+                if (routePoles) {
+                    let i1 = routePoles.findIndex(p => p.name === p1.name);
+                    let i2 = routePoles.findIndex(p => p.name === p2.name);
+                    if (i1 !== -1 && i2 !== -1) {
+                        let segmentPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
+                        return segmentPoles.map(p => ({lat: p.lat, lng: p.lng, name: p.name}));
+                    }
+                }
+            }
+            return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
+        }
 
+        window.zoomToCircuit = function() { 
+            let id = document.getElementById('circuitSelect').value; 
+            layers.main.clearLayers(); renderGlobalMap(); 
+            document.getElementById('btn-grounding').style.display = 'none'; 
+            if(!id) { document.getElementById('status-text').innerText = "---"; return; } 
+            drawSingleCircuit(id, true); 
+            document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; 
+            if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); 
+        }
+
+        window.findFault = function() { 
+            let btn = document.getElementById('btn-find-fault');
+            let oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tính toán...'; btn.disabled = true;
+
+            setTimeout(() => {
+                try {
+                    layers.fault.clearLayers(); 
+                    let res = document.getElementById('result'); res.style.display='none'; 
+                    let faultBox = document.getElementById('fault-info-box'); if(faultBox) faultBox.style.display='none'; 
+                    let kmInput = parseFloat(document.getElementById('faultKm').value); 
+                    let direction = document.querySelector('input[name="faultDir"]:checked').value; 
+                    let cName = document.getElementById('circuitSelect').value; 
+
+                    currentPath = []; 
+                    if(cName) drawSingleCircuit(cName, true, null, true); 
+
+                    if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerText='Vui lòng chọn mạch trước!'; btn.innerHTML = oldText; btn.disabled = false; return; } 
+                    let totalKm = currentPathTotalDist / 1000;
+                    if(kmInput > totalKm) { res.style.display='block'; res.className='warning-msg'; res.innerText=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; btn.innerHTML = oldText; btn.disabled = false; return; }
+                    let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
+                    
+                    let found = false;
+                    for(let i=1; i<currentPath.length; i++) { 
+                        let p1=currentPath[i-1], p2=currentPath[i]; let d1=p1.accDist, d2=p2.accDist;
+                        if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
+                            found = true;
+                            let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
+                            let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
+                            let n1 = "Điểm đầu", n2 = "Điểm cuối";
+                            for (let j = i-1; j >= 0; j--) { if (currentPath[j].name) { n1 = currentPath[j].name; break; } }
+                            for (let j = i; j < currentPath.length; j++) { if (currentPath[j].name) { n2 = currentPath[j].name; break; } }
+
+                            if(faultBox) {
+                                faultBox.style.display='block'; 
+                                document.getElementById('fi-name').innerText=cName; 
+                                document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                                document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
+                                document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                                fetchWeather(lat, lng);
+                                fetchAddress(lat, lng); // V1.4
+                            }
+                            L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
+                            map.setView([lat, lng], 18); togglePanel(); break; 
+                        } 
+                    }
+                    if(!found) { res.style.display='block'; res.className='warning-msg'; res.innerText = `Không tìm thấy điểm (Lỗi dữ liệu)`; }
+                } catch(e) { console.error(e); alert("Lỗi: " + e.message); } finally { btn.innerHTML = oldText; btn.disabled = false; }
+            }, 50); 
+        }
+
+        async function fetchAddress(lat, lng) {
+            const el = document.getElementById('fi-addr-text');
+            if(!el) {
+                let row = document.createElement('div'); row.className = 'fault-row';
+                row.innerHTML = '<span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">⏳ Đang lấy...</span>';
+                let container = document.getElementById('fault-info-box'); container.insertBefore(row, container.lastElementChild);
+            } else { el.innerText = '⏳ Đang lấy...'; }
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if(data && data.address) {
+                    let a = data.address; let parts = [];
+                    if(a.house_number) parts.push(a.house_number);
+                    if(a.road) parts.push(a.road);
+                    else if(a.pedestrian) parts.push(a.pedestrian);
+                    let ward = a.quarter || a.village || a.neighbourhood || a.hamlet;
+                    if(ward) parts.push(ward); else if(a.suburb) parts.push(a.suburb);
+                    let district = a.city_district || a.district || a.county;
+                    if(district) parts.push(district);
+                    let city = a.city || a.state;
+                    if(city) parts.push(city);
+                    let fullAddr = parts.length > 0 ? parts.join(", ") : "Không xác định được địa chỉ cụ thể";
+                    document.getElementById('fi-addr-text').innerText = fullAddr;
+                }
+            } catch(e) { document.getElementById('fi-addr-text').innerText = "Không lấy được địa chỉ"; }
+        }
+
+        async function fetchWeather(lat, lng) {
+            let infoBox = document.getElementById('fault-weather');
+            if(!infoBox) {
+                let div = document.createElement('div'); div.id = 'fault-weather'; div.className = 'weather-info';
+                document.getElementById('fault-info-box').appendChild(div); infoBox = div;
+            }
+            infoBox.innerHTML = '<i>⏳ Đang tải thời tiết...</i>';
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.current) {
+                    let code = data.current.weather_code;
+                    let isStorm = [95, 96, 99].includes(code);
+                    let rain = data.current.precipitation;
+                    let condition = "Nắng/Ít mây";
+                    if(code > 3) condition = "Nhiều mây";
+                    if(code >= 51) condition = "Mưa";
+                    if(isStorm) condition = "Dông sét";
+                    let windDeg = data.current.wind_direction_10m;
+                    let iconRotation = windDeg + 180; 
+                    let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <div style="display:flex;align-items:center;gap:8px;"><b>${data.current.wind_speed_10m} km/h</b><div style="border:1px solid #999; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; background:white;"><i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:14px;"></i></div></div></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
+                    if(rain > 2.0) html += `<div class="weather-alert" style="color:orange;border-color:orange"><i class="fas fa-cloud-rain"></i> Mưa: ${rain}mm - Đường trơn</div>`;
+                    if(rain > 10.0) html += `<div class="weather-flood"><i class="fas fa-water"></i> NGUY CƠ NGẬP CAO!</div>`;
+                    if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
+                    infoBox.innerHTML = html;
+                }
+            } catch (e) { infoBox.innerHTML = 'Lỗi lấy thời tiết.'; }
+        }
+
+        window.confirmAction = function() {
+            if (!window.pendingAction) { closeWinDialog(); return; }
+            if (window.pendingAction.type === 'mc') { window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [window.pendingAction.name]: !(appData.mcStates[window.pendingAction.name] !== false) }); }
+            closeWinDialog();
+        }
+        window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
+        window.toggleGrounding = function() { let cid = document.getElementById('circuitSelect').value; if(!cid) return; let currentG = appData.grounded ? appData.grounded[cid] : false; window.update(window.ref(window.db, 'he_thong_luoi_dien/grounded'), { [cid]: !currentG }); }
+
+        var legendControl = L.control({position: 'bottomright'});
+        legendControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'legend'); div.innerHTML = `<div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Cắt (Xanh)</div>`; return div; };
+        legendControl.addTo(map);
+
+        var faultControl = L.control({position: 'bottomright'});
+        faultControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'fault-box'); div.id = "fault-info-box"; div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="document.getElementById('fault-info-box').style.display='none'">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`; return div; };
+        faultControl.addTo(map);
+    </script>
+</body>
+</html>
