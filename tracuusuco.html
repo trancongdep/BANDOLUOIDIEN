@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.10</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.11</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -14,15 +14,18 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
+        /* APP BAR */
         .app-bar { position: absolute; top: 10px; left: 10px; right: 10px; height: 50px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; display: flex; align-items: center; padding: 0 10px; justify-content: space-between; }
         .app-title { font-weight: bold; color: #004d40; font-size: 1rem; }
         .btn-menu { border: none; background: none; font-size: 1.2rem; color: #333; padding: 10px; cursor: pointer; }
 
+        /* CONTROL PANEL */
         #control-panel { position: fixed; bottom: -100%; left: 0; width: 100%; background: white; z-index: 3000; border-top-left-radius: 15px; border-top-right-radius: 15px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); transition: bottom 0.3s ease-in-out; max-height: 85%; overflow-y: auto; padding-bottom: 20px; }
         #control-panel.active { bottom: 0; }
         .panel-header { padding: 15px; background: #004d40; color: white; border-top-left-radius: 15px; border-top-right-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         .panel-body { padding: 15px; }
 
+        /* UI ELEMENTS */
         label { font-weight: 600; font-size: 0.9rem; display: block; margin: 10px 0 5px; color: #555; }
         select, input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         button.action-btn { padding: 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -33,6 +36,7 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
         .radio-group input { width: 20px; height: 20px; margin-right: 8px; }
 
+        /* DIALOG */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #fff; width: 90%; max-width: 350px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         .win-body { padding: 20px; text-align: center; }
@@ -41,9 +45,15 @@
         .btn-yes { background: #0078d7; color: white; }
         .btn-no { background: #ddd; color: #333; }
 
-        /* FAULT BOX - FIXED STRUCTURE */
-        .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 75vh; display: flex; flex-direction: column; transition: all 0.3s; }
+        /* FAULT & WEATHER BOX */
+        .fault-box { 
+            display: none; /* FIX: ẨN MẶC ĐỊNH */
+            background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.3); border-left: 5px solid #d32f2f; 
+            width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: all 0.3s; 
+        }
         .fault-box.minimized { height: 45px; overflow: hidden; }
+        
         .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; flex-shrink: 0; }
         .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; }
         .header-actions { display: flex; gap: 10px; }
@@ -78,7 +88,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.10</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.11</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -159,7 +169,6 @@
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: [] }; 
         window.pendingAction = null; let currentPath = []; let currentPathTotalDist = 0; let userLocation = null;
         
-        // --- INIT ---
         function setNowToInput() {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -260,7 +269,6 @@
                     let faultBox = document.getElementById('fault-info-box'); 
                     if(faultBox) {
                         faultBox.style.display='none';
-                        // Clean up content
                         document.getElementById('route-info').style.display='none';
                         document.getElementById('fault-weather').style.display='none';
                     }
@@ -289,17 +297,22 @@
                             for (let j = i; j < currentPath.length; j++) { if (currentPath[j].name) { n2 = currentPath[j].name; break; } }
 
                             if(faultBox) {
-                                faultBox.style.display='flex'; faultBox.classList.remove('minimized');
+                                faultBox.style.display='flex'; faultBox.classList.remove('minimized'); // Force Flex display
                                 document.getElementById('fi-name').innerText=cName; 
                                 document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                                 document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
                                 document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                                // SET HELPER ELEMENTS
+                                
+                                // UPDATE TIME
+                                let timeVal = document.getElementById('incidentTime').value;
+                                document.getElementById('fi-time').innerText = timeVal ? timeVal.replace('T', ' ') : "N/A";
+
+                                // HELPER DISPLAYS
                                 document.getElementById('fi-addr-text').innerText = '⏳ Đang lấy...';
                                 document.getElementById('route-info').innerHTML = '<i>⏳ Đang tính lộ trình...</i>'; document.getElementById('route-info').style.display='flex';
                                 document.getElementById('fault-weather').innerHTML = '<i>⏳ Đang tải thời tiết...</i>'; document.getElementById('fault-weather').style.display='block';
                                 
-                                fetchWeather(lat, lng);
+                                fetchWeather(lat, lng, timeVal);
                                 fetchAddress(lat, lng);
                                 if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
                             }
@@ -322,7 +335,7 @@
                     let route = data.routes[0];
                     let distKm = (route.distance / 1000).toFixed(1);
                     let durationMin = Math.round(route.duration / 60);
-                    infoBox.innerHTML = `<i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b>`;
+                    infoBox.innerHTML = `<div><i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b></div>`;
                 } else { infoBox.innerHTML = 'Không tìm thấy đường đi.'; }
             } catch(e) { infoBox.innerHTML = 'Lỗi tính lộ trình.'; }
         }
@@ -354,7 +367,6 @@
                 btns.style.display = 'flex';
             });
         }
-        // -------------------------
 
         async function fetchAddress(lat, lng) {
             const el = document.getElementById('fi-addr-text');
@@ -378,27 +390,56 @@
             } catch(e) { el.innerText = "Không lấy được địa chỉ"; }
         }
 
-        async function fetchWeather(lat, lng) {
+        function getWindDirection(degrees) {
+            const directions = ['Bắc', 'Đông Bắc', 'Đông', 'Đông Nam', 'Nam', 'Tây Nam', 'Tây', 'Tây Bắc'];
+            const index = Math.round(degrees / 45) % 8;
+            return directions[index];
+        }
+
+        async function fetchWeather(lat, lng, incidentTime) {
             let infoBox = document.getElementById('fault-weather');
             try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+                // Fetch HOURLY data to find historical match
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&past_days=1`;
                 const res = await fetch(url);
                 const data = await res.json();
-                if (data.current) {
-                    let code = data.current.weather_code;
-                    let isStorm = [95, 96, 99].includes(code);
-                    let rain = data.current.precipitation;
-                    let condition = "Nắng/Ít mây";
-                    if(code > 3) condition = "Nhiều mây";
-                    if(code >= 51) condition = "Mưa";
-                    if(isStorm) condition = "Dông sét";
-                    let windDeg = data.current.wind_direction_10m;
-                    let iconRotation = windDeg + 180; 
-                    let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <div style="display:flex;align-items:center;gap:8px;"><b>${data.current.wind_speed_10m} km/h</b><div style="border:1px solid #999; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; background:white;"><i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:14px;"></i></div></div></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
-                    if(rain > 2.0) html += `<div class="weather-alert" style="color:orange;border-color:orange"><i class="fas fa-cloud-rain"></i> Mưa: ${rain}mm - Đường trơn</div>`;
-                    if(rain > 10.0) html += `<div class="weather-flood"><i class="fas fa-water"></i> NGUY CƠ NGẬP CAO!</div>`;
-                    if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
-                    infoBox.innerHTML = html;
+                
+                if (data.hourly) {
+                    // FIND INDEX OF INCIDENT HOUR
+                    let targetTime = new Date(incidentTime);
+                    let times = data.hourly.time.map(t => new Date(t));
+                    let index = -1;
+                    let minDiff = Infinity;
+                    
+                    // Find closest hour
+                    for(let i=0; i<times.length; i++) {
+                        let diff = Math.abs(times[i] - targetTime);
+                        if(diff < minDiff) { minDiff = diff; index = i; }
+                    }
+
+                    if(index !== -1) {
+                        let code = data.hourly.weather_code[index];
+                        let isStorm = [95, 96, 99].includes(code);
+                        let rain = data.hourly.precipitation[index];
+                        let windSpd = data.hourly.wind_speed_10m[index];
+                        let windDeg = data.hourly.wind_direction_10m[index];
+                        let temp = data.hourly.temperature_2m[index];
+                        
+                        let condition = "Nắng/Ít mây";
+                        if(code > 3) condition = "Nhiều mây";
+                        if(code >= 51) condition = "Mưa";
+                        if(isStorm) condition = "Dông sét";
+                        
+                        let iconRotation = windDeg + 180; 
+
+                        let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <div style="display:flex;align-items:center;gap:8px;"><b>${windSpd} km/h</b><div style="border:1px solid #999; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; background:white;"><i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:14px;"></i></div></div></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${temp}°C</b></div>`;
+                        if(rain > 2.0) html += `<div class="weather-alert" style="color:orange;border-color:orange"><i class="fas fa-cloud-rain"></i> Mưa: ${rain}mm - Đường trơn</div>`;
+                        if(rain > 10.0) html += `<div class="weather-flood"><i class="fas fa-water"></i> NGUY CƠ NGẬP CAO!</div>`;
+                        if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
+                        infoBox.innerHTML = html;
+                    } else {
+                        infoBox.innerHTML = "Không có dữ liệu thời tiết cho giờ này.";
+                    }
                 }
             } catch (e) { infoBox.innerHTML = 'Lỗi lấy thời tiết.'; }
         }
@@ -411,6 +452,7 @@
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
         window.toggleGrounding = function() { let cid = document.getElementById('circuitSelect').value; if(!cid) return; let currentG = appData.grounded ? appData.grounded[cid] : false; window.update(window.ref(window.db, 'he_thong_luoi_dien/grounded'), { [cid]: !currentG }); }
 
+        // --- ADD LEGEND & FAULT BOX (STATIC) ---
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'legend'); div.innerHTML = `<div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Cắt (Xanh)</div>`; return div; };
         legendControl.addTo(map);
@@ -419,6 +461,7 @@
         faultControl.onAdd = function (map) { 
             var div = L.DomUtil.create('div', 'fault-box'); 
             div.id = "fault-info-box"; 
+            div.setAttribute('style', 'display:none'); // FIX: Force hide initially
             div.innerHTML = `
                 <div class="fault-header">
                     <span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span>
@@ -430,6 +473,7 @@
                 </div>
                 <div class="fault-body">
                     <div id="route-info" class="route-info-box" style="display:none"></div>
+                    <div class="fault-row"><span class="fault-label">Thời gian:</span> <span id="fi-time">---</span></div>
                     <div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div>
                     <div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div>
                     <div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-seg"></span></div>
@@ -440,6 +484,7 @@
             return div; 
         };
         faultControl.addTo(map);
+
     </script>
 </body>
 </html>
