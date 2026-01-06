@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.9</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.10</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -14,18 +14,15 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* APP BAR */
         .app-bar { position: absolute; top: 10px; left: 10px; right: 10px; height: 50px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 2000; display: flex; align-items: center; padding: 0 10px; justify-content: space-between; }
         .app-title { font-weight: bold; color: #004d40; font-size: 1rem; }
         .btn-menu { border: none; background: none; font-size: 1.2rem; color: #333; padding: 10px; cursor: pointer; }
 
-        /* CONTROL PANEL */
         #control-panel { position: fixed; bottom: -100%; left: 0; width: 100%; background: white; z-index: 3000; border-top-left-radius: 15px; border-top-right-radius: 15px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); transition: bottom 0.3s ease-in-out; max-height: 85%; overflow-y: auto; padding-bottom: 20px; }
         #control-panel.active { bottom: 0; }
         .panel-header { padding: 15px; background: #004d40; color: white; border-top-left-radius: 15px; border-top-right-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         .panel-body { padding: 15px; }
 
-        /* UI ELEMENTS */
         label { font-weight: 600; font-size: 0.9rem; display: block; margin: 10px 0 5px; color: #555; }
         select, input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         button.action-btn { padding: 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -36,7 +33,6 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
         .radio-group input { width: 20px; height: 20px; margin-right: 8px; }
 
-        /* DIALOG */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #fff; width: 90%; max-width: 350px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         .win-body { padding: 20px; text-align: center; }
@@ -45,23 +41,20 @@
         .btn-yes { background: #0078d7; color: white; }
         .btn-no { background: #ddd; color: #333; }
 
-        /* FAULT & WEATHER BOX */
+        /* FAULT BOX - FIXED STRUCTURE */
         .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 75vh; display: flex; flex-direction: column; transition: all 0.3s; }
         .fault-box.minimized { height: 45px; overflow: hidden; }
-        
         .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; flex-shrink: 0; }
-        .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; } /* Ensure scrolling */
-
+        .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; }
         .header-actions { display: flex; gap: 10px; }
         .header-btn { border: none; background: none; cursor: pointer; font-size: 1rem; color: #d32f2f; padding: 2px 5px; }
 
         .fault-label { font-weight: bold; color: #555; }
         .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         
-        /* ROUTE & WEATHER STYLE */
-        .route-info-box { background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ffb74d; color: #e65100; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .route-info-box { background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ffb74d; color: #e65100; font-weight: bold; display: none; align-items: center; gap: 10px; }
         
-        .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
+        .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; display: none; }
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
         .weather-flood { color: #0d47a1; font-weight: bold; margin-top: 4px; border-top: 1px dashed #0d47a1; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
@@ -74,7 +67,6 @@
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b; animation: flash 0.5s infinite alternate; }
         @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
-        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; display: none; font-weight: bold; text-align: center; }
         .legend { background: rgba(255,255,255,0.9); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; display: block; margin-bottom: 50px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 2px; }
@@ -86,7 +78,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.9</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.10</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -257,6 +249,8 @@
             let btn = document.getElementById('btn-find-fault');
             let oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tính toán...'; btn.disabled = true;
+
+            // Trigger locate
             if (!userLocation) { map.locate({setView: false, maxZoom: 16}); }
 
             setTimeout(() => {
@@ -266,9 +260,9 @@
                     let faultBox = document.getElementById('fault-info-box'); 
                     if(faultBox) {
                         faultBox.style.display='none';
-                        // Clear old route info if exists to avoid dupes
-                        let oldRoute = document.getElementById('route-info');
-                        if(oldRoute) oldRoute.remove();
+                        // Clean up content
+                        document.getElementById('route-info').style.display='none';
+                        document.getElementById('fault-weather').style.display='none';
                     }
 
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
@@ -295,22 +289,19 @@
                             for (let j = i; j < currentPath.length; j++) { if (currentPath[j].name) { n2 = currentPath[j].name; break; } }
 
                             if(faultBox) {
-                                faultBox.style.display='flex'; // Flex to support new structure
-                                faultBox.classList.remove('minimized');
-                                
+                                faultBox.style.display='flex'; faultBox.classList.remove('minimized');
                                 document.getElementById('fi-name').innerText=cName; 
                                 document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                                 document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
                                 document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                                
-                                // Reset fields before fetching
+                                // SET HELPER ELEMENTS
                                 document.getElementById('fi-addr-text').innerText = '⏳ Đang lấy...';
-
-                                // INSERT ROUTE BOX AT TOP
-                                if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
+                                document.getElementById('route-info').innerHTML = '<i>⏳ Đang tính lộ trình...</i>'; document.getElementById('route-info').style.display='flex';
+                                document.getElementById('fault-weather').innerHTML = '<i>⏳ Đang tải thời tiết...</i>'; document.getElementById('fault-weather').style.display='block';
                                 
                                 fetchWeather(lat, lng);
                                 fetchAddress(lat, lng);
+                                if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
                             map.setView([lat, lng], 18); togglePanel(); break; 
@@ -322,19 +313,7 @@
         }
 
         async function fetchRoute(lat1, lng1, lat2, lng2) {
-            // REMOVE OLD ROUTE BOX FIRST to ensure correct order
-            let oldRoute = document.getElementById('route-info');
-            if(oldRoute) oldRoute.remove();
-
-            let div = document.createElement('div'); 
-            div.id = 'route-info'; 
-            div.className = 'route-info-box';
-            div.innerHTML = '<i>⏳ Đang tính lộ trình...</i>';
-            
-            // Insert AFTER header (index 0) so it appears top of body
-            let body = document.querySelector('.fault-body');
-            body.insertBefore(div, body.firstChild);
-
+            let infoBox = document.getElementById('route-info');
             try {
                 const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
                 const res = await fetch(url);
@@ -343,9 +322,9 @@
                     let route = data.routes[0];
                     let distKm = (route.distance / 1000).toFixed(1);
                     let durationMin = Math.round(route.duration / 60);
-                    div.innerHTML = `<span><i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b></span>`;
-                } else { div.innerHTML = 'Không tìm thấy đường đi.'; }
-            } catch(e) { div.innerHTML = 'Lỗi tính lộ trình.'; }
+                    infoBox.innerHTML = `<i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b>`;
+                } else { infoBox.innerHTML = 'Không tìm thấy đường đi.'; }
+            } catch(e) { infoBox.innerHTML = 'Lỗi tính lộ trình.'; }
         }
 
         // --- NEW FEATURES V1.7 ---
@@ -353,24 +332,17 @@
             let box = document.getElementById('fault-info-box');
             box.classList.toggle('minimized');
             let icon = box.querySelector('.toggle-icon');
-            if(box.classList.contains('minimized')) {
-                icon.classList.remove('fa-minus'); icon.classList.add('fa-plus');
-            } else {
-                icon.classList.remove('fa-plus'); icon.classList.add('fa-minus');
-            }
+            if(box.classList.contains('minimized')) { icon.classList.remove('fa-minus'); icon.classList.add('fa-plus'); } 
+            else { icon.classList.remove('fa-plus'); icon.classList.add('fa-minus'); }
         }
         
-        window.closeFaultBox = function() {
-            document.getElementById('fault-info-box').style.display = 'none';
-        }
+        window.closeFaultBox = function() { document.getElementById('fault-info-box').style.display = 'none'; }
 
         window.captureInfo = function() {
             let box = document.getElementById('fault-info-box');
             box.classList.remove('minimized');
             let btns = box.querySelector('.header-actions');
             btns.style.display = 'none';
-            
-            // Fallback for download
             html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
                 btns.style.display = 'flex';
                 let link = document.createElement('a');
@@ -386,16 +358,6 @@
 
         async function fetchAddress(lat, lng) {
             const el = document.getElementById('fi-addr-text');
-            // If doesn't exist (initial load), insert it
-            if(!el) {
-                let row = document.createElement('div'); row.className = 'fault-row';
-                row.innerHTML = '<span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">⏳ Đang lấy...</span>';
-                // Find anchor link to map and insert before it
-                let container = document.querySelector('.fault-body');
-                let mapLink = document.getElementById('fi-addr').parentNode;
-                container.insertBefore(row, mapLink);
-            } else { el.innerText = '⏳ Đang lấy...'; }
-
             try {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
                 const res = await fetch(url);
@@ -411,18 +373,13 @@
                     let city = a.city || a.state;
                     if(city) parts.push(city);
                     let fullAddr = parts.length > 0 ? parts.join(", ") : "Không xác định được địa chỉ cụ thể";
-                    document.getElementById('fi-addr-text').innerText = fullAddr;
+                    el.innerText = fullAddr;
                 }
-            } catch(e) { document.getElementById('fi-addr-text').innerText = "Không lấy được địa chỉ"; }
+            } catch(e) { el.innerText = "Không lấy được địa chỉ"; }
         }
 
         async function fetchWeather(lat, lng) {
             let infoBox = document.getElementById('fault-weather');
-            if(!infoBox) {
-                let div = document.createElement('div'); div.id = 'fault-weather'; div.className = 'weather-info';
-                document.querySelector('.fault-body').appendChild(div); infoBox = div;
-            }
-            infoBox.innerHTML = '<i>⏳ Đang tải thời tiết...</i>';
             try {
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
                 const res = await fetch(url);
@@ -472,10 +429,13 @@
                     </div>
                 </div>
                 <div class="fault-body">
+                    <div id="route-info" class="route-info-box" style="display:none"></div>
                     <div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div>
                     <div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div>
                     <div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-seg"></span></div>
+                    <div class="fault-row"><span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">---</span></div>
                     <div class="fault-row"><span id="fi-addr"></span></div>
+                    <div id="fault-weather" class="weather-info" style="display:none"></div>
                 </div>`; 
             return div; 
         };
