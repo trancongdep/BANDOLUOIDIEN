@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.12</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.13</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -44,7 +45,7 @@
         .fault-box { 
             display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
             width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: max-height 0.3s; 
+            z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: all 0.3s; 
         }
         .fault-box.minimized { height: 45px; overflow: hidden; }
         
@@ -54,9 +55,7 @@
         .header-actions { display: flex; gap: 10px; }
         .header-btn { border: none; background: none; cursor: pointer; font-size: 1rem; color: #d32f2f; padding: 2px 5px; }
 
-        /* MERGED ROW STYLE */
         .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; line-height: 1.4; }
-        .fault-summary { color: #333; }
         .hl-name { color: #00695c; font-weight: bold; }
         .hl-dist { color: #d32f2f; font-weight: bold; }
         .hl-seg { color: #e65100; font-weight: bold; }
@@ -75,7 +74,6 @@
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b; animation: flash 0.5s infinite alternate; }
         @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
-        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; display: none; font-weight: bold; text-align: center; }
         .legend { background: rgba(255,255,255,0.9); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; display: block; margin-bottom: 50px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 2px; }
@@ -87,7 +85,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.12</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.13</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -265,7 +263,14 @@
                 try {
                     layers.fault.clearLayers(); 
                     let res = document.getElementById('result'); res.style.display='none'; 
-                    let faultBox = document.getElementById('fault-info-box'); if(faultBox) faultBox.style.display='none'; 
+                    let faultBox = document.getElementById('fault-info-box'); 
+                    if(faultBox) {
+                        faultBox.style.display='none';
+                        // Clean up content
+                        document.getElementById('route-info').style.display='none';
+                        document.getElementById('fault-weather').style.display='none';
+                    }
+
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
                     let direction = document.querySelector('input[name="faultDir"]:checked').value; 
                     let cName = document.getElementById('circuitSelect').value; 
@@ -292,14 +297,13 @@
                             if(faultBox) {
                                 faultBox.style.display='flex'; faultBox.classList.remove('minimized');
                                 
-                                // UPDATE MERGED INFO
+                                // COMPACT SUMMARY
                                 document.getElementById('fi-summary').innerHTML = `
                                     <div><span class="hl-name">${cName}</span></div>
-                                    <div>Cách nguồn: <span class="hl-dist">${kmInput} km</span></div>
-                                    <div><span class="hl-seg">${n1} <i class="fas fa-arrow-right"></i> ${n2}</span></div>
+                                    <div>Cách: <span class="hl-dist">${kmInput} km</span> | <span class="hl-seg">${n1} <i class="fas fa-arrow-right"></i> ${n2}</span></div>
                                 `;
 
-                                // UPDATE TIME
+                                // TIME
                                 let timeVal = document.getElementById('incidentTime').value;
                                 document.getElementById('fi-time').innerText = timeVal ? timeVal.replace('T', ' ') : "N/A";
                                 
@@ -311,7 +315,24 @@
 
                                 fetchWeather(lat, lng, timeVal);
                                 fetchAddress(lat, lng);
-                                if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
+                                
+                                // ROUTING FALLBACK CHAIN
+                                if(userLocation) {
+                                    // 1. Try Driving
+                                    fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'driving')
+                                    .then(success => {
+                                        if(!success) {
+                                            // 2. Fallback to Walking
+                                            return fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'walking');
+                                        }
+                                    }).then(success => {
+                                        if(success === false) {
+                                            // 3. Fallback to Straight Line
+                                            let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000;
+                                            document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Thẳng)</div>`;
+                                        }
+                                    });
+                                }
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
                             map.setView([lat, lng], 18); togglePanel(); break; 
@@ -322,19 +343,60 @@
             }, 50); 
         }
 
-        async function fetchRoute(lat1, lng1, lat2, lng2) {
+        // --- UPDATED ROUTING WITH FALLBACK ---
+        async function fetchRoute(lat1, lng1, lat2, lng2, profile) {
             let infoBox = document.getElementById('route-info');
             try {
-                const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
-                const res = await fetch(url);
+                // Timeout promise (3s)
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
+                
+                const fetchPromise = fetch(`https://router.project-osrm.org/route/v1/${profile}/${lng1},${lat1};${lng2},${lat2}?overview=false`);
+                
+                const res = await Promise.race([fetchPromise, timeout]);
+                
+                if(!res.ok) throw new Error('Network response was not ok');
+                
                 const data = await res.json();
                 if(data.routes && data.routes.length > 0) {
                     let route = data.routes[0];
                     let distKm = (route.distance / 1000).toFixed(1);
                     let durationMin = Math.round(route.duration / 60);
-                    infoBox.innerHTML = `<div><i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b></div>`;
-                } else { infoBox.innerHTML = 'Không tìm thấy đường đi.'; }
-            } catch(e) { infoBox.innerHTML = 'Lỗi tính lộ trình.'; }
+                    let icon = profile === 'driving' ? '<i class="fas fa-motorcycle"></i>' : '<i class="fas fa-walking"></i>';
+                    let type = profile === 'driving' ? 'Xe máy' : 'Đi bộ';
+                    infoBox.innerHTML = `<div>${icon} <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> (${type})</div>`;
+                    return true; // Success
+                }
+                return false; // No route found
+            } catch(e) { 
+                return false; // Error/Timeout
+            }
+        }
+
+        window.toggleFaultBox = function() {
+            let box = document.getElementById('fault-info-box');
+            box.classList.toggle('minimized');
+            let icon = box.querySelector('.toggle-icon');
+            if(box.classList.contains('minimized')) { icon.classList.remove('fa-minus'); icon.classList.add('fa-plus'); } 
+            else { icon.classList.remove('fa-plus'); icon.classList.add('fa-minus'); }
+        }
+        
+        window.closeFaultBox = function() { document.getElementById('fault-info-box').style.display = 'none'; }
+
+        window.captureInfo = function() {
+            let box = document.getElementById('fault-info-box');
+            box.classList.remove('minimized');
+            let btns = box.querySelector('.header-actions');
+            btns.style.display = 'none';
+            html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+                btns.style.display = 'flex';
+                let link = document.createElement('a');
+                link.download = 'bao_cao_su_co.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }).catch(err => {
+                alert("Lỗi chụp ảnh: " + err.message);
+                btns.style.display = 'flex';
+            });
         }
 
         async function fetchAddress(lat, lng) {
@@ -411,43 +473,6 @@
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
         window.toggleGrounding = function() { let cid = document.getElementById('circuitSelect').value; if(!cid) return; let currentG = appData.grounded ? appData.grounded[cid] : false; window.update(window.ref(window.db, 'he_thong_luoi_dien/grounded'), { [cid]: !currentG }); }
 
-        window.toggleFaultBox = function() {
-            let box = document.getElementById('fault-info-box');
-            box.classList.toggle('minimized');
-            let icon = box.querySelector('.toggle-icon');
-            if(box.classList.contains('minimized')) { icon.classList.remove('fa-minus'); icon.classList.add('fa-plus'); } 
-            else { icon.classList.remove('fa-plus'); icon.classList.add('fa-minus'); }
-        }
-        window.closeFaultBox = function() { document.getElementById('fault-info-box').style.display = 'none'; }
-
-        // --- SCREENSHOT LOGIC (EXPAND HEIGHT) ---
-        window.captureInfo = function() {
-            let box = document.getElementById('fault-info-box');
-            box.classList.remove('minimized');
-            // Remove max-height temporarily
-            let originalMaxHeight = box.style.maxHeight;
-            box.style.maxHeight = 'none';
-            box.style.overflow = 'visible';
-
-            let btns = box.querySelector('.header-actions');
-            btns.style.display = 'none';
-            
-            html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
-                btns.style.display = 'flex';
-                box.style.maxHeight = originalMaxHeight; // Restore style
-                box.style.overflow = 'auto';
-
-                let link = document.createElement('a');
-                link.download = 'bao_cao_su_co.png';
-                link.href = canvas.toDataURL();
-                link.click();
-            }).catch(err => {
-                alert("Lỗi chụp ảnh: " + err.message);
-                btns.style.display = 'flex';
-                box.style.maxHeight = originalMaxHeight;
-            });
-        }
-
         var legendControl = L.control({position: 'bottomright'});
         legendControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'legend'); div.innerHTML = `<div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Cắt (Xanh)</div>`; return div; };
         legendControl.addTo(map);
@@ -456,7 +481,6 @@
         faultControl.onAdd = function (map) { 
             var div = L.DomUtil.create('div', 'fault-box'); 
             div.id = "fault-info-box"; 
-            // PRE-CREATE STRUCTURE BUT HIDE IT
             div.setAttribute('style', 'display:none'); 
             div.innerHTML = `
                 <div class="fault-header">
@@ -470,12 +494,9 @@
                 <div class="fault-body">
                     <div id="route-info" class="route-info-box" style="display:none"></div>
                     <div class="fault-row"><span class="fault-label">Thời gian:</span> <span id="fi-time">---</span></div>
-                    
                     <div class="fault-row" id="fi-summary">---</div>
-
                     <div class="fault-row"><span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">---</span></div>
                     <div class="fault-row"><span class="fault-label">Map:</span> <span id="fi-addr"><a id="fi-map-link" href="#" target="_blank">Mở Google Maps</a></span></div>
-                    
                     <div id="fault-weather" class="weather-info" style="display:none"></div>
                 </div>`; 
             return div; 
@@ -484,4 +505,3 @@
     </script>
 </body>
 </html>
-
