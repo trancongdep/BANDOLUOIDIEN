@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.14</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.15</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -28,7 +27,12 @@
         button.action-btn { padding: 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-find { background: #d32f2f; }
         .btn-ground { background: #0288d1; }
-        .btn-gps { position: absolute; top: 70px; right: 10px; z-index: 2000; background: white; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: none; font-size: 1.2rem; color: #0078d7; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        /* GPS BUTTON STYLE UPDATE */
+        .btn-gps { position: absolute; top: 70px; right: 10px; z-index: 2000; background: white; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: none; font-size: 1.2rem; color: #555; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color 0.3s; }
+        .btn-gps.active { color: #0078d7; } /* Blue when found */
+        .btn-gps.error { color: #d32f2f; } /* Red when error */
+
         .radio-group { display: flex; flex-direction: row; align-items: center; gap: 30px; margin-bottom: 15px; width: 100%; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
         .radio-group input { width: 20px; height: 20px; margin-right: 8px; }
@@ -55,7 +59,6 @@
         .hl-seg { color: #e65100; font-weight: bold; }
         
         .route-info-box { background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ffb74d; color: #e65100; font-weight: bold; display: none; align-items: center; gap: 10px; }
-        
         .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; display: none; }
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
@@ -68,7 +71,6 @@
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b; animation: flash 0.5s infinite alternate; }
         @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
-        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; display: none; font-weight: bold; text-align: center; }
         .legend { background: rgba(255,255,255,0.9); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; display: block; margin-bottom: 50px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 2px; }
@@ -80,11 +82,11 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.14</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.15</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
-    <button class="btn-gps" onclick="locateUser()"><i class="fas fa-crosshairs"></i></button>
+    <button class="btn-gps" id="btn-gps" onclick="locateUser()"><i class="fas fa-crosshairs"></i></button>
 
     <div id="control-panel">
         <div class="panel-header">
@@ -162,15 +164,36 @@
         window.pendingAction = null; let currentPath = []; let currentPathTotalDist = 0; let userLocation = null;
         
         function setNowToInput() {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('incidentTime').value = now.toISOString().slice(0,16);
         }
         setNowToInput();
 
         function togglePanel() { document.getElementById('control-panel').classList.toggle('active'); }
-        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-        map.on('locationfound', function(e) { userLocation = e.latlng; L.circle(e.latlng, {radius: e.accuracy/2, color:'blue', fillOpacity:0.1}).addTo(map); L.circleMarker(e.latlng, {radius:5, color:'white', fillColor:'blue', fillOpacity:1}).addTo(map); });
+        
+        // --- 1. UPDATED LOCATION LOGIC (V1.15) ---
+        function locateUser() {
+            let btn = document.getElementById('btn-gps');
+            // Try with high accuracy and timeout
+            map.locate({setView: true, maxZoom: 16, enableHighAccuracy: true, timeout: 10000});
+        }
+        
+        map.on('locationfound', function(e) { 
+            userLocation = e.latlng; 
+            L.circle(e.latlng, {radius: e.accuracy/2, color:'blue', fillOpacity:0.1}).addTo(map); 
+            L.circleMarker(e.latlng, {radius:6, color:'white', fillColor:'#0078d7', fillOpacity:1}).addTo(map); 
+            // Update UI
+            let btn = document.getElementById('btn-gps');
+            btn.classList.add('active');
+            btn.classList.remove('error');
+        });
+        
+        map.on('locationerror', function(e) {
+            let btn = document.getElementById('btn-gps');
+            btn.classList.add('error');
+            alert("⚠️ Lỗi GPS: " + e.message + "\n\nHãy kiểm tra:\n1. Bật GPS trên điện thoại.\n2. Cấp quyền Vị trí cho trình duyệt (Chrome/Safari).");
+        });
+
         function updateLayerVisibility() { let z = map.getZoom(); if (z < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc); } }
         map.on('zoomend', updateLayerVisibility);
 
@@ -251,21 +274,14 @@
             let oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tính toán...'; btn.disabled = true;
 
-            // Trigger locate
-            if (!userLocation) { map.locate({setView: false, maxZoom: 16}); }
+            // TRY TO LOCATE IF MISSING
+            if (!userLocation) { map.locate({setView: false, maxZoom: 16, enableHighAccuracy: true, timeout: 5000}); }
 
             setTimeout(() => {
                 try {
                     layers.fault.clearLayers(); 
                     let res = document.getElementById('result'); res.style.display='none'; 
-                    let faultBox = document.getElementById('fault-info-box'); 
-                    if(faultBox) {
-                        faultBox.style.display='none';
-                        // Clean up
-                        document.getElementById('route-info').style.display='none';
-                        document.getElementById('fault-weather').style.display='none';
-                    }
-
+                    let faultBox = document.getElementById('fault-info-box'); if(faultBox) faultBox.style.display='none'; 
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
                     let direction = document.querySelector('input[name="faultDir"]:checked').value; 
                     let cName = document.getElementById('circuitSelect').value; 
@@ -292,17 +308,14 @@
                             if(faultBox) {
                                 faultBox.style.display='flex'; faultBox.classList.remove('minimized');
                                 
-                                // COMPACT SUMMARY
                                 document.getElementById('fi-summary').innerHTML = `
                                     <div><span class="hl-name">${cName}</span></div>
                                     <div>Cách: <span class="hl-dist">${kmInput} km</span> | <span class="hl-seg">${n1} <i class="fas fa-arrow-right"></i> ${n2}</span></div>
                                 `;
 
-                                // TIME
                                 let timeVal = document.getElementById('incidentTime').value;
                                 document.getElementById('fi-time').innerText = timeVal ? timeVal.replace('T', ' ') : "N/A";
                                 
-                                // RESET HELPERS
                                 document.getElementById('fi-addr-text').innerText = '⏳ Đang lấy...';
                                 document.getElementById('route-info').innerHTML = '<i>⏳ Đang tính lộ trình...</i>'; document.getElementById('route-info').style.display='flex';
                                 document.getElementById('fault-weather').innerHTML = '<i>⏳ Đang tải thời tiết...</i>'; document.getElementById('fault-weather').style.display='block';
@@ -311,24 +324,13 @@
                                 fetchWeather(lat, lng, timeVal);
                                 fetchAddress(lat, lng);
                                 
-                                // NEW ROUTING FALLBACK (v1.14)
+                                // NEW: IF NO USER LOCATION, RETRY ONCE THEN FALLBACK
                                 if(userLocation) {
-                                    // 1. Try Driving (2s timeout)
                                     fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'driving')
-                                    .then(success => {
-                                        if(!success) {
-                                            // 2. Fallback to Walking
-                                            return fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'walking');
-                                        }
-                                    }).then(success => {
-                                        if(success === false) {
-                                            // 3. Fallback to Straight Line
-                                            let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000;
-                                            document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Chim bay)</div>`;
-                                        }
-                                    });
+                                    .then(success => { if(!success) return fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'walking'); })
+                                    .then(success => { if(success === false) { let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000; document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Chim bay)</div>`; }});
                                 } else {
-                                    document.getElementById('route-info').innerHTML = 'Chưa có vị trí GPS.';
+                                     document.getElementById('route-info').innerHTML = '<span style="color:red">Chưa lấy được vị trí của bạn.</span>';
                                 }
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
@@ -340,17 +342,12 @@
             }, 50); 
         }
 
-        // --- UPDATED ROUTING WITH FALLBACK & TIMEOUT (v1.14) ---
         async function fetchRoute(lat1, lng1, lat2, lng2, profile) {
             let infoBox = document.getElementById('route-info');
             try {
-                // Short Timeout for OSRM Demo (2000ms)
-                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
-                
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
                 const fetchPromise = fetch(`https://router.project-osrm.org/route/v1/${profile}/${lng1},${lat1};${lng2},${lat2}?overview=false`);
-                
                 const res = await Promise.race([fetchPromise, timeout]);
-                
                 if(!res.ok) throw new Error('Error');
                 
                 const data = await res.json();
@@ -361,12 +358,10 @@
                     let icon = profile === 'driving' ? '<i class="fas fa-motorcycle"></i>' : '<i class="fas fa-walking"></i>';
                     let type = profile === 'driving' ? '' : '(Đi bộ)';
                     infoBox.innerHTML = `<div>${icon} <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> ${type}</div>`;
-                    return true; // Success
+                    return true;
                 }
                 return false; 
-            } catch(e) { 
-                return false; // Failed, trigger fallback
-            }
+            } catch(e) { return false; }
         }
 
         window.toggleFaultBox = function() {
@@ -506,3 +501,4 @@
     </script>
 </body>
 </html>
+
