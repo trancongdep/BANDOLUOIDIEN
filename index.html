@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Quản Lý Lưới Điện (Admin) - v1.85</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.86</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -12,16 +12,16 @@
         /* --- CORE CSS --- */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         
-        /* MAP: Leave space for footer (30px) */
-        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 30px; width: 100%; z-index: 1; }
+        /* MAP: Full screen */
+        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* FOOTER: Fixed at bottom */
+        /* FOOTER: Overlay at bottom */
         .footer { 
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 30px; 
-            background: #212121; color: #eceff1; 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 25px; 
+            background: rgba(33, 33, 33, 0.9); color: #eceff1; 
             display: flex; align-items: center; justify-content: center; 
-            font-size: 0.75rem; border-top: 3px solid #ff6f00; 
-            z-index: 4000; 
+            font-size: 0.75rem; border-top: 2px solid #ff6f00; 
+            z-index: 4000; pointer-events: none; /* Let clicks pass through if needed */
         }
 
         /* UI COMPONENTS */
@@ -30,7 +30,7 @@
         /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
-            bottom: 30px; /* Space for footer */
+            bottom: 25px; /* Above footer */
             background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column; 
         }
@@ -75,7 +75,6 @@
         #user-log-table tr:hover { background-color: #e0f2f1; }
         .log-time { color: #d32f2f; font-weight: bold; white-space: nowrap; }
 
-        /* FAULT INFO BOX STYLE */
         #fault-result-panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .fault-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; color: #d32f2f; font-weight: bold; }
         .fault-row { margin-bottom: 5px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 3px; line-height: 1.4; }
@@ -88,7 +87,6 @@
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; }
         .route-info-box { background: #fff3e0; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #ffb74d; color: #e65100; font-size: 0.85rem; font-weight: bold; }
 
-        /* OTHER */
         #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
         .cir-item-row:hover { background: #f0f0f0; }
@@ -99,7 +97,7 @@
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
 
-        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 40px !important; }
+        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 30px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
         
@@ -134,6 +132,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.86</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
@@ -281,8 +280,6 @@
                 </div>
             </div>
         </div>
-
-        <div class="footer">Copyright TCD software @2026 - Admin v1.85</div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -385,19 +382,19 @@
         map.locate({setView: false, maxZoom: 16});
         map.on('locationfound', function(e) { userLocation = e.latlng; });
 
-        // --- UPDATED ZOOM LEVEL LOGIC (v1.85) ---
+        // --- UPDATED ZOOM LEVEL LOGIC (v1.86 - CORRECTED) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            // Ensure Main (Lines) and Important (Anchor) are ALWAYS visible
-            if(!map.hasLayer(layers.main)) map.addLayer(layers.main);
-            if(!map.hasLayer(layers.important)) map.addLayer(layers.important);
-
-            if (z < 16) {
-                // HIDE Minor (TRU_DO, MOC) when zoomed out
+            
+            // 1. Luôn hiện Đường dây (Main) và Trụ Néo/Quan trọng (Important)
+            if (!map.hasLayer(layers.main)) map.addLayer(layers.main);
+            if (!map.hasLayer(layers.important)) map.addLayer(layers.important);
+            
+            // 2. Ẩn hiện Trụ đỡ (Minor) và Máy cắt (MC) theo zoom
+            if (z < 15) {
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
             } else {
-                // SHOW Minor when zoomed in
                 if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor);
                 if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc);
             }
@@ -851,19 +848,19 @@
         }
         setNowToInput();
 
-        // --- UPDATED ZOOM LEVEL LOGIC (v1.85) ---
+        // --- UPDATED ZOOM LEVEL LOGIC (v1.86) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            // Ensure Main (Lines) and Important (Anchor) are ALWAYS visible
-            if(!map.hasLayer(layers.main)) map.addLayer(layers.main);
-            if(!map.hasLayer(layers.important)) map.addLayer(layers.important);
-
-            if (z < 16) {
-                // HIDE Minor (TRU_DO, MOC) when zoomed out
+            
+            // 1. Luôn hiện Đường dây (Main) và Trụ Néo/Quan trọng (Important)
+            if (!map.hasLayer(layers.main)) map.addLayer(layers.main);
+            if (!map.hasLayer(layers.important)) map.addLayer(layers.important);
+            
+            // 2. Ẩn hiện Trụ đỡ (Minor) và Máy cắt (MC) theo zoom
+            if (z < 15) {
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
             } else {
-                // SHOW Minor when zoomed in
                 if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor);
                 if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc);
             }
