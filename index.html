@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.74</title>
+    <title>Hệ Thống Lưới Điện - Version 1.75</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -32,7 +32,8 @@
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
-        
+        button:disabled { background: #ccc !important; cursor: not-allowed; }
+
         .radio-group { display: flex; flex-direction: row; align-items: center; gap: 20px; margin-bottom: 15px; width: 100%; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
@@ -216,13 +217,13 @@
                     <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
                 </div>
                 
-                <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
+                <button class="action-btn btn-find" id="btn-find-fault" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" class="warning-msg"></div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.74</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.75</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -579,6 +580,8 @@
         
         function renderGlobalMap(mode = 'normal') {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
+            updateLayerVisibility();
+
             if(appData.areas) appData.areas.forEach(a => { 
                 let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
                 let p = L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
@@ -649,71 +652,78 @@
         
         // --- 1. SỬA LỖI TÌM KIẾM (Find Fault) ---
         window.findFault = function() { 
-            layers.fault.clearLayers(); 
-            let res = document.getElementById('result'); 
-            res.style.display='none'; 
-            document.getElementById('fault-info-box').style.display='none'; // Reset box
+            let btn = document.getElementById('btn-find-fault');
+            let oldText = btn.innerText;
+            btn.innerText = "Đang tính toán..."; btn.disabled = true;
 
-            let kmInput = parseFloat(document.getElementById('faultKm').value); 
-            let direction = document.querySelector('input[name="faultDir"]:checked').value; 
-            let cName = document.getElementById('circuitSelect').value; 
+            setTimeout(() => {
+                layers.fault.clearLayers(); 
+                let res = document.getElementById('result'); 
+                res.style.display='none'; 
+                document.getElementById('fault-info-box').style.display='none'; // Reset box
 
-            // FORCE RE-CALC to ensure currentPath is fresh!
-            currentPath = []; 
-            if(cName) drawSingleCircuit(cName, true);
+                let kmInput = parseFloat(document.getElementById('faultKm').value); 
+                let direction = document.querySelector('input[name="faultDir"]:checked').value; 
+                let cName = document.getElementById('circuitSelect').value; 
 
-            if(isNaN(kmInput) || currentPath.length<2) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            } 
-            
-            let totalKm = currentPathTotalDist / 1000;
-            if(kmInput > totalKm) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            }
-            
-            let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            } 
-            
-            for(let i=1; i<currentPath.length; i++) { 
-                let p1=currentPath[i-1], p2=currentPath[i]; 
-                let d1=p1.accDist, d2=p2.accDist;
-                
-                // Thuật toán: Khoảng cách nằm giữa 2 điểm p1 và p2
-                if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
-                    let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
-                    let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    
-                    document.getElementById('fault-info-box').style.display='block'; 
-                    document.getElementById('fi-name').innerText=cName; 
-                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                    document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                    
-                    // 2. SỬA LINK MAPS
-                    document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                    
-                    // ICON TIA LỬA ĐIỆN
-                    L.marker([lat,lng], {
-                        zIndexOffset: 9999, // Luôn nổi lên trên
-                        icon: L.divIcon({
-                            html:'<i class="fas fa-bolt fault-marker"></i>', 
-                            className:'d', 
-                            iconSize: [30, 30], 
-                            iconAnchor: [15, 30] // Cắm chân icon vào đúng điểm
-                        })
-                    }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
-                    
-                    // 3. ZOOM MỨC 18
-                    map.setView([lat, lng], 18);
-                    
-                    closeSidebar(); 
-                    return; 
+                // FORCE RE-CALC to ensure currentPath is fresh!
+                currentPath = []; 
+                if(cName) drawSingleCircuit(cName, true);
+
+                if(isNaN(kmInput) || currentPath.length<2) { 
+                    res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
+                    window.refreshPanelHeight('panel-opt'); 
+                    btn.innerText = oldText; btn.disabled = false; return; 
                 } 
-            } 
+                
+                let totalKm = currentPathTotalDist / 1000;
+                if(kmInput > totalKm) { 
+                    res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
+                    window.refreshPanelHeight('panel-opt'); 
+                    btn.innerText = oldText; btn.disabled = false; return; 
+                }
+                
+                let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
+                if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
+                    res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
+                    window.refreshPanelHeight('panel-opt'); 
+                    btn.innerText = oldText; btn.disabled = false; return; 
+                } 
+                
+                for(let i=1; i<currentPath.length; i++) { 
+                    let p1=currentPath[i-1], p2=currentPath[i]; 
+                    let d1=p1.accDist, d2=p2.accDist;
+                    
+                    if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
+                        let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
+                        let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
+                        
+                        document.getElementById('fault-info-box').style.display='block'; 
+                        document.getElementById('fi-name').innerText=cName; 
+                        document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                        document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
+                        document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                        
+                        L.marker([lat,lng], {
+                            zIndexOffset: 9999, 
+                            icon: L.divIcon({
+                                html:'<i class="fas fa-bolt fault-marker"></i>', 
+                                className:'d', 
+                                iconSize: [30, 30], 
+                                iconAnchor: [15, 30] 
+                            })
+                        }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
+                        
+                        map.setView([lat, lng], 18); // ZOOM SÂU
+                        closeSidebar(); 
+                        btn.innerText = oldText; btn.disabled = false;
+                        return; 
+                    } 
+                }
+                // Nếu không tìm thấy trong vòng lặp (lỗi dữ liệu)
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `Không tìm thấy điểm (Lỗi dữ liệu)`; 
+                btn.innerText = oldText; btn.disabled = false;
+            }, 100); // Set timeout để UI cập nhật chữ "Đang tính..."
         }
         
         window.listenCloud = function() { window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => { let val = snap.val(); if(val) { appData = val; if(!appData.mcStates) appData.mcStates={}; if(!appData.grounded) appData.grounded={}; updateUI(); calculateOffsets(); renderGlobalMap(); window.refreshDropdowns(); if(document.getElementById('circuitSelect').value) window.zoomToCircuit(); } }); }
@@ -727,7 +737,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v174.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v175.xlsx"); 
         }
     </script>
 </body>
