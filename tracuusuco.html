@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.2</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.3</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -24,7 +24,7 @@
         .app-title { font-weight: bold; color: #004d40; font-size: 1rem; }
         .btn-menu { border: none; background: none; font-size: 1.2rem; color: #333; padding: 10px; cursor: pointer; }
 
-        /* CONTROLS PANEL */
+        /* CONTROLS PANEL (BOTTOM SHEET STYLE) */
         #control-panel {
             position: fixed; bottom: -100%; left: 0; width: 100%; 
             background: white; z-index: 3000; border-top-left-radius: 15px; border-top-right-radius: 15px;
@@ -50,7 +50,15 @@
         }
         .btn-find { background: #d32f2f; }
         .btn-ground { background: #0288d1; }
-        .btn-gps { position: absolute; bottom: 100px; right: 10px; z-index: 2000; background: white; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: none; font-size: 1.2rem; color: #0078d7; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        /* GPS BUTTON MOVED TO TOP RIGHT */
+        .btn-gps { 
+            position: absolute; top: 70px; right: 10px; z-index: 2000; 
+            background: white; width: 40px; height: 40px; border-radius: 50%; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: none; 
+            font-size: 1.2rem; color: #0078d7; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; 
+        }
 
         /* RADIO GROUP */
         .radio-group { display: flex; flex-direction: row; align-items: center; gap: 30px; margin-bottom: 15px; width: 100%; }
@@ -68,11 +76,19 @@
         .btn-no { background: #ddd; color: #333; }
 
         /* FAULT & WEATHER */
-        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 85%; max-width: 300px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; }
-        .fault-header { color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .fault-box { 
+            display: none; background: white; padding: 15px; border-radius: 8px; 
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
+            width: 90%; max-width: 320px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            z-index: 4000; font-size: 0.9rem; max-height: 60vh; overflow-y: auto;
+        }
+        .fault-header { color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 1rem; }
+        .fault-label { font-weight: bold; color: #555; }
+        .fault-row { margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
+        
         .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #999; padding-top: 4px; }
+        .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; }
         
         /* ICONS & MARKERS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
@@ -94,7 +110,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.2</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.3</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -440,6 +456,7 @@
                                 document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
                                 document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
                                 fetchWeather(lat, lng);
+                                fetchAddress(lat, lng); // Reverse Geocoding
                             }
                             
                             L.marker([lat,lng], {
@@ -459,12 +476,39 @@
             }, 50); 
         }
 
-        // --- WIND DIRECTION HELPER ---
-        function getWindDirection(degrees) {
-            const directions = ['Bắc', 'Đông Bắc', 'Đông', 'Đông Nam', 'Nam', 'Tây Nam', 'Tây', 'Tây Bắc'];
-            // Chia 360 độ thành 8 hướng (mỗi hướng 45 độ), offset 22.5 độ để canh giữa
-            const index = Math.round(degrees / 45) % 8;
-            return directions[index];
+        // --- NEW: REVERSE GEOCODING (NOMINATIM) ---
+        async function fetchAddress(lat, lng) {
+            const el = document.getElementById('fi-addr-text');
+            if(!el) {
+                // Insert placeholder if not exists
+                let row = document.createElement('div'); row.className = 'fault-row';
+                row.innerHTML = '<span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">⏳ Đang lấy...</span>';
+                // Insert before the last row (link map)
+                let container = document.getElementById('fault-info-box');
+                container.insertBefore(row, container.lastElementChild);
+            } else {
+                el.innerText = '⏳ Đang lấy...';
+            }
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if(data && data.address) {
+                    let a = data.address;
+                    let parts = [];
+                    if(a.house_number) parts.push(a.house_number);
+                    if(a.road) parts.push(a.road);
+                    if(a.village) parts.push(a.village);
+                    if(a.suburb) parts.push(a.suburb);
+                    if(a.city_district) parts.push(a.city_district);
+                    if(a.town) parts.push(a.town);
+                    
+                    document.getElementById('fi-addr-text').innerText = parts.length > 0 ? parts.join(", ") : "Chưa xác định rõ tên đường";
+                }
+            } catch(e) { 
+                document.getElementById('fi-addr-text').innerText = "Không lấy được địa chỉ"; 
+            }
         }
 
         async function fetchWeather(lat, lng) {
@@ -487,26 +531,19 @@
                     if(isStorm) condition = "Dông sét";
                     
                     let windDeg = data.current.wind_direction_10m;
-                    let windDirText = getWindDirection(windDeg);
-                    // Rotate icon: 0deg in CSS is Up (North). 
-                    // If wind blows FROM North (0 deg), it blows TO South (180 deg).
-                    // So we rotate by windDeg + 180.
+                    // Rotate icon: 0deg in CSS is Up (North). Wind from North (0) blows South (180).
                     let iconRotation = windDeg + 180; 
 
-                    let html = `
-                        <div class="weather-row">
-                            <span><i class="fas fa-wind"></i> Gió:</span> 
-                            <div style="display:flex;align-items:center;gap:5px;">
-                                <b>${data.current.wind_speed_10m} km/h</b>
-                                <div style="border:1px solid #999; border-radius:50%; width:20px; height:20px; display:flex; justify-content:center; align-items:center; background:white;">
-                                    <i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:12px;" title="Hướng gió"></i>
-                                </div>
-                                <small>(${windDirText})</small>
+                    let html = `<div class="weather-row">
+                        <span><i class="fas fa-wind"></i> Gió:</span> 
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <b>${data.current.wind_speed_10m} km/h</b>
+                            <div style="border:1px solid #999; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; background:white;">
+                                <i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:14px;"></i>
                             </div>
                         </div>
-                        <div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div>
-                        <div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>
-                    `;
+                    </div>
+                    <div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
                     if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
                     infoBox.innerHTML = html;
                 }
