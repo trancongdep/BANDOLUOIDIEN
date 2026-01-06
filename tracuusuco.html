@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.16</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.17</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -31,8 +31,8 @@
         
         /* GPS BUTTON */
         .btn-gps { position: absolute; top: 70px; right: 10px; z-index: 2000; background: white; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: none; font-size: 1.2rem; color: #555; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color 0.3s; }
-        .btn-gps.active { color: #0078d7; } /* Blue when found */
-        .btn-gps.error { color: #d32f2f; } /* Red when error */
+        .btn-gps.active { color: #0078d7; border: 2px solid #0078d7; } 
+        .btn-gps.manual { color: #e65100; border: 2px solid #e65100; } /* Chế độ chấm tay */
 
         .radio-group { display: flex; flex-direction: row; align-items: center; gap: 30px; margin-bottom: 15px; width: 100%; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
@@ -46,10 +46,8 @@
         .btn-yes { background: #0078d7; color: white; }
         .btn-no { background: #ddd; color: #333; }
 
-        /* FAULT BOX & WEATHER BOX */
         .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: all 0.3s; }
         .fault-box.minimized { height: 45px; overflow: hidden; }
-        
         .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; flex-shrink: 0; }
         .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; }
         .header-actions { display: flex; gap: 10px; }
@@ -68,6 +66,14 @@
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
         .weather-flood { color: #0d47a1; font-weight: bold; margin-top: 4px; border-top: 1px dashed #0d47a1; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
+        
+        /* PICKING NOTIFICATION */
+        #pick-notice {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 8px 15px;
+            border-radius: 20px; z-index: 5000; font-size: 0.9rem; display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;
+        }
 
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; border: 2px solid white; }
@@ -86,13 +92,14 @@
 <body>
 
     <div id="map"></div>
+    <div id="pick-notice">👇 Chấm vào bản đồ để chọn vị trí của bạn</div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.16</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.17</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
-    <button class="btn-gps" id="btn-gps" onclick="locateUser()"><i class="fas fa-crosshairs"></i></button>
+    <button class="btn-gps" id="btn-gps" onclick="handleGpsClick()"><i class="fas fa-crosshairs"></i></button>
 
     <div id="control-panel">
         <div class="panel-header">
@@ -167,8 +174,11 @@
         layers.fault.setZIndex(9999);
         
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: [] }; 
-        window.pendingAction = null; let currentPath = []; let currentPathTotalDist = 0; let userLocation = null;
+        window.pendingAction = null; let currentPath = []; let currentPathTotalDist = 0; 
         
+        let userLocation = null;
+        let isPickingUserLocation = false; // Flag for manual pick
+
         // --- INIT ---
         function setNowToInput() {
             const now = new Date();
@@ -176,33 +186,77 @@
             document.getElementById('incidentTime').value = now.toISOString().slice(0,16);
         }
         setNowToInput();
+        
+        // CHECK PROTOCOL
+        if(window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+            console.warn("GPS yêu cầu HTTPS!");
+        }
 
-        // **AUTO LOCATE ON LOAD (Version 1.16 Fix)**
+        // AUTO LOCATE (Silent)
         map.locate({setView: false, maxZoom: 16});
 
         function togglePanel() { document.getElementById('control-panel').classList.toggle('active'); }
         
-        function locateUser() {
-            // FIX: Removed 'enableHighAccuracy' to improve compatibility
+        // --- 1. HANDLE GPS CLICK ---
+        window.handleGpsClick = function() {
+            if(isPickingUserLocation) {
+                // Cancel picking
+                isPickingUserLocation = false;
+                document.getElementById('pick-notice').style.display = 'none';
+                return;
+            }
+            // Try GPS
+            let btn = document.getElementById('btn-gps');
+            btn.style.color = '#555';
             map.locate({setView: true, maxZoom: 16});
         }
-        
+
         map.on('locationfound', function(e) { 
-            userLocation = e.latlng; 
-            L.circle(e.latlng, {radius: e.accuracy/2, color:'blue', fillOpacity:0.1}).addTo(map); 
-            L.circleMarker(e.latlng, {radius:6, color:'white', fillColor:'#0078d7', fillOpacity:1}).addTo(map); 
-            
-            // Update GPS Button UI
-            let btn = document.getElementById('btn-gps');
-            btn.classList.add('active');
-            btn.classList.remove('error');
+            setUserLocation(e.latlng);
         });
         
         map.on('locationerror', function(e) {
-            console.warn("GPS Error:", e.message);
-            // Don't alert on auto-load, only visual cue
+            // IF GPS FAILS -> ENABLE MANUAL PICK
             let btn = document.getElementById('btn-gps');
-            btn.classList.add('error');
+            btn.classList.remove('active');
+            
+            if(confirm("⚠️ Không thể lấy vị trí GPS tự động (do lỗi trình duyệt hoặc chưa cấp quyền).\n\nBạn có muốn CHẤM TAY vị trí của bạn trên bản đồ không?")) {
+                enableManualPick();
+            }
+        });
+
+        function enableManualPick() {
+            isPickingUserLocation = true;
+            togglePanel(); // Close panel to see map
+            document.getElementById('pick-notice').style.display = 'block';
+            let btn = document.getElementById('btn-gps');
+            btn.classList.add('manual'); // Orange color
+        }
+
+        function setUserLocation(latlng) {
+            userLocation = latlng;
+            // Clear old marker
+            map.eachLayer(layer => { if(layer.options.id === 'user_marker') map.removeLayer(layer); });
+
+            L.circleMarker(latlng, {id: 'user_marker', radius:8, color:'white', fillColor:'#0078d7', fillOpacity:1, weight: 2}).addTo(map)
+             .bindPopup("Vị trí của bạn").openPopup();
+            
+            // Update UI
+            let btn = document.getElementById('btn-gps');
+            btn.classList.add('active'); btn.classList.remove('manual');
+            
+            // Reset manual mode
+            isPickingUserLocation = false;
+            document.getElementById('pick-notice').style.display = 'none';
+        }
+
+        // --- MAP CLICK HANDLER ---
+        map.on('click', function(e) { 
+            if(isPickingUserLocation) {
+                setUserLocation(e.latlng);
+                // If we were finding fault, maybe re-trigger routing? 
+                // For simplicity, just set location. User can click Find again.
+            }
         });
 
         function updateLayerVisibility() { let z = map.getZoom(); if (z < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc); } }
@@ -343,7 +397,7 @@
                                     .then(success => { if(!success) return fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'walking'); })
                                     .then(success => { if(success === false) { let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000; document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Chim bay)</div>`; }});
                                 } else {
-                                     document.getElementById('route-info').innerHTML = '<span style="color:red">Chưa lấy được vị trí của bạn.</span>';
+                                     document.getElementById('route-info').innerHTML = '<span style="color:red">Chưa lấy được vị trí (Hãy bấm nút GPS để chọn tay).</span>';
                                 }
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
