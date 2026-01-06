@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.76</title>
+    <title>Hệ Thống Lưới Điện - Version 1.77</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -38,7 +38,7 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* COLORS & BUTTONS */
+        /* COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -57,7 +57,6 @@
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
         
-        /* LISTS */
         #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
         .cir-item-row:hover { background: #e3f2fd; }
@@ -85,10 +84,13 @@
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
         
+        /* FAULT BOX (RESTORED) */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
+        .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-label { font-weight: bold; color: #555; }
         .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
-        
+        .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
+
         /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; border: 2px solid white; }
@@ -97,7 +99,6 @@
         .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
         
-        /* FAULT ANIMATION */
         .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b, 2px 2px 2px rgba(0,0,0,0.8); animation: flash 0.5s infinite alternate; }
         @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
 
@@ -223,7 +224,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.76</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.77</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -670,7 +671,10 @@
                     layers.fault.clearLayers(); 
                     let res = document.getElementById('result'); 
                     res.style.display='none'; 
-                    document.getElementById('fault-info-box').style.display='none'; // Reset box
+                    
+                    // FIX: Check if controls exist to avoid null error
+                    let faultBox = document.getElementById('fault-info-box');
+                    if(faultBox) faultBox.style.display='none'; 
 
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
                     let direction = document.querySelector('input[name="faultDir"]:checked').value; 
@@ -710,11 +714,13 @@
                             let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                             let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
                             
-                            document.getElementById('fault-info-box').style.display='block'; 
-                            document.getElementById('fi-name').innerText=cName; 
-                            document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                            document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                            document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                            if(faultBox) {
+                                faultBox.style.display='block'; 
+                                document.getElementById('fi-name').innerText=cName; 
+                                document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                                document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
+                                document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                            }
                             
                             L.marker([lat,lng], {
                                 zIndexOffset: 9999, 
@@ -744,6 +750,25 @@
             }, 50); // Small delay to let UI show "Calculating..."
         }
         
+        // --- RESTORE UI CONTROLS ---
+        var legendControl = L.control({position: 'bottomright'});
+        legendControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.id = "main-legend";
+            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div><div class="legend-item"><span class="legend-icon" style="background:#ff9800; opacity:0.5;"></span> Trạm/Vùng</div>`;
+            return div;
+        };
+        legendControl.addTo(map);
+
+        var faultControl = L.control({position: 'bottomright'});
+        faultControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'fault-box');
+            div.id = "fault-info-box";
+            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="document.getElementById('fault-info-box').style.display='none'">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
+            return div;
+        };
+        faultControl.addTo(map);
+
         window.listenCloud = function() { window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => { let val = snap.val(); if(val) { appData = val; if(!appData.mcStates) appData.mcStates={}; if(!appData.grounded) appData.grounded={}; updateUI(); calculateOffsets(); renderGlobalMap(); window.refreshDropdowns(); if(document.getElementById('circuitSelect').value) window.zoomToCircuit(); } }); }
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
@@ -755,7 +780,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v176.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v177.xlsx"); 
         }
     </script>
 </body>
