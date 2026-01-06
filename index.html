@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.70</title>
+    <title>Hệ Thống Lưới Điện - Version 1.71</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -95,14 +95,7 @@
         
         .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
         .leaflet-control-custom:hover { background: #f4f4f4; }
-        
-        /* ALERT BOX FIX */
-        .warning-msg { 
-            color: #d32f2f; background: #ffebee; padding: 10px; 
-            border-radius: 4px; border: 1px solid #ffcdd2; 
-            margin-top: 10px; font-size: 0.9rem; font-weight: bold; 
-            display: none;
-        }
+        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -222,7 +215,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.70</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.71</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -261,7 +254,21 @@
         let currentPath = []; let currentPathTotalDist = 0; let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null;
         let currentEditingCircuit = []; 
         
-        map.on('zoomend', () => { if (map.getZoom() < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); } });
+        // --- 1. UPDATED ZOOM LEVEL LOGIC (New Requirement) ---
+        function updateLayerVisibility() {
+            let z = map.getZoom();
+            // Zoom nhỏ (Overview): Chỉ hiện Mạch (main), Trụ Néo (important), Vùng (areas)
+            // Ẩn Trụ Đỡ (minor) và MC (mc)
+            if (z < 15) {
+                if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
+                if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
+            } else {
+                if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor);
+                if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc);
+            }
+        }
+        map.on('zoomend', updateLayerVisibility);
+
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
@@ -360,7 +367,7 @@
                     let seg = appData.segments[data.id];
                     if(seg) {
                         document.getElementById('inp-seg-id').value = seg.id;
-                        document.getElementById('inp-seg-id-old').value = seg.id; // SAVE OLD ID
+                        document.getElementById('inp-seg-id-old').value = seg.id; 
                         document.getElementById('inp-seg-type').value = seg.type;
                         let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
                         let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
@@ -478,10 +485,9 @@
 
         window.savePole = function() { let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim(); if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!"); let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) }; let path=`he_thong_luoi_dien/poles/${line}`; window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); }); }
         
-        // --- RESET FORM ---
         window.resetSegmentForm = function() {
             document.getElementById('inp-seg-id').value = '';
-            document.getElementById('inp-seg-id-old').value = ''; // Reset hidden old ID
+            document.getElementById('inp-seg-id-old').value = ''; 
             document.getElementById('sel-seg-line1').value = ''; 
             document.getElementById('sel-seg-pole1').innerHTML = ''; 
             document.getElementById('sel-seg-line2').value = ''; 
@@ -489,7 +495,7 @@
             layers.editHighlight.clearLayers();
         }
 
-        // --- UPDATED SAVE SEGMENT (RENAME LOGIC) ---
+        // --- 2. CRITICAL FIX: SYNC RENAME SEGMENT ---
         window.saveSegment = function() { 
             let id = document.getElementById('inp-seg-id').value.trim(); 
             let oldId = document.getElementById('inp-seg-id-old').value.trim();
@@ -500,32 +506,40 @@
             btn.innerText = "Đang lưu..."; btn.disabled = true;
 
             let data = {
-                id: id, 
-                type: document.getElementById('inp-seg-type').value, 
-                lineFrom: document.getElementById('sel-seg-line1').value, 
-                poleFrom: document.getElementById('sel-seg-pole1').value, 
-                lineTo: document.getElementById('sel-seg-line2').value, 
-                poleTo: document.getElementById('sel-seg-pole2').value
+                id: id, type: document.getElementById('inp-seg-type').value, 
+                lineFrom: document.getElementById('sel-seg-line1').value, poleFrom: document.getElementById('sel-seg-pole1').value, 
+                lineTo: document.getElementById('sel-seg-line2').value, poleTo: document.getElementById('sel-seg-pole2').value
             };
 
             let updates = {};
             updates[`he_thong_luoi_dien/segments/${id}`] = data;
             
-            // If renaming (oldId exists and is different), delete old ID
+            // If renaming: Delete old segment AND Update references in ALL circuits
             if(oldId && oldId !== id) {
                 updates[`he_thong_luoi_dien/segments/${oldId}`] = null;
+                
+                if (appData.circuits) {
+                    for (let cid in appData.circuits) {
+                        let changed = false;
+                        let list = appData.circuits[cid];
+                        list.forEach(item => {
+                            if (item.segId === oldId) {
+                                item.segId = id;
+                                changed = true;
+                            }
+                        });
+                        if (changed) {
+                            updates[`he_thong_luoi_dien/circuits/${cid}`] = list;
+                        }
+                    }
+                }
             }
 
             window.update(window.ref(window.db), updates)
             .then(()=>{ 
                 alert("Đã lưu đoạn!"); 
-                document.getElementById('inp-seg-id-old').value = id; // Update old ID to current
+                document.getElementById('inp-seg-id-old').value = id; 
                 layers.editHighlight.clearLayers(); 
-                // Manual update local data to ensure refresh
-                if(appData.segments) {
-                    if(oldId && oldId !== id) delete appData.segments[oldId];
-                    appData.segments[id] = data;
-                }
                 renderGlobalMap('segment_edit'); 
                 btn.innerText = oldText; btn.disabled = false;
             })
@@ -550,6 +564,8 @@
         
         function renderGlobalMap(mode = 'normal') {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
+            updateLayerVisibility(); // Apply zoom logic immediately
+
             if(appData.areas) appData.areas.forEach(a => { 
                 let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
                 let p = L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
@@ -618,48 +634,27 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
-        // --- FIX FIND FAULT (Refresh Panel + Z-Index) ---
         window.findFault = function() { 
-            layers.fault.clearLayers(); 
-            let res = document.getElementById('result'); 
-            res.style.display='none'; 
-            
+            layers.fault.clearLayers(); document.getElementById('result').style.display='none'; 
             let kmInput = parseFloat(document.getElementById('faultKm').value); 
             let direction = document.querySelector('input[name="faultDir"]:checked').value; 
             let cName = document.getElementById('circuitSelect').value; 
+            let res = document.getElementById('result'); 
 
-            if(isNaN(kmInput) || currentPath.length<2) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            } 
-            
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } 
             let totalKm = currentPathTotalDist / 1000;
-            if(kmInput > totalKm) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            }
-            
+            if(kmInput > totalKm) { res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; return; }
             let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
-                window.refreshPanelHeight('panel-opt'); return; 
-            } 
-            
+            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
             for(let i=1; i<currentPath.length; i++) { 
                 let p1=currentPath[i-1], p2=currentPath[i]; 
                 let d1=p1.accDist, d2=p2.accDist;
                 if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
                     let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                     let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    document.getElementById('fault-info-box').style.display='block'; 
-                    document.getElementById('fi-name').innerText=cName; 
-                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                     document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                    
-                    // MARKER Z-INDEX HIGH
-                    L.marker([lat,lng], {zIndexOffset: 2000, icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); 
-                    map.setView([lat,lng], 16); closeSidebar(); return; 
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
                 } 
             } 
         }
@@ -675,7 +670,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v170.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v171.xlsx"); 
         }
     </script>
 </body>
