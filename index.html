@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.71</title>
+    <title>Hệ Thống Lưới Điện - Version 1.72</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -37,7 +37,7 @@
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* COLORS */
+        /* BUTTONS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -56,7 +56,7 @@
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
         
-        /* LISTS */
+        /* LISTS & CONSOLE */
         #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
         .cir-item-row:hover { background: #e3f2fd; }
@@ -70,6 +70,7 @@
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
+        /* LEGEND & DIALOG */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
@@ -84,18 +85,26 @@
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
         
+        /* FAULT & ICONS */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
-        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        .fault-label { font-weight: bold; color: #555; }
+        .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         
+        /* ICONS */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; border: 2px solid white; }
         .icon-tru-neo { background: #1976d2; border-radius: 2px; border: 2px solid white; transform: none; }
         .icon-moc { background: #7b1fa2; border-radius: 0; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
         
+        /* FAULT ICON ANIMATION */
+        .fault-marker { font-size: 30px; color: #ff0000; text-shadow: 0 0 5px #ffff00, 2px 2px 4px rgba(0,0,0,0.5); animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+
         .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
         .leaflet-control-custom:hover { background: #f4f4f4; }
-        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; }
+        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -215,7 +224,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.71</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.72</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -246,19 +255,27 @@
         });
         new L.Control.Extent({ position: 'topright' }).addTo(map);
 
+        // --- LAYER GROUPS ---
         map.createPane('areaPane'); map.getPane('areaPane').style.zIndex = 200;
-        let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), important: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map), editHighlight: L.layerGroup().addTo(map) };
+        let layers = { 
+            areas: L.layerGroup().addTo(map), 
+            main: L.layerGroup().addTo(map), 
+            minor: L.layerGroup().addTo(map), 
+            important: L.layerGroup().addTo(map), 
+            mc: L.layerGroup().addTo(map), 
+            fault: L.layerGroup().addTo(map), // Fault layer must be on top
+            editHighlight: L.layerGroup().addTo(map) 
+        };
+        // Set Z-Index for Fault Layer High
+        layers.fault.setZIndex(9999);
         
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: [] }; 
         window.stagingData = null; window.pendingAction = null;
         let currentPath = []; let currentPathTotalDist = 0; let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null;
         let currentEditingCircuit = []; 
         
-        // --- 1. UPDATED ZOOM LEVEL LOGIC (New Requirement) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            // Zoom nhỏ (Overview): Chỉ hiện Mạch (main), Trụ Néo (important), Vùng (areas)
-            // Ẩn Trụ Đỡ (minor) và MC (mc)
             if (z < 15) {
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
@@ -495,7 +512,6 @@
             layers.editHighlight.clearLayers();
         }
 
-        // --- 2. CRITICAL FIX: SYNC RENAME SEGMENT ---
         window.saveSegment = function() { 
             let id = document.getElementById('inp-seg-id').value.trim(); 
             let oldId = document.getElementById('inp-seg-id-old').value.trim();
@@ -514,10 +530,8 @@
             let updates = {};
             updates[`he_thong_luoi_dien/segments/${id}`] = data;
             
-            // If renaming: Delete old segment AND Update references in ALL circuits
             if(oldId && oldId !== id) {
                 updates[`he_thong_luoi_dien/segments/${oldId}`] = null;
-                
                 if (appData.circuits) {
                     for (let cid in appData.circuits) {
                         let changed = false;
@@ -540,6 +554,11 @@
                 alert("Đã lưu đoạn!"); 
                 document.getElementById('inp-seg-id-old').value = id; 
                 layers.editHighlight.clearLayers(); 
+                // Local Update
+                if(appData.segments) {
+                    if(oldId && oldId !== id) delete appData.segments[oldId];
+                    appData.segments[id] = data;
+                }
                 renderGlobalMap('segment_edit'); 
                 btn.innerText = oldText; btn.disabled = false;
             })
@@ -564,7 +583,7 @@
         
         function renderGlobalMap(mode = 'normal') {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
-            updateLayerVisibility(); // Apply zoom logic immediately
+            updateLayerVisibility();
 
             if(appData.areas) appData.areas.forEach(a => { 
                 let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
@@ -619,8 +638,7 @@
                     let poly = L.polyline(pts, { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
                     poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
                     poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    // FIX: calcPath with Array Coords [lat, lng]
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat:p[0], lng:p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
                 }
             });
         }
@@ -634,27 +652,68 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
+        // --- 1. SỬA LỖI TÌM KIẾM (Find Fault) ---
         window.findFault = function() { 
-            layers.fault.clearLayers(); document.getElementById('result').style.display='none'; 
+            layers.fault.clearLayers(); 
+            let res = document.getElementById('result'); 
+            res.style.display='none'; 
+            document.getElementById('fault-info-box').style.display='none'; // Reset box
+
             let kmInput = parseFloat(document.getElementById('faultKm').value); 
             let direction = document.querySelector('input[name="faultDir"]:checked').value; 
             let cName = document.getElementById('circuitSelect').value; 
-            let res = document.getElementById('result'); 
 
-            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } 
+            if(isNaN(kmInput) || currentPath.length<2) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            } 
+            
             let totalKm = currentPathTotalDist / 1000;
-            if(kmInput > totalKm) { res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; return; }
+            if(kmInput > totalKm) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            }
+            
             let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
+            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            } 
+            
             for(let i=1; i<currentPath.length; i++) { 
                 let p1=currentPath[i-1], p2=currentPath[i]; 
                 let d1=p1.accDist, d2=p2.accDist;
+                
+                // Thuật toán: Khoảng cách nằm giữa 2 điểm p1 và p2
                 if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
                     let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                     let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                    
+                    document.getElementById('fault-info-box').style.display='block'; 
+                    document.getElementById('fi-name').innerText=cName; 
+                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                     document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
+                    document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                    
+                    // --- 2. YÊU CẦU: ICON TIA LỬA ĐIỆN ---
+                    L.marker([lat,lng], {
+                        zIndexOffset: 9999, // Luôn nổi lên trên
+                        icon: L.divIcon({
+                            html:'<i class="fas fa-bolt fault-marker"></i>', 
+                            className:'d', 
+                            iconSize: [30, 30], 
+                            iconAnchor: [15, 30] // Cắm chân icon vào đúng điểm
+                        })
+                    }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
+                    
+                    // --- 3. YÊU CẦU: ZOOM THÔNG MINH (4 TRỤ) ---
+                    // Thay vì zoom cứng, ta zoom vào bounds của đoạn dây sự cố
+                    // + Padding để thấy các trụ lân cận
+                    let bounds = L.latLngBounds([ [p1.lat, p1.lng], [p2.lat, p2.lng] ]);
+                    map.fitBounds(bounds, { maxZoom: 19, padding: [150, 150] }); // Padding lớn để mở rộng tầm nhìn ra xung quanh
+                    
+                    closeSidebar(); 
+                    return; 
                 } 
             } 
         }
@@ -670,7 +729,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v171.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v172.xlsx"); 
         }
     </script>
 </body>
