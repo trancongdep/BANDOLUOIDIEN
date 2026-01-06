@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.79</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.80</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -13,13 +13,13 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* UI ELEMENTS */
+        /* UI COMPONENTS */
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
-        #sidebar { position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; bottom: calc(30px + env(safe-area-inset-bottom, 10px)); background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
+        #sidebar { position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; bottom: 0; background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
         #sidebar.active { left: 0; }
         .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
-        .footer { position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px; padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px); background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
+        .footer { padding: 10px; background: #212121; color: #eceff1; text-align: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; }
         
         /* ACCORDION */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
@@ -28,16 +28,11 @@
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* INPUTS */
+        /* FORM & BUTTONS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
-        button:disabled { background: #ccc !important; cursor: not-allowed; }
         
-        .radio-group { display: flex; flex-direction: row; align-items: center; gap: 20px; margin-bottom: 15px; width: 100%; }
-        .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
-        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
-
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -47,32 +42,58 @@
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
         .btn-ground { background: #0288d1; margin-top: 5px; }
-        .btn-export { background: #2e7d32; margin-top: 5px; width: 100%; }
-        
-        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
+        .btn-export { background: #2e7d32; margin-top: 5px; width: 100%; } /* NÚT XUẤT EXCEL */
+
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
+
+        /* FAULT INFO BOX STYLE (FROM MOBILE v1.20) */
+        #fault-result-panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .fault-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; color: #d32f2f; font-weight: bold; }
+        .fault-row { margin-bottom: 5px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 3px; line-height: 1.4; }
+        .hl-name { color: #00695c; font-weight: bold; }
+        .hl-dist { color: #d32f2f; font-weight: bold; }
+        .hl-seg { color: #e65100; font-weight: bold; }
         
-        #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
+        .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
+        .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; }
+        .route-info-box { background: #fff3e0; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #ffb74d; color: #e65100; font-size: 0.85rem; font-weight: bold; }
+
+        /* OTHER */
+        #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
-        .cir-item-row:hover { background: #e3f2fd; }
-        .cir-item-row:nth-child(even) { background: #f9f9f9; }
-        .cir-controls { display: flex; gap: 2px; }
-        .btn-mini { border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; }
-        .btn-up { background: #607d8b; }
-        .btn-down { background: #607d8b; }
-        .btn-del-seg { background: #ef5350; }
+        .cir-item-row:hover { background: #f0f0f0; }
+        .cir-controls .btn-mini { border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; margin-left: 2px; }
+        .btn-up, .btn-down { background: #607d8b; } .btn-del-seg { background: #ef5350; }
 
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        
-        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
-        .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
+        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
+
+        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 30px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+        
+        /* ICONS */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
+        .icon-tru-do { background: #1976d2; border-radius: 50%; }
+        .icon-moc { background: #7b1fa2; border-radius: 0; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
+        .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
+        .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b; animation: flash 0.5s infinite alternate; }
+        @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
+        
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; }
+        .radio-group label { display: flex; align-items: center; font-weight: normal; }
+        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
+        
+        .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
+        .leaflet-control-custom:hover { background: #f4f4f4; }
         
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
@@ -82,31 +103,6 @@
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
-        
-        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 280px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
-        .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .fault-label { font-weight: bold; color: #555; }
-        .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
-        .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
-        
-        .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
-        .weather-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; display: none; }
-
-        /* ICONS */
-        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-tru-do { background: #1976d2; border-radius: 50%; border: 2px solid white; }
-        .icon-tru-neo { background: #1976d2; border-radius: 2px; border: 2px solid white; transform: none; }
-        .icon-moc { background: #7b1fa2; border-radius: 0; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
-        .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
-        .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
-        
-        .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b, 2px 2px 2px rgba(0,0,0,0.8); animation: flash 0.5s infinite alternate; }
-        @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
-
-        .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
-        .leaflet-control-custom:hover { background: #f4f4f4; }
-        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -141,7 +137,7 @@
                     </div>
                 </div>
                 <hr>
-                <button class="action-btn btn-export" onclick="window.exportToExcel()">XUẤT EXCEL</button>
+                <button class="action-btn btn-export" onclick="window.exportToExcel()">XUẤT EXCEL (4 Sheet)</button>
             </div>
 
             <button class="accordion" id="acc-entry">2. Nhập liệu (Chế độ Sửa)</button>
@@ -156,7 +152,7 @@
                 <div id="tab-pole" class="edit-section active">
                     <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT, AKHTTN" oninput="this.value=this.value.toUpperCase()">
                     <label>Tên Trụ/MC:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171">
-                    <label>Loại:</label><select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ (Tròn)</option><option value="TRU_NEO">Trụ Néo (Vuông)</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option></select>
+                    <label>Loại:</label><select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ</option><option value="TRU_NEO">Trụ Néo</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option></select>
                     <label>Là Nguồn (Chỉ áp dụng MC):</label>
                     <select id="inp-pole-src"><option value="">-- Không phải nguồn --</option><option value="110kV">110kV (Xanh lá)</option><option value="220kV">220kV (Đỏ)</option><option value="500kV">500kV (Xanh dương)</option></select>
                     <label>Tọa độ: <button class="btn-pick" onclick="enableMapPick('pole')">📍 Chấm bản đồ</button></label>
@@ -168,11 +164,9 @@
                     <label>Mã Đoạn (Chọn trên bản đồ):</label>
                     <input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
                     <input type="hidden" id="inp-seg-id-old"> 
-                    
                     <label>Điểm ĐẦU:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"></select><select id="sel-seg-pole1"></select></div>
                     <label>Điểm CUỐI:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"></select><select id="sel-seg-pole2"></select></div>
                     <label>Loại:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
-                    
                     <div style="display:flex;gap:10px;">
                         <button class="action-btn btn-add" id="btn-save-segment" onclick="window.saveSegment()">LƯU ĐOẠN</button>
                         <button class="action-btn btn-pick" onclick="window.resetSegmentForm()">➕ THÊM MỚI</button>
@@ -181,7 +175,7 @@
 
                 <div id="tab-cir" class="edit-section">
                     <label>Tên Mạch (Chọn trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
-                    <label>Danh sách đoạn (Bấm để xem/sửa):</label>
+                    <label>Danh sách đoạn (Bấm/Kéo để sửa):</label>
                     <div id="circuit-segment-list"></div>
                     <label>Thêm đoạn mới:</label><select id="sel-cir-seg"></select>
                     <button class="action-btn btn-add" onclick="window.addSegToCir()">THÊM ĐOẠN VÀO DS</button>
@@ -205,32 +199,48 @@
             <div class="panel" id="panel-opt">
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Toàn cảnh --</option></select>
-                <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
+                <div style="margin: 10px 0; padding:10px; background:#f5f5f5; border-radius:4px;">
+                    Trạng thái: <span id="status-text" style="font-weight:bold;">---</span>
+                    <div id="circuit-info" style="font-size:0.85rem; color:#00695c; margin-top:5px;"></div>
+                </div>
                 
                 <button class="action-btn btn-ground" id="btn-grounding" onclick="toggleGrounding()" style="display:none;">🔒 ĐÓNG TIẾP ĐỊA</button>
 
-                <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
                 
-                <label>Nhập Km sự cố:</label>
-                <input type="number" id="faultKm" step="0.01" />
+                <label>Thời điểm sự cố:</label>
+                <input type="datetime-local" id="incidentTime" />
                 
-                <div class="radio-group">
-                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
-                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
-                </div>
+                <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
+                <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label><label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
                 
                 <button class="action-btn btn-find" id="btn-find-fault" onclick="window.findFault()">TÌM VỊ TRÍ</button>
-                <div id="result" class="warning-msg"></div>
+                
+                <div id="fault-result-panel">
+                    <div class="fault-header">
+                        <span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span>
+                        <div>
+                            <button class="header-btn" onclick="captureInfo()" title="Chụp ảnh"><i class="fas fa-camera"></i></button>
+                            <button class="header-btn" onclick="document.getElementById('fault-result-panel').style.display='none'" title="Đóng">X</button>
+                        </div>
+                    </div>
+                    <div id="route-info" class="route-info-box" style="display:none"></div>
+                    <div class="fault-row"><span class="fault-label">Thời gian:</span> <span id="fi-time">---</span></div>
+                    <div class="fault-row" id="fi-summary">---</div>
+                    <div class="fault-row"><span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">---</span></div>
+                    <div class="fault-row"><span class="fault-label">Map:</span> <span id="fi-addr"></span></div>
+                    <div id="fault-weather" class="weather-info" style="display:none"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.79</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.80</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -258,34 +268,25 @@
         new L.Control.Extent({ position: 'topright' }).addTo(map);
 
         map.createPane('areaPane'); map.getPane('areaPane').style.zIndex = 200;
-        let layers = { 
-            areas: L.layerGroup().addTo(map), 
-            main: L.layerGroup().addTo(map), 
-            minor: L.layerGroup().addTo(map), 
-            important: L.layerGroup().addTo(map), 
-            mc: L.layerGroup().addTo(map), 
-            fault: L.layerGroup().addTo(map), 
-            editHighlight: L.layerGroup().addTo(map) 
-        };
+        let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), important: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map), editHighlight: L.layerGroup().addTo(map) };
         layers.fault.setZIndex(9999);
         
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: [] }; 
         window.stagingData = null; window.pendingAction = null;
         let currentPath = []; let currentPathTotalDist = 0; let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null;
-        let currentEditingCircuit = []; 
+        let currentEditingCircuit = []; let userLocation = null;
         
-        function updateLayerVisibility() {
-            let z = map.getZoom();
-            if (z < 15) {
-                if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
-                if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
-            } else {
-                if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor);
-                if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc);
-            }
+        function setNowToInput() {
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('incidentTime').value = now.toISOString().slice(0,16);
         }
-        map.on('zoomend', updateLayerVisibility);
+        setNowToInput();
 
+        // Auto locate (Silent)
+        map.locate({setView: false, maxZoom: 16});
+        map.on('locationfound', function(e) { userLocation = e.latlng; });
+
+        map.on('zoomend', () => { if (map.getZoom() < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc); } });
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
@@ -298,7 +299,7 @@
             return 'pole';
         }
         
-        window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 150) + "px"; }
+        window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 500) + "px"; }
 
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
@@ -318,8 +319,9 @@
                 for (var j = 0; j < acc.length; j++) { if (acc[j] !== this && acc[j].classList.contains("active")) { acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; } } 
                 this.classList.toggle("active"); 
                 var panel = this.nextElementSibling; 
-                if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 100) + "px"; 
+                if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 500) + "px"; 
                 
+                // Mode switching
                 if (this.id === 'acc-entry' && this.classList.contains('active')) {
                     if(getActiveTab() === 'seg') renderGlobalMap('segment_edit'); else renderGlobalMap('normal');
                 } else {
@@ -366,12 +368,32 @@
         window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
 
+        // --- EXPORT TO EXCEL RE-IMPLEMENTED ---
+        window.exportToExcel = function() { 
+            if(!appData.poles) return alert("Không có dữ liệu!"); 
+            let d1=[], d2=[], d3=[], d4=[]; 
+            // 1. Poles
+            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); 
+            // 2. Segments
+            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
+            // 3. Circuits
+            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
+            // 4. Areas
+            if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
+
+            let wb=XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_Full.xlsx"); 
+        }
+
         window.onElementClick = function(type, data) {
             if(pickingMode === 'area') return; 
 
             if (isEditMode()) {
                 let tab = getActiveTab();
-                
                 if (tab === 'pole' && type === 'pole') {
                     document.getElementById('inp-pole-route').value = data.route || ""; 
                     document.getElementById('inp-pole-name').value = data.name; 
@@ -428,16 +450,12 @@
             document.getElementById('circuit-segment-list').innerHTML = html;
         }
 
-        // --- UPDATED: GET POINTS WITH NAMES ---
         function getPointsForSegment(seg) {
             if(!seg) return [];
             let p1 = getPoleExact(seg.lineFrom, seg.poleFrom) || getPoleGlobal(seg.poleFrom);
             let p2 = getPoleExact(seg.lineTo, seg.poleTo) || getPoleGlobal(seg.poleTo);
             if(!p1 || !p2) return [];
-
-            let r1 = p1.foundRoute || seg.lineFrom;
-            let r2 = p2.foundRoute || seg.lineTo;
-
+            let r1 = p1.foundRoute || seg.lineFrom; let r2 = p2.foundRoute || seg.lineTo;
             if (r1 === r2) {
                 let routePoles = appData.poles[r1];
                 if (routePoles) {
@@ -449,7 +467,6 @@
                     }
                 }
             }
-            // Fallback for different routes (just endpoints)
             return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
         }
 
@@ -457,7 +474,7 @@
             layers.editHighlight.clearLayers();
             let seg = appData.segments[segId];
             if(seg) {
-                let pts = getPointsForSegment(seg).map(p => [p.lat, p.lng]);
+                let pts = getPointsForSegment(seg).map(p=>[p.lat, p.lng]);
                 if(pts.length) {
                     let style = {color: color, weight: 6, opacity: 0.9};
                     if(color === 'black') { style.dashArray = null; style.weight = 5; style.opacity = 1; }
@@ -520,56 +537,14 @@
             let id = document.getElementById('inp-seg-id').value.trim(); 
             let oldId = document.getElementById('inp-seg-id-old').value.trim();
             if(!id) return alert("Thiếu ID!"); 
-            
-            let btn = document.getElementById('btn-save-segment');
-            let oldText = btn.innerText;
-            btn.innerText = "Đang lưu..."; btn.disabled = true;
-
-            let data = {
-                id: id, type: document.getElementById('inp-seg-type').value, 
-                lineFrom: document.getElementById('sel-seg-line1').value, poleFrom: document.getElementById('sel-seg-pole1').value, 
-                lineTo: document.getElementById('sel-seg-line2').value, poleTo: document.getElementById('sel-seg-pole2').value
-            };
-
-            let updates = {};
-            updates[`he_thong_luoi_dien/segments/${id}`] = data;
-            
+            let btn = document.getElementById('btn-save-segment'); let oldText = btn.innerText; btn.innerText = "Đang lưu..."; btn.disabled = true;
+            let data = { id: id, type: document.getElementById('inp-seg-type').value, lineFrom: document.getElementById('sel-seg-line1').value, poleFrom: document.getElementById('sel-seg-pole1').value, lineTo: document.getElementById('sel-seg-line2').value, poleTo: document.getElementById('sel-seg-pole2').value };
+            let updates = {}; updates[`he_thong_luoi_dien/segments/${id}`] = data;
             if(oldId && oldId !== id) {
                 updates[`he_thong_luoi_dien/segments/${oldId}`] = null;
-                if (appData.circuits) {
-                    for (let cid in appData.circuits) {
-                        let changed = false;
-                        let list = appData.circuits[cid];
-                        list.forEach(item => {
-                            if (item.segId === oldId) {
-                                item.segId = id;
-                                changed = true;
-                            }
-                        });
-                        if (changed) {
-                            updates[`he_thong_luoi_dien/circuits/${cid}`] = list;
-                        }
-                    }
-                }
+                if (appData.circuits) { for (let cid in appData.circuits) { let changed = false; let list = appData.circuits[cid]; list.forEach(item => { if (item.segId === oldId) { item.segId = id; changed = true; } }); if (changed) { updates[`he_thong_luoi_dien/circuits/${cid}`] = list; } } }
             }
-
-            window.update(window.ref(window.db), updates)
-            .then(()=>{ 
-                alert("Đã lưu đoạn!"); 
-                document.getElementById('inp-seg-id-old').value = id; 
-                layers.editHighlight.clearLayers(); 
-                // Local Update
-                if(appData.segments) {
-                    if(oldId && oldId !== id) delete appData.segments[oldId];
-                    appData.segments[id] = data;
-                }
-                renderGlobalMap('segment_edit'); 
-                btn.innerText = oldText; btn.disabled = false;
-            })
-            .catch(err => {
-                alert("Lỗi khi lưu: " + err.message);
-                btn.innerText = oldText; btn.disabled = false;
-            });
+            window.update(window.ref(window.db), updates).then(()=>{ alert("Đã lưu đoạn!"); document.getElementById('inp-seg-id-old').value = id; layers.editHighlight.clearLayers(); if(appData.segments) { if(oldId && oldId !== id) delete appData.segments[oldId]; appData.segments[id] = data; } renderGlobalMap('segment_edit'); btn.innerText = oldText; btn.disabled = false; }).catch(err => { alert("Lỗi khi lưu: " + err.message); btn.innerText = oldText; btn.disabled = false; });
         }
         
         window.startAreaDraw = function() { pickingMode = 'area'; tempAreaPoints = []; if(tempAreaPoly) map.removeLayer(tempAreaPoly); closeSidebar(); document.getElementById('draw-status').innerText = "Đang vẽ..."; }
@@ -588,12 +563,7 @@
         function renderGlobalMap(mode = 'normal') {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
             updateLayerVisibility();
-
-            if(appData.areas) appData.areas.forEach(a => { 
-                let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
-                let p = L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
-                p.on('click', () => window.onElementClick('area', {name:a.name, type:a.type}));
-            });
+            if(appData.areas) appData.areas.forEach(a => { let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`); });
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC'), isMinor = p.type === 'TRU_DO' || p.type === 'MOC'; let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.important);
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
@@ -613,7 +583,6 @@
             }
         }
 
-        // --- NEW: SIMULATION MODE FOR PATH CALC ---
         function drawSingleCircuit(circuitId, calcPath, excludeSegId, simulationOnly = false) {
             const segs = appData.circuits[circuitId]; if(!segs) return;
             let connectedMCs = []; segs.forEach(item => { let def = appData.segments[item.segId]; if(def) { let p1 = getPoleExact(def.lineFrom, def.poleFrom), p2 = getPoleExact(def.lineTo, def.poleTo); if(p1 && p1.type.includes('MC')) connectedMCs.push(p1); if(p2 && p2.type.includes('MC')) connectedMCs.push(p2); } });
@@ -621,8 +590,7 @@
             let activeSources = connectedMCs.filter(mc => (appData.mcStates[mc.name] !== false) && mc.sourceVoltage);
             if (activeSources.length > 0) { activeSources.sort((a,b) => { let vA = parseInt(a.sourceVoltage)||0, vB = parseInt(b.sourceVoltage)||0; return vB - vA; }); activeVoltage = activeSources[0].sourceVoltage; }
             let color = '#000000', statusText = "MẤT ĐIỆN";
-            if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } 
-            else if (activeVoltage) { if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } else if (activeVoltage.includes('220')) { color = '#d32f2f'; statusText = "CÓ ĐIỆN (220kV)"; } else if (activeVoltage.includes('500')) { color = '#0d47a1'; statusText = "CÓ ĐIỆN (500kV)"; } }
+            if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } else if (activeVoltage) { if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } else if (activeVoltage.includes('220')) { color = '#d32f2f'; statusText = "CÓ ĐIỆN (220kV)"; } else if (activeVoltage.includes('500')) { color = '#0d47a1'; statusText = "CÓ ĐIỆN (500kV)"; } }
             
             if(calcPath) { 
                 if(!simulationOnly) {
@@ -634,66 +602,17 @@
             }
             segs.forEach(item => {
                 let def = appData.segments[item.segId]; if(!def) return; 
-                let pts = getPointsForSegment(def); // RETURNS OBJECTS WITH NAMES
-                
-                // OFFSET LOGIC (Only in Normal Mode)
-                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom);
-                let p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
+                let pts = getPointsForSegment(def); 
+                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
                 let offset = 0;
-                if(p1 && p2 && !simulationOnly) {
-                    let key = getSegmentKey(p1, p2); let list = segmentCounts[key];
-                    if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
-                }
-
+                if(p1 && p2 && !simulationOnly) { let key = getSegmentKey(p1, p2); let list = segmentCounts[key]; if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } } }
                 if(pts.length) { 
-                    if (!simulationOnly) {
-                        let isCable=def.type.includes("NGAM"); 
-                        let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
-                        poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
-                        poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    }
-                    if(calcPath) pts.forEach((p,i)=>{ 
-                        if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); 
-                        currentPath.push({lat: p.lat, lng: p.lng, accDist:currentPathTotalDist, name: p.name}); 
-                    }); 
+                    if (!simulationOnly) { let isCable=def.type.includes("NGAM"); L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main).bindPopup(`<b>${circuitId}</b><br>${statusText}`); }
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({lat: p.lat, lng: p.lng, accDist:currentPathTotalDist, name: p.name}); }); 
                 }
             });
         }
         
-        function findPoleName(index) {
-            for (let i = index; i >= 0; i--) { if (currentPath[i].name) return currentPath[i].name; }
-            return "Điểm đầu";
-        }
-        function findNextPoleName(index) {
-            for (let i = index; i < currentPath.length; i++) { if (currentPath[i].name) return currentPath[i].name; }
-            return "Điểm cuối";
-        }
-
-        async function fetchWeather(lat, lng) {
-            let infoBox = document.getElementById('fault-weather');
-            if(!infoBox) {
-                let div = document.createElement('div'); div.id = 'fault-weather'; div.className = 'weather-info';
-                document.getElementById('fault-info-box').appendChild(div); infoBox = div;
-            }
-            infoBox.innerHTML = '<i>⏳ Đang tải dữ liệu thời tiết...</i>';
-            try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.current) {
-                    let code = data.current.weather_code;
-                    let isStorm = [95, 96, 99].includes(code);
-                    let condition = "Nắng/Ít mây";
-                    if(code > 3) condition = "Nhiều mây";
-                    if(code >= 51) condition = "Mưa";
-                    if(isStorm) condition = "Dông sét";
-                    let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <b>${data.current.wind_speed_10m} km/h</b></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trạng thái:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
-                    if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: ĐANG CÓ DÔNG SÉT!</div>`;
-                    infoBox.innerHTML = html;
-                }
-            } catch (e) { infoBox.innerHTML = '<span style="color:red">Không lấy được thời tiết.</span>'; }
-        }
-
         let segmentCounts = {};
         function getSegmentKey(p1, p2) { let k1=p1.lat+"_"+p1.lng, k2=p2.lat+"_"+p2.lng; return (k1<k2)?(k1+"|"+k2):(k2+"|"+k1); }
         function calculateOffsets() { segmentCounts={}; if(appData.circuits) Object.keys(appData.circuits).forEach(cid=>{ appData.circuits[cid].forEach(item=>{ let def=appData.segments[item.segId]; if(def){ let p1=getPoleExact(def.lineFrom,def.poleFrom), p2=getPoleExact(def.lineTo,def.poleTo); if(p1&&p2){ let k=getSegmentKey(p1,p2); if(!segmentCounts[k]) segmentCounts[k]=[]; segmentCounts[k].push(cid); } } }); }); }
@@ -703,103 +622,187 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
+        // --- ADMIN FAULT FINDING (UPDATED FROM MOBILE V1.20) ---
         window.findFault = function() { 
             let btn = document.getElementById('btn-find-fault');
             let oldText = btn.innerText;
             btn.innerText = "Đang tính toán..."; btn.disabled = true;
 
+            // Use browser location (if available on PC) for routing
+            if (!userLocation) { map.locate({setView: false, maxZoom: 16}); }
+
             setTimeout(() => {
                 try {
                     layers.fault.clearLayers(); 
-                    let res = document.getElementById('result'); 
-                    res.style.display='none'; 
-                    let faultBox = document.getElementById('fault-info-box');
-                    if(faultBox) faultBox.style.display='none'; 
-
+                    let res = document.getElementById('result'); res.style.display='none'; 
+                    let faultBox = document.getElementById('fault-result-panel'); if(faultBox) faultBox.style.display='none'; 
+                    
+                    let timeVal = document.getElementById('incidentTime').value;
+                    let timeStr = timeVal ? timeVal.replace('T', ' ') : "N/A";
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
                     let direction = document.querySelector('input[name="faultDir"]:checked').value; 
+                    let dirText = direction === 'start' ? "đầu nguồn" : "cuối nguồn";
                     let cName = document.getElementById('circuitSelect').value; 
 
                     currentPath = []; 
                     if(cName) drawSingleCircuit(cName, true, null, true); 
 
-                    if(isNaN(kmInput) || currentPath.length<2) { 
-                        res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
-                        window.refreshPanelHeight('panel-opt'); btn.innerText = oldText; btn.disabled = false; return; 
-                    } 
+                    if(isNaN(kmInput) || currentPath.length<2) { alert('Vui lòng chọn mạch và nhập Km!'); btn.innerText = oldText; btn.disabled = false; return; } 
                     let totalKm = currentPathTotalDist / 1000;
-                    if(kmInput > totalKm) { 
-                        res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
-                        window.refreshPanelHeight('panel-opt'); btn.innerText = oldText; btn.disabled = false; return; 
-                    }
+                    if(kmInput > totalKm) { alert(`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`); btn.innerText = oldText; btn.disabled = false; return; }
                     let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-                    if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
-                        res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
-                        window.refreshPanelHeight('panel-opt'); btn.innerText = oldText; btn.disabled = false; return; 
-                    } 
                     
                     let found = false;
                     for(let i=1; i<currentPath.length; i++) { 
-                        let p1=currentPath[i-1], p2=currentPath[i]; 
-                        let d1=p1.accDist, d2=p2.accDist;
+                        let p1=currentPath[i-1], p2=currentPath[i]; let d1=p1.accDist, d2=p2.accDist;
                         if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
                             found = true;
                             let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                             let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                            let name1 = findPoleName(i-1);
-                            let name2 = findNextPoleName(i);
+                            let n1 = "Điểm đầu", n2 = "Điểm cuối";
+                            for (let j = i-1; j >= 0; j--) { if (currentPath[j].name) { n1 = currentPath[j].name; break; } }
+                            for (let j = i; j < currentPath.length; j++) { if (currentPath[j].name) { n2 = currentPath[j].name; break; } }
 
                             if(faultBox) {
-                                faultBox.style.display='block'; 
-                                document.getElementById('fi-name').innerText=cName; 
-                                document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                                document.getElementById('fi-seg').innerHTML=`Giữa trụ: <b>${name1}</b> <i class="fas fa-arrow-right"></i> <b>${name2}</b>`; 
-                                document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                                fetchWeather(lat, lng);
+                                faultBox.style.display='block';
+                                
+                                document.getElementById('fi-summary').innerHTML = `
+                                    <div><span class="hl-name">${cName}</span></div>
+                                    <div>Cách ${dirText}: <span class="hl-dist">${kmInput} km</span> | <span class="hl-seg">${n1} <i class="fas fa-arrow-right"></i> ${n2}</span></div>
+                                `;
+                                document.getElementById('fi-time').innerText = timeStr;
+                                document.getElementById('fi-addr-text').innerText = '⏳ Đang lấy...';
+                                document.getElementById('route-info').innerHTML = '<i>⏳ Đang tính lộ trình...</i>'; document.getElementById('route-info').style.display='block';
+                                document.getElementById('fault-weather').innerHTML = '<i>⏳ Đang tải thời tiết...</i>'; document.getElementById('fault-weather').style.display='block';
+                                document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Mở Google Maps</a>`; 
+
+                                fetchWeather(lat, lng, timeVal);
+                                fetchAddress(lat, lng);
+                                if(userLocation) {
+                                    fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'driving')
+                                    .then(success => { if(!success) return fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'walking'); })
+                                    .then(success => { if(success === false) { let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000; document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Chim bay)</div>`; }});
+                                } else { document.getElementById('route-info').innerHTML = 'Chưa có vị trí GPS.'; }
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
-                            map.setView([lat, lng], 18); 
-                            closeSidebar(); 
-                            break; 
+                            map.setView([lat, lng], 18); window.refreshPanelHeight('panel-opt'); break; 
                         } 
                     }
-                    if(!found) {
-                         res.style.display='block'; res.className='warning-msg'; res.innerHTML = `Không tìm thấy điểm (Lỗi dữ liệu)`; 
-                         window.refreshPanelHeight('panel-opt');
-                    }
-                } catch(e) { console.error(e); alert("Lỗi tính toán: " + e.message); } finally { btn.innerText = oldText; btn.disabled = false; }
+                    if(!found) { alert(`Không tìm thấy điểm (Lỗi dữ liệu)`); }
+                } catch(e) { console.error(e); alert("Lỗi: " + e.message); } finally { btn.innerText = oldText; btn.disabled = false; }
             }, 50); 
         }
         
-        var legendControl = L.control({position: 'bottomright'});
-        legendControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'legend'); div.id = "main-legend";
-            div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng (Đỏ)</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt (Xanh)</div><div class="legend-item"><span class="legend-icon" style="background:#ff9800; opacity:0.5;"></span> Trạm/Vùng</div>`;
-            return div;
-        };
-        legendControl.addTo(map);
+        async function fetchRoute(lat1, lng1, lat2, lng2, profile) {
+            let infoBox = document.getElementById('route-info');
+            try {
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+                const fetchPromise = fetch(`https://router.project-osrm.org/route/v1/${profile}/${lng1},${lat1};${lng2},${lat2}?overview=false`);
+                const res = await Promise.race([fetchPromise, timeout]);
+                if(!res.ok) throw new Error('Error');
+                
+                const data = await res.json();
+                if(data.routes && data.routes.length > 0) {
+                    let route = data.routes[0];
+                    let distKm = (route.distance / 1000).toFixed(1);
+                    let durationMin = Math.round(route.duration / 60);
+                    let icon = profile === 'driving' ? '<i class="fas fa-motorcycle"></i>' : '<i class="fas fa-walking"></i>';
+                    let type = profile === 'driving' ? '' : '(Đi bộ)';
+                    infoBox.innerHTML = `<div>${icon} <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> ${type}</div>`;
+                    return true;
+                }
+                return false; 
+            } catch(e) { return false; }
+        }
 
-        var faultControl = L.control({position: 'bottomright'});
-        faultControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'fault-box'); div.id = "fault-info-box";
-            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="document.getElementById('fault-info-box').style.display='none'">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
-            return div;
-        };
-        faultControl.addTo(map);
+        async function fetchAddress(lat, lng) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if(data && data.address) {
+                    let a = data.address; let parts = [];
+                    if(a.house_number) parts.push(a.house_number);
+                    if(a.road) parts.push(a.road);
+                    let ward = a.quarter || a.village || a.neighbourhood || a.hamlet;
+                    if(ward) parts.push(ward); else if(a.suburb) parts.push(a.suburb);
+                    let district = a.city_district || a.district || a.county;
+                    if(district) parts.push(district);
+                    let city = a.city || a.state;
+                    if(city) parts.push(city);
+                    let fullAddr = parts.length > 0 ? parts.join(", ") : "Không xác định";
+                    document.getElementById('fi-addr-text').innerText = fullAddr;
+                }
+            } catch(e) { document.getElementById('fi-addr-text').innerText = "Lỗi lấy địa chỉ"; }
+        }
+
+        async function fetchWeather(lat, lng, incidentTime) {
+            let infoBox = document.getElementById('fault-weather');
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&past_days=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.hourly) {
+                    let targetTime = new Date(incidentTime);
+                    let times = data.hourly.time.map(t => new Date(t));
+                    let index = -1; let minDiff = Infinity;
+                    for(let i=0; i<times.length; i++) {
+                        let diff = Math.abs(times[i] - targetTime);
+                        if(diff < minDiff) { minDiff = diff; index = i; }
+                    }
+
+                    if(index !== -1) {
+                        let code = data.hourly.weather_code[index];
+                        let isStorm = [95, 96, 99].includes(code);
+                        let rain = data.hourly.precipitation[index];
+                        let windSpd = data.hourly.wind_speed_10m[index];
+                        let windDeg = data.hourly.wind_direction_10m[index];
+                        let temp = data.hourly.temperature_2m[index];
+                        
+                        let hour = targetTime.getHours();
+                        let isNight = hour < 6 || hour > 18;
+                        let condition = "Nắng/Ít mây";
+                        if(isNight) condition = "Quang mây/Có sao";
+                        if(code > 3) condition = "Nhiều mây";
+                        if(code >= 51) condition = "Mưa";
+                        if(isStorm) condition = "Dông sét";
+                        let iconRotation = windDeg + 180; 
+                        let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <div style="display:flex;align-items:center;gap:8px;"><b>${windSpd} km/h</b><div style="border:1px solid #999; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; background:white;"><i class="fas fa-arrow-up" style="transform: rotate(${iconRotation}deg); color:#333; font-size:14px;"></i></div></div></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${temp}°C</b></div>`;
+                        if(rain > 2.0) html += `<div class="weather-alert" style="color:orange;border-color:orange"><i class="fas fa-cloud-rain"></i> Mưa: ${rain}mm - Đường trơn</div>`;
+                        if(rain > 10.0) html += `<div class="weather-flood"><i class="fas fa-water"></i> NGUY CƠ NGẬP CAO!</div>`;
+                        if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
+                        infoBox.innerHTML = html;
+                    }
+                }
+            } catch (e) { infoBox.innerHTML = 'Lỗi lấy thời tiết.'; }
+        }
+
+        window.captureInfo = function() {
+            let box = document.getElementById('fault-result-panel');
+            html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+                let link = document.createElement('a'); link.download = 'bao_cao_admin.png'; link.href = canvas.toDataURL(); link.click();
+            });
+        }
+        // -------------------------
 
         window.listenCloud = function() { window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => { let val = snap.val(); if(val) { appData = val; if(!appData.mcStates) appData.mcStates={}; if(!appData.grounded) appData.grounded={}; updateUI(); calculateOffsets(); renderGlobalMap(); window.refreshDropdowns(); if(document.getElementById('circuitSelect').value) window.zoomToCircuit(); } }); }
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
         window.updatePoleSelect = function(lid, pid) { let line=document.getElementById(lid).value, poles=appData.poles[line]||[]; document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); }
-        window.exportToExcel = function() { 
-            if(!appData.poles) return alert("Không có dữ liệu!"); 
-            let d1=[], d2=[], d3=[], d4=[]; 
-            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); 
-            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
-            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
-            if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v179.xlsx"); 
+        
+        function setNowToInput() {
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('incidentTime').value = now.toISOString().slice(0,16);
         }
+        setNowToInput();
+
+        function updateLayerVisibility() { let z = map.getZoom(); if (z < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); if(!map.hasLayer(layers.mc)) map.addLayer(layers.mc); } }
+        map.on('zoomend', updateLayerVisibility);
+
+        var legendControl = L.control({position: 'bottomright'});
+        legendControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'legend'); div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt</div>`; return div; };
+        legendControl.addTo(map);
+
     </script>
 </body>
 </html>
