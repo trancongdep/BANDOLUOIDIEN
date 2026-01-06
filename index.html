@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.62</title>
+    <title>Hệ Thống Lưới Điện - Version 1.63</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -49,6 +49,13 @@
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
+        
+        /* Circuit Edit List */
+        #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
+        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
+        .cir-item-row:nth-child(even) { background: #f9f9f9; }
+        .btn-del-seg { background: #ef5350; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
@@ -142,9 +149,12 @@
                     <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU ĐOẠN</button>
                 </div>
                 <div id="tab-cir" class="edit-section">
-                    <label>Tên Mạch:</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
-                    <label>Chọn Đoạn:</label><select id="sel-cir-seg"></select>
-                    <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM VÀO MẠCH</button>
+                    <label>Tên Mạch (Chọn trên bản đồ để sửa):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
+                    <label>Danh sách đoạn trong mạch:</label>
+                    <div id="circuit-segment-list"></div>
+                    
+                    <label>Thêm Đoạn:</label><select id="sel-cir-seg"></select>
+                    <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM ĐOẠN</button>
                 </div>
                 <div id="tab-area" class="edit-section">
                     <label>Tên Vùng:</label><input type="text" id="inp-area-name" placeholder="VD: Trạm TBA 110kV">
@@ -173,7 +183,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.62</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.63</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -215,20 +225,21 @@
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
-        // --- SỬA LỖI 1: CẢI THIỆN CHECK EDIT MODE ---
-        function isEditMode() { 
-            // Kiểm tra xem nút accordion "Nhập liệu" có class active không
-            return document.getElementById('acc-entry').classList.contains('active'); 
+        function isEditMode() { return document.getElementById('acc-entry').classList.contains('active'); }
+        function getActiveTab() {
+            if(document.getElementById('tab-pole').classList.contains('active')) return 'pole';
+            if(document.getElementById('tab-seg').classList.contains('active')) return 'seg';
+            if(document.getElementById('tab-cir').classList.contains('active')) return 'cir';
+            if(document.getElementById('tab-area').classList.contains('active')) return 'area';
+            return 'pole';
         }
         
-        window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 100) + "px"; }
+        window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 150) + "px"; }
 
-        // --- FIX TAB SWITCHING ---
         window.switchTab = function(tabId) {
             document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            // Tìm button trigger và add active
             let btns = document.querySelectorAll('.tab-btn');
             for(let b of btns) { if(b.getAttribute('onclick').includes(tabId)) b.classList.add('active'); }
             window.refreshDropdowns(); window.refreshPanelHeight('panel-entry');
@@ -265,24 +276,89 @@
         window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
 
-        // --- CẬP NHẬT: onElementClick TỰ ĐỘNG SWITCH TAB ---
-        window.onElementClick = function(type, name, route, lat, lng, srcVal) {
+        // --- HÀM XỬ LÝ CLICK THÔNG MINH (Smart Handler) ---
+        window.onElementClick = function(type, data) {
             if (isEditMode()) {
-                window.switchTab('tab-pole'); // Tự động mở tab trụ
-                document.getElementById('inp-pole-route').value = route || ""; 
-                document.getElementById('inp-pole-name').value = name; 
-                document.getElementById('inp-pole-type').value = type; 
-                document.getElementById('inp-pole-src').value = srcVal || ""; 
-                document.getElementById('inp-lat').value = lat; 
-                document.getElementById('inp-lng').value = lng; 
+                let tab = getActiveTab();
+                
+                // 1. Nếu đang ở Tab TRỤ -> Click Trụ -> Fill Form
+                if (tab === 'pole' && type === 'pole') {
+                    document.getElementById('inp-pole-route').value = data.route || ""; 
+                    document.getElementById('inp-pole-name').value = data.name; 
+                    document.getElementById('inp-pole-type').value = data.type; 
+                    document.getElementById('inp-pole-src').value = data.srcVal || ""; 
+                    document.getElementById('inp-lat').value = data.lat; 
+                    document.getElementById('inp-lng').value = data.lng; 
+                }
+
+                // 2. Nếu đang ở Tab ĐOẠN -> Click Đoạn -> Fill Form
+                else if (tab === 'seg' && type === 'segment') {
+                    let seg = appData.segments[data.id];
+                    if(seg) {
+                        document.getElementById('inp-seg-id').value = seg.id;
+                        document.getElementById('inp-seg-type').value = seg.type;
+                        
+                        // Fill Dropdown phức tạp
+                        let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; 
+                        window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); 
+                        document.getElementById('sel-seg-pole1').value = seg.poleFrom;
+
+                        let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; 
+                        window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); 
+                        document.getElementById('sel-seg-pole2').value = seg.poleTo;
+                    }
+                }
+
+                // 3. Nếu đang ở Tab MẠCH -> Click Mạch/Đoạn -> Chọn Mạch đó & Load List
+                else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) {
+                    // Nếu click vào đoạn, tìm mạch chứa nó
+                    let cid = data.circuitId; 
+                    if(cid) {
+                        document.getElementById('inp-cir-id').value = cid;
+                        window.renderCircuitSegments(cid);
+                    }
+                }
+
+                // 4. Nếu đang ở Tab VÙNG -> Click Vùng -> Fill Form
+                else if (tab === 'area' && type === 'area') {
+                    document.getElementById('inp-area-name').value = data.name;
+                    document.getElementById('inp-area-type').value = data.type;
+                }
+                
                 openSidebar();
             } else {
-                if (type.includes('MC')) {
-                    let currentState = appData.mcStates[name] !== false; 
-                    document.getElementById('win-msg').innerHTML = `Điều khiển máy cắt <b>${name}</b>?<br><br>Trạng thái hiện tại: <b>${currentState?"ĐANG ĐÓNG":"ĐANG MỞ"}</b>`;
-                    window.pendingAction = { type: 'mc', name: name }; document.getElementById('custom-confirm').style.display = 'flex';
+                // CHẾ ĐỘ VẬN HÀNH
+                if (type === 'pole' && data.type.includes('MC')) {
+                    let currentState = appData.mcStates[data.name] !== false; 
+                    document.getElementById('win-msg').innerHTML = `Điều khiển máy cắt <b>${data.name}</b>?<br><br>Trạng thái hiện tại: <b>${currentState?"ĐANG ĐÓNG":"ĐANG MỞ"}</b>`;
+                    window.pendingAction = { type: 'mc', name: data.name }; document.getElementById('custom-confirm').style.display = 'flex';
                 }
             }
+        }
+
+        window.renderCircuitSegments = function(cid) {
+            let list = appData.circuits[cid] || [];
+            let html = list.map((item, index) => {
+                return `<div class="cir-item-row">
+                    <span>${index+1}. ${item.segId}</span>
+                    <button class="btn-del-seg" onclick="window.delSegFromCir('${cid}', ${index})">X</button>
+                </div>`;
+            }).join('');
+            if(html === '') html = '<div style="padding:5px;color:#999">Chưa có đoạn nào</div>';
+            document.getElementById('circuit-segment-list').innerHTML = html;
+        }
+
+        window.delSegFromCir = function(cid, index) {
+            if(!confirm("Xóa đoạn này khỏi mạch?")) return;
+            let list = appData.circuits[cid];
+            list.splice(index, 1); // Xóa
+            // Cập nhật lại STT
+            list.forEach((item, i) => item.order = i + 1);
+            window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>{ 
+                alert("Đã xóa!"); 
+                window.renderCircuitSegments(cid); // Render lại list
+                renderGlobalMap(); // Vẽ lại map
+            });
         }
 
         window.confirmAction = function() {
@@ -292,8 +368,7 @@
             else if (window.pendingAction.type === 'upload') {
                 if(window.stagingData) {
                     btn.innerText = "Đang xử lý..."; btn.disabled = true;
-                    const rootRef = window.ref(window.db, 'he_thong_luoi_dien');
-                    const d = window.stagingData;
+                    const rootRef = window.ref(window.db, 'he_thong_luoi_dien'); const d = window.stagingData;
                     let sequence = Promise.resolve();
                     if(window.pendingAction.mode === 'replace') { sequence = sequence.then(() => window.set(window.child(rootRef, 'poles'), null)).then(() => window.set(window.child(rootRef, 'segments'), null)).then(() => window.set(window.child(rootRef, 'circuits'), null)).then(() => window.set(window.child(rootRef, 'mcStates'), d.mcStates)); }
                     sequence.then(() => { log("1/4: Đang ghi dữ liệu Trụ..."); return window.update(window.child(rootRef, 'poles'), d.poles); })
@@ -308,7 +383,17 @@
 
         window.savePole = function() { let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim(); if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!"); let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) }; let path=`he_thong_luoi_dien/poles/${line}`; window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); }); }
         window.saveSegment = function() { let id=document.getElementById('inp-seg-id').value.trim(); if(!id) return alert("Thiếu ID!"); window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:document.getElementById('sel-seg-line1').value, poleFrom:document.getElementById('sel-seg-pole1').value, lineTo:document.getElementById('sel-seg-line2').value, poleTo:document.getElementById('sel-seg-pole2').value}).then(()=>alert("Đã lưu!")); }
-        window.saveCircuitItem = function() { let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value; if(!cid||!sid) return; window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{ let list=snap.val()||[]; list.push({segId:sid, order:list.length+1}); window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!")); }); }
+        window.saveCircuitItem = function() { 
+            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value; 
+            if(!cid||!sid) return; 
+            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{ 
+                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1}); 
+                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>{
+                    alert("Đã thêm!"); 
+                    window.renderCircuitSegments(cid); // Refresh list
+                }); 
+            }); 
+        }
         window.saveArea = function() { if(tempAreaPoints.length<3) return alert("Cần 3 điểm!"); window.get(window.child(window.ref(window.db), 'he_thong_luoi_dien/areas')).then(snap => { let areas = snap.val() || []; areas.push({ name:document.getElementById('inp-area-name').value, type:document.getElementById('inp-area-type').value, points: tempAreaPoints }); window.set(window.ref(window.db, 'he_thong_luoi_dien/areas'), areas).then(() => { alert("Đã lưu vùng!"); pickingMode = null; if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints = []; }); }); }
         window.toggleGrounding = function() { let cid = document.getElementById('circuitSelect').value; if(!cid) return; let currentG = appData.grounded ? appData.grounded[cid] : false; window.update(window.ref(window.db, 'he_thong_luoi_dien/grounded'), { [cid]: !currentG }); }
 
@@ -320,12 +405,16 @@
         }
         function renderGlobalMap() {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
-            if(appData.areas) appData.areas.forEach(a => { let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`); });
+            if(appData.areas) appData.areas.forEach(a => { 
+                let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
+                let p = L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
+                p.on('click', () => window.onElementClick('area', {name:a.name, type:a.type}));
+            });
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC'), isMinor = p.type === 'TRU_DO' || p.type === 'MOC'; let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.important);
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
                 let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isClosed, p.sourceVoltage), zIndexOffset: isMC ? 1000 : 0 }).addTo(target);
-                marker.on('click', () => window.onElementClick(p.type, p.name, l, p.lat, p.lng, p.sourceVoltage)); if(!isMC) marker.bindPopup(`<b>${p.name}</b><br>${l}`);
+                marker.on('click', () => window.onElementClick('pole', {type:p.type, name:p.name, route:l, lat:p.lat, lng:p.lng, srcVal:p.sourceVoltage})); if(!isMC) marker.bindPopup(`<b>${p.name}</b><br>${l}`);
             });
             if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
         }
@@ -339,26 +428,25 @@
             let color = '#000000', statusText = "MẤT ĐIỆN";
             if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } 
             else if (activeVoltage) { if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } else if (activeVoltage.includes('220')) { color = '#d32f2f'; statusText = "CÓ ĐIỆN (220kV)"; } else if (activeVoltage.includes('500')) { color = '#0d47a1'; statusText = "CÓ ĐIỆN (500kV)"; } }
-            
             if(calcPath) { 
                 document.getElementById('status-text').innerHTML = `<span style="color:${color}">${statusText}</span>`; 
                 let btnG = document.getElementById('btn-grounding'); 
-                // LOGIC NÚT TIẾP ĐỊA: Chỉ hiện khi Mất điện (activeVoltage null) HOẶC Đã tiếp địa (isGrounded true)
-                if(!activeVoltage || isGrounded) {
-                    btnG.style.display = 'block'; 
-                    btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; 
-                    btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; 
-                } else {
-                    btnG.style.display = 'none';
-                }
+                if(!activeVoltage || isGrounded) { btnG.style.display = 'block'; btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; } else { btnG.style.display = 'none'; }
                 currentPath=[]; currentPathTotalDist=0; 
             }
-            
             segs.forEach(item => {
                 let def = appData.segments[item.segId]; if(!def) return; let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo); if(!p1||!p2) return;
                 let pts = []; let r1=p1.foundRoute||def.lineFrom, r2=p2.foundRoute||def.lineTo; let offset = 0, key = getSegmentKey(p1, p2), list = segmentCounts[key]; if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
                 if(r1!==r2) pts=[p1,p2]; else { let d=appData.poles[r1], i1=d.findIndex(p=>p.name===p1.name), i2=d.findIndex(p=>p.name===p2.name); pts=(i1<=i2)?d.slice(i1,i2+1):d.slice(i2,i1+1).reverse(); }
-                if(pts.length) { let isCable=def.type.includes("NGAM"); let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({...p, accDist:currentPathTotalDist}); }); }
+                if(pts.length) { 
+                    let isCable=def.type.includes("NGAM"); 
+                    let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
+                    poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
+                    // BẮT SỰ KIỆN CLICK ĐỂ SỬA ĐOẠN/MẠCH
+                    poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
+                    
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({...p, accDist:currentPathTotalDist}); }); 
+                }
             });
         }
         
@@ -371,40 +459,24 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
-        // --- SỬA LỖI 3: TÌM KIẾM & CẢNH BÁO ---
         window.findFault = function() { 
-            layers.fault.clearLayers(); 
-            document.getElementById('result').style.display='none'; 
+            layers.fault.clearLayers(); document.getElementById('result').style.display='none'; 
             let kmInput = parseFloat(document.getElementById('faultKm').value); 
             let direction = document.querySelector('input[name="faultDir"]:checked').value; 
             let cName = document.getElementById('circuitSelect').value; 
             let res = document.getElementById('result'); 
 
             if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } 
-            
-            // CẢNH BÁO KHOẢNG CÁCH
             let totalKm = currentPathTotalDist / 1000;
-            if(kmInput > totalKm) {
-                 res.style.display='block'; res.className='warning-msg'; 
-                 res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
-                 return; 
-            }
-
+            if(kmInput > totalKm) { res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; return; }
             let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
             if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
-            
             for(let i=1; i<currentPath.length; i++) { 
                 let p1=currentPath[i-1], p2=currentPath[i]; 
                 if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) { 
                     let ratio = (p2.accDist > p1.accDist) ? (targetDist-p1.accDist)/(p2.accDist-p1.accDist) : 0; 
                     let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    document.getElementById('fault-info-box').style.display='block'; 
-                    document.getElementById('fi-name').innerText=cName; 
-                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                    document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`; 
-                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                    L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); 
-                    map.setView([lat,lng], 16); closeSidebar(); return; 
+                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`; document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
                 } 
             } 
         }
@@ -413,7 +485,7 @@
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
         window.updatePoleSelect = function(lid, pid) { let line=document.getElementById(lid).value, poles=appData.poles[line]||[]; document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); }
-        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v162.xlsx"); }
+        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v163.xlsx"); }
     </script>
 </body>
 </html>
