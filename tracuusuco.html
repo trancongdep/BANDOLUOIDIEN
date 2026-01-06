@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.0</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -93,7 +94,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.0</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.1</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -102,7 +103,7 @@
     <div id="control-panel">
         <div class="panel-header">
             <span>TÌM KIẾM & ĐIỀU KHIỂN</span>
-            <span onclick="togglePanel()" style="cursor:pointer;font-size:1.5rem;">&times;</span>
+            <span onclick="togglePanel()" style="cursor:pointer;font-size:1.5rem;">×</span>
         </div>
         <div class="panel-body">
             <label>Chọn Mạch:</label>
@@ -458,6 +459,13 @@
             }, 50); 
         }
 
+        // NEW: Get Wind Direction (v1.1)
+        function getWindDirection(degrees) {
+            const directions = ['Bắc', 'Đông Bắc', 'Đông', 'Đông Nam', 'Nam', 'Tây Nam', 'Tây', 'Tây Bắc'];
+            const index = Math.round(degrees / 45) % 8;
+            return directions[index];
+        }
+
         async function fetchWeather(lat, lng) {
             let infoBox = document.getElementById('fault-weather');
             if(!infoBox) {
@@ -466,7 +474,7 @@
             }
             infoBox.innerHTML = '<i>⏳ Đang tải thời tiết...</i>';
             try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`;
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.current) {
@@ -476,7 +484,10 @@
                     if(code > 3) condition = "Nhiều mây";
                     if(code >= 51) condition = "Mưa";
                     if(isStorm) condition = "Dông sét";
-                    let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <b>${data.current.wind_speed_10m} km/h</b></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
+                    
+                    let windDir = getWindDirection(data.current.wind_direction_10m);
+
+                    let html = `<div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <b>${data.current.wind_speed_10m} km/h (${windDir})</b></div><div class="weather-row"><span><i class="fas fa-cloud"></i> Trời:</span> <b>${condition}</b></div><div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>`;
                     if(isStorm) html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: CÓ DÔNG SÉT!</div>`;
                     infoBox.innerHTML = html;
                 }
