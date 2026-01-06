@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.67</title>
+    <title>Hệ Thống Lưới Điện - Version 1.68</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -28,12 +28,17 @@
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* FORM INPUTS */
+        /* INPUTS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
         
-        /* BTN COLORS */
+        /* FIX RADIO GROUP - HORIZONTAL */
+        .radio-group { display: flex; flex-direction: row; align-items: center; gap: 20px; margin-bottom: 15px; width: 100%; }
+        .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
+        .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
+
+        /* COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -66,11 +71,11 @@
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         
-        /* LEGEND & DIALOG */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+        
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -80,11 +85,13 @@
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
         
-        /* ICONS & POPUP */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
-        .icon-tru-do { background: #1976d2; border-radius: 50%; }
+        
+        /* ICON STYLES UPDATE */
+        .icon-tru-do { background: #1976d2; border-radius: 50%; border: 2px solid white; } /* TRÒN XANH */
+        .icon-tru-neo { background: #1976d2; border-radius: 2px; border: 2px solid white; transform: none; } /* VUÔNG XANH */
+        
         .icon-moc { background: #7b1fa2; border-radius: 0; width: 8px !important; height: 8px !important; margin-left: -4px !important; margin-top: -4px !important; }
         .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
@@ -140,7 +147,7 @@
                 <div id="tab-pole" class="edit-section active">
                     <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT, AKHTTN" oninput="this.value=this.value.toUpperCase()">
                     <label>Tên Trụ/MC:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171">
-                    <label>Loại:</label><select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ</option><option value="TRU_NEO">Trụ Néo</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option></select>
+                    <label>Loại:</label><select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ (Tròn)</option><option value="TRU_NEO">Trụ Néo (Vuông)</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option></select>
                     <label>Là Nguồn (Chỉ áp dụng MC):</label>
                     <select id="inp-pole-src"><option value="">-- Không phải nguồn --</option><option value="110kV">110kV (Xanh lá)</option><option value="220kV">220kV (Đỏ)</option><option value="500kV">500kV (Xanh dương)</option></select>
                     <label>Tọa độ: <button class="btn-pick" onclick="enableMapPick('pole')">📍 Chấm bản đồ</button></label>
@@ -183,18 +190,27 @@
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Toàn cảnh --</option></select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
+                
                 <button class="action-btn btn-ground" id="btn-grounding" onclick="toggleGrounding()" style="display:none;">🔒 ĐÓNG TIẾP ĐỊA</button>
+
                 <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
-                <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
-                <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label><label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
+                
+                <label>Nhập Km sự cố:</label>
+                <input type="number" id="faultKm" step="0.01" />
+                
+                <div class="radio-group">
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                </div>
+                
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.67</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.68</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -236,6 +252,7 @@
         map.on('zoomend', () => { if (map.getZoom() < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); } });
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
+        
         function isEditMode() { return document.getElementById('acc-entry').classList.contains('active'); }
         function getActiveTab() {
             if(document.getElementById('tab-pole').classList.contains('active')) return 'pole';
@@ -303,7 +320,6 @@
         window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
 
-        // --- SMART CLICK HANDLER ---
         window.onElementClick = function(type, data) {
             if(pickingMode === 'area') return; 
 
@@ -325,7 +341,8 @@
                         document.getElementById('inp-seg-type').value = seg.type;
                         let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
                         let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
-                        window.highlightSegment(seg.id, 'cyan'); // Use updated Highlight logic
+                        // FIX: Highlight màu đen
+                        window.highlightSegment(seg.id, 'black'); 
                     }
                 }
                 else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) {
@@ -373,7 +390,6 @@
             let p2 = getPoleExact(seg.lineTo, seg.poleTo) || getPoleGlobal(seg.poleTo);
             if(!p1 || !p2) return [];
 
-            // Case 1: Same Route -> Trace Route
             let r1 = p1.foundRoute || seg.lineFrom;
             let r2 = p2.foundRoute || seg.lineTo;
 
@@ -383,14 +399,11 @@
                     let i1 = routePoles.findIndex(p => p.name === p1.name);
                     let i2 = routePoles.findIndex(p => p.name === p2.name);
                     if (i1 !== -1 && i2 !== -1) {
-                        let segmentPoles = (i1 <= i2) 
-                            ? routePoles.slice(i1, i2 + 1) 
-                            : routePoles.slice(i2, i1 + 1).reverse();
+                        let segmentPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
                         return segmentPoles.map(p => [p.lat, p.lng]);
                     }
                 }
             }
-            // Case 2: Fallback -> Straight Line (Cập nhật để trả về mảng điểm)
             return [[p1.lat, p1.lng], [p2.lat, p2.lng]];
         }
 
@@ -400,7 +413,11 @@
             if(seg) {
                 let pts = getPointsForSegment(seg);
                 if(pts.length) {
-                    L.polyline(pts, {color: color, weight: 6, opacity: 0.9, dashArray: (color==='cyan'?'10,5':null)}).addTo(layers.editHighlight);
+                    // Fix: Check color logic
+                    let style = {color: color, weight: 6, opacity: 0.9};
+                    if(color === 'black') { style.dashArray = null; style.weight = 5; style.opacity = 1; } // SOLID BLACK
+                    else if(color === 'cyan') { style.dashArray = '10,5'; }
+                    L.polyline(pts, style).addTo(layers.editHighlight);
                 }
             }
         }
@@ -436,7 +453,6 @@
                 layers.editHighlight.clearLayers();
                 if(!appData.circuits) appData.circuits = {};
                 appData.circuits[cid] = currentEditingCircuit;
-                // Nếu đang ở Tab Mạch, vẽ lại
                 renderGlobalMap('normal');
             });
         }
@@ -482,11 +498,8 @@
             return L.divIcon({ className: cls, html: label, iconSize: sz });
         }
         
-        // --- UPDATED RENDER LOGIC ---
         function renderGlobalMap(mode = 'normal') {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
-            
-            // Draw Areas & Poles (Always visible)
             if(appData.areas) appData.areas.forEach(a => { 
                 let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
                 let p = L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`);
@@ -498,10 +511,7 @@
                 let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isClosed, p.sourceVoltage), zIndexOffset: isMC ? 1000 : 0 }).addTo(target);
                 marker.on('click', () => window.onElementClick('pole', {type:p.type, name:p.name, route:l, lat:p.lat, lng:p.lng, srcVal:p.sourceVoltage})); if(!isMC) marker.bindPopup(`<b>${p.name}</b><br>${l}`);
             });
-
-            // --- MODE SWITCHING ---
             if (mode === 'segment_edit') {
-                // CHỈ VẼ CÁC ĐOẠN VẬT LÝ (No circuits, no offsets)
                 if(appData.segments) Object.values(appData.segments).forEach(seg => {
                     let pts = getPointsForSegment(seg);
                     if(pts.length) {
@@ -510,7 +520,6 @@
                     }
                 });
             } else {
-                // VẼ MẠCH (Normal Mode)
                 if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
             }
         }
@@ -533,22 +542,19 @@
             segs.forEach(item => {
                 let def = appData.segments[item.segId]; if(!def) return; 
                 let pts = getPointsForSegment(def); 
-                
-                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom);
-                let p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
+                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
                 let offset = 0;
                 if(p1 && p2) {
                     let key = getSegmentKey(p1, p2); let list = segmentCounts[key];
                     if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
                 }
-
                 if(pts.length) { 
                     let isCable=def.type.includes("NGAM"); 
                     let poly = L.polyline(pts, { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
                     poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
                     poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    // FIX: calcPath with Array Coords [lat, lng]
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist}); }); 
+                    // FIX: calcPath Logic for Array of Arrays
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat:p[0], lng:p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
                 }
             });
         }
@@ -562,6 +568,7 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
+        // --- FIX FIND FAULT (Handle Undefined Name) ---
         window.findFault = function() { 
             layers.fault.clearLayers(); document.getElementById('result').style.display='none'; 
             let kmInput = parseFloat(document.getElementById('faultKm').value); 
@@ -576,12 +583,14 @@
             if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
             for(let i=1; i<currentPath.length; i++) { 
                 let p1=currentPath[i-1], p2=currentPath[i]; 
-                // Fix coordinates access for array type
                 let d1=p1.accDist, d2=p2.accDist;
                 if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
                     let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                     let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
+                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                    // FIX: DISPLAY NAME SAFELY
+                    document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
                 } 
             } 
         }
@@ -596,15 +605,8 @@
             for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); 
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
-            // EXPORT VUNG
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-
-            let wb=XLSX.utils.book_new(); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
-            XLSX.writeFile(wb,"DuLieuLuoiDien_v166.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v168.xlsx"); 
         }
     </script>
 </body>
