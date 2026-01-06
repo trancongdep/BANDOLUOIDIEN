@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.77</title>
+    <title>Hệ Thống Lưới Điện - Version 1.78</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -21,24 +21,22 @@
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
         .footer { position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px; padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px); background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
         
-        /* ACCORDION */
+        /* ACCORDION & PANELS */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* INPUTS */
+        /* INPUTS & BUTTONS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
         button:disabled { background: #ccc !important; cursor: not-allowed; }
-
         .radio-group { display: flex; flex-direction: row; align-items: center; gap: 20px; margin-bottom: 15px; width: 100%; }
         .radio-group label { margin: 0; font-weight: normal; cursor: pointer; display: flex; align-items: center; white-space: nowrap; }
         .radio-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        /* COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -84,12 +82,16 @@
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
         
-        /* FAULT BOX (RESTORED) */
-        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
+        /* FAULT BOX & WEATHER */
+        .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 280px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .fault-header { color: #d32f2f; font-weight: bold; font-size: 1rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .fault-label { font-weight: bold; color: #555; }
         .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         .btn-close-fault { background: #eee; border: none; padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; }
+        
+        .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
+        .weather-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; display: none; } /* Mặc định ẩn, hiện khi có dông */
 
         /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
@@ -224,7 +226,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.77</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.78</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -646,11 +648,78 @@
                         poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
                         poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
                     }
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
+                    if(calcPath) pts.forEach((p,i)=>{ 
+                        if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); 
+                        
+                        // DETERMINE NAME FOR EACH POINT
+                        let pointName = '';
+                        if (i === 0) pointName = p1 ? p1.name : '';
+                        else if (i === pts.length - 1) pointName = p2 ? p2.name : '';
+                        
+                        currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist, name: pointName}); 
+                    }); 
                 }
             });
         }
         
+        // --- NAME LOOKUP HELPER ---
+        function findPoleName(index) {
+            // Search backwards
+            for (let i = index; i >= 0; i--) {
+                if (currentPath[i].name) return currentPath[i].name;
+            }
+            return "Điểm đầu";
+        }
+        function findNextPoleName(index) {
+            // Search forwards
+            for (let i = index; i < currentPath.length; i++) {
+                if (currentPath[i].name) return currentPath[i].name;
+            }
+            return "Điểm cuối";
+        }
+
+        // --- WEATHER API INTEGRATION ---
+        async function fetchWeather(lat, lng) {
+            let infoBox = document.getElementById('fault-weather');
+            if(!infoBox) {
+                // Insert weather box into fault box
+                let div = document.createElement('div');
+                div.id = 'fault-weather';
+                div.className = 'weather-info';
+                document.getElementById('fault-info-box').appendChild(div);
+                infoBox = div;
+            }
+            infoBox.innerHTML = '<i>⏳ Đang tải dữ liệu thời tiết...</i>';
+
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.current) {
+                    let code = data.current.weather_code;
+                    let isStorm = [95, 96, 99].includes(code);
+                    let condition = "Nắng/Ít mây";
+                    if(code > 3) condition = "Nhiều mây";
+                    if(code >= 51) condition = "Mưa";
+                    if(isStorm) condition = "Dông sét";
+
+                    let html = `
+                        <div class="weather-row"><span><i class="fas fa-wind"></i> Gió:</span> <b>${data.current.wind_speed_10m} km/h</b></div>
+                        <div class="weather-row"><span><i class="fas fa-cloud"></i> Trạng thái:</span> <b>${condition}</b></div>
+                        <div class="weather-row"><span><i class="fas fa-temperature-high"></i> Nhiệt độ:</span> <b>${data.current.temperature_2m}°C</b></div>
+                    `;
+                    
+                    if(isStorm) {
+                        html += `<div class="weather-alert"><i class="fas fa-bolt"></i> CẢNH BÁO: ĐANG CÓ DÔNG SÉT!</div>`;
+                    }
+                    infoBox.innerHTML = html;
+                }
+            } catch (e) {
+                infoBox.innerHTML = '<span style="color:red">Không lấy được thời tiết.</span>';
+            }
+        }
+
         let segmentCounts = {};
         function getSegmentKey(p1, p2) { let k1=p1.lat+"_"+p1.lng, k2=p2.lat+"_"+p2.lng; return (k1<k2)?(k1+"|"+k2):(k2+"|"+k1); }
         function calculateOffsets() { segmentCounts={}; if(appData.circuits) Object.keys(appData.circuits).forEach(cid=>{ appData.circuits[cid].forEach(item=>{ let def=appData.segments[item.segId]; if(def){ let p1=getPoleExact(def.lineFrom,def.poleFrom), p2=getPoleExact(def.lineTo,def.poleTo); if(p1&&p2){ let k=getSegmentKey(p1,p2); if(!segmentCounts[k]) segmentCounts[k]=[]; segmentCounts[k].push(cid); } } }); }); }
@@ -672,7 +741,6 @@
                     let res = document.getElementById('result'); 
                     res.style.display='none'; 
                     
-                    // FIX: Check if controls exist to avoid null error
                     let faultBox = document.getElementById('fault-info-box');
                     if(faultBox) faultBox.style.display='none'; 
 
@@ -714,12 +782,19 @@
                             let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                             let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
                             
+                            // FIND NEAREST POLE NAMES
+                            let name1 = findPoleName(i-1);
+                            let name2 = findNextPoleName(i);
+
                             if(faultBox) {
                                 faultBox.style.display='block'; 
                                 document.getElementById('fi-name').innerText=cName; 
                                 document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                                document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                                document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                                document.getElementById('fi-seg').innerHTML=`Giữa trụ: <b>${name1}</b> <i class="fas fa-arrow-right"></i> <b>${name2}</b>`; 
+                                document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                                
+                                // CALL WEATHER API
+                                fetchWeather(lat, lng);
                             }
                             
                             L.marker([lat,lng], {
@@ -764,7 +839,7 @@
         faultControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'fault-box');
             div.id = "fault-info-box";
-            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="document.getElementById('fault-info-box').style.display='none'">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Đoạn:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
+            div.innerHTML = `<div class="fault-header"><span><i class="fas fa-exclamation-triangle"></i> SỰ CỐ</span><button class="btn-close-fault" onclick="document.getElementById('fault-info-box').style.display='none'">X</button></div><div class="fault-row"><span class="fault-label">Mạch:</span> <span id="fi-name"></span></div><div class="fault-row"><span class="fault-label">Cách nguồn:</span> <span id="fi-dist"></span></div><div class="fault-row"><span class="fault-label">Vị trí:</span> <span id="fi-seg"></span></div><div class="fault-row"><span id="fi-addr"></span></div>`;
             return div;
         };
         faultControl.addTo(map);
