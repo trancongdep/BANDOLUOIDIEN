@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.13</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.14</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -41,20 +41,14 @@
         .btn-yes { background: #0078d7; color: white; }
         .btn-no { background: #ddd; color: #333; }
 
-        /* FAULT BOX & WEATHER BOX */
-        .fault-box { 
-            display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; 
-            width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: all 0.3s; 
-        }
+        .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 75vh; flex-direction: column; transition: all 0.3s; }
         .fault-box.minimized { height: 45px; overflow: hidden; }
-        
         .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; flex-shrink: 0; }
         .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; }
-        
         .header-actions { display: flex; gap: 10px; }
         .header-btn { border: none; background: none; cursor: pointer; font-size: 1rem; color: #d32f2f; padding: 2px 5px; }
 
+        .fault-label { font-weight: bold; color: #555; }
         .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; line-height: 1.4; }
         .hl-name { color: #00695c; font-weight: bold; }
         .hl-dist { color: #d32f2f; font-weight: bold; }
@@ -74,6 +68,7 @@
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         .fault-marker { font-size: 40px; color: #d32f2f; text-shadow: 0 0 10px #ffeb3b; animation: flash 0.5s infinite alternate; }
         @keyframes flash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(1.2); } }
+        
         .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; display: none; font-weight: bold; text-align: center; }
         .legend { background: rgba(255,255,255,0.9); padding: 5px 8px; border-radius: 4px; font-size: 0.7rem; display: block; margin-bottom: 50px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 2px; }
@@ -85,7 +80,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.13</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.14</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -266,7 +261,7 @@
                     let faultBox = document.getElementById('fault-info-box'); 
                     if(faultBox) {
                         faultBox.style.display='none';
-                        // Clean up content
+                        // Clean up
                         document.getElementById('route-info').style.display='none';
                         document.getElementById('fault-weather').style.display='none';
                     }
@@ -316,9 +311,9 @@
                                 fetchWeather(lat, lng, timeVal);
                                 fetchAddress(lat, lng);
                                 
-                                // ROUTING FALLBACK CHAIN
+                                // NEW ROUTING FALLBACK (v1.14)
                                 if(userLocation) {
-                                    // 1. Try Driving
+                                    // 1. Try Driving (2s timeout)
                                     fetchRoute(userLocation.lat, userLocation.lng, lat, lng, 'driving')
                                     .then(success => {
                                         if(!success) {
@@ -329,9 +324,11 @@
                                         if(success === false) {
                                             // 3. Fallback to Straight Line
                                             let d = getDist(userLocation.lat, userLocation.lng, lat, lng) / 1000;
-                                            document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Thẳng)</div>`;
+                                            document.getElementById('route-info').innerHTML = `<div><i class="fas fa-plane"></i> <b>${d.toFixed(1)} km</b> (Chim bay)</div>`;
                                         }
                                     });
+                                } else {
+                                    document.getElementById('route-info').innerHTML = 'Chưa có vị trí GPS.';
                                 }
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
@@ -343,18 +340,18 @@
             }, 50); 
         }
 
-        // --- UPDATED ROUTING WITH FALLBACK ---
+        // --- UPDATED ROUTING WITH FALLBACK & TIMEOUT (v1.14) ---
         async function fetchRoute(lat1, lng1, lat2, lng2, profile) {
             let infoBox = document.getElementById('route-info');
             try {
-                // Timeout promise (3s)
-                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000));
+                // Short Timeout for OSRM Demo (2000ms)
+                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
                 
                 const fetchPromise = fetch(`https://router.project-osrm.org/route/v1/${profile}/${lng1},${lat1};${lng2},${lat2}?overview=false`);
                 
                 const res = await Promise.race([fetchPromise, timeout]);
                 
-                if(!res.ok) throw new Error('Network response was not ok');
+                if(!res.ok) throw new Error('Error');
                 
                 const data = await res.json();
                 if(data.routes && data.routes.length > 0) {
@@ -362,13 +359,13 @@
                     let distKm = (route.distance / 1000).toFixed(1);
                     let durationMin = Math.round(route.duration / 60);
                     let icon = profile === 'driving' ? '<i class="fas fa-motorcycle"></i>' : '<i class="fas fa-walking"></i>';
-                    let type = profile === 'driving' ? 'Xe máy' : 'Đi bộ';
-                    infoBox.innerHTML = `<div>${icon} <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> (${type})</div>`;
+                    let type = profile === 'driving' ? '' : '(Đi bộ)';
+                    infoBox.innerHTML = `<div>${icon} <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> ${type}</div>`;
                     return true; // Success
                 }
-                return false; // No route found
+                return false; 
             } catch(e) { 
-                return false; // Error/Timeout
+                return false; // Failed, trigger fallback
             }
         }
 
@@ -494,14 +491,18 @@
                 <div class="fault-body">
                     <div id="route-info" class="route-info-box" style="display:none"></div>
                     <div class="fault-row"><span class="fault-label">Thời gian:</span> <span id="fi-time">---</span></div>
+                    
                     <div class="fault-row" id="fi-summary">---</div>
+
                     <div class="fault-row"><span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">---</span></div>
                     <div class="fault-row"><span class="fault-label">Map:</span> <span id="fi-addr"><a id="fi-map-link" href="#" target="_blank">Mở Google Maps</a></span></div>
+                    
                     <div id="fault-weather" class="weather-info" style="display:none"></div>
                 </div>`; 
             return div; 
         };
         faultControl.addTo(map);
+
     </script>
 </body>
 </html>
