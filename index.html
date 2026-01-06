@@ -3,29 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.61</title>
+    <title>Hệ Thống Lưới Điện - Version 1.62</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* --- GIỮ NGUYÊN CSS --- */
+        /* --- CORE CSS --- */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* UI ELEMENTS */
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
         #sidebar { position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; bottom: calc(30px + env(safe-area-inset-bottom, 10px)); background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
         #sidebar.active { left: 0; }
         .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
         .footer { position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px; padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px); background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
+        
+        /* ACCORDION & PANELS */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
+        
+        /* INPUTS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
+        
+        /* BUTTONS COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
@@ -34,6 +42,7 @@
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
         .btn-ground { background: #0288d1; margin-top: 5px; }
+        
         .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
@@ -42,10 +51,14 @@
         .edit-section.active { display: block; }
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        
+        /* LEGEND & POPUPS */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
+        
+        /* DIALOG */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -54,6 +67,8 @@
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
+        
+        /* FAULT & ICONS */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
@@ -63,7 +78,7 @@
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b, 1px 1px 3px rgba(0,0,0,0.8); z-index: 1001 !important; }
         .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
         .leaflet-control-custom:hover { background: #f4f4f4; }
-        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; }
+        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -145,7 +160,9 @@
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Toàn cảnh --</option></select>
                 <div style="margin-top:10px;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span></div>
+                
                 <button class="action-btn btn-ground" id="btn-grounding" onclick="toggleGrounding()" style="display:none;">🔒 ĐÓNG TIẾP ĐỊA</button>
+
                 <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
                 <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
@@ -156,7 +173,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.61</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.62</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -172,7 +189,6 @@
     </script>
 
     <script>
-        // CONFIG
         let map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([10.762, 106.660], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri', maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
@@ -198,9 +214,25 @@
         map.on('zoomend', () => { if (map.getZoom() < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); } });
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
-        function isEditMode() { let panel = document.getElementById('panel-entry'); return panel.style.maxHeight && panel.style.maxHeight !== '0px'; }
+        
+        // --- SỬA LỖI 1: CẢI THIỆN CHECK EDIT MODE ---
+        function isEditMode() { 
+            // Kiểm tra xem nút accordion "Nhập liệu" có class active không
+            return document.getElementById('acc-entry').classList.contains('active'); 
+        }
         
         window.refreshPanelHeight = function(pid) { let p=document.getElementById(pid); if(p.style.maxHeight) p.style.maxHeight = (p.scrollHeight + 100) + "px"; }
+
+        // --- FIX TAB SWITCHING ---
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.edit-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            // Tìm button trigger và add active
+            let btns = document.querySelectorAll('.tab-btn');
+            for(let b of btns) { if(b.getAttribute('onclick').includes(tabId)) b.classList.add('active'); }
+            window.refreshDropdowns(); window.refreshPanelHeight('panel-entry');
+        }
 
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) { acc[i].addEventListener("click", function() { for (var j = 0; j < acc.length; j++) { if (acc[j] !== this && acc[j].classList.contains("active")) { acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; } } this.classList.toggle("active"); var panel = this.nextElementSibling; if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 100) + "px"; }); }
@@ -220,56 +252,30 @@
         function readFile(file) { return new Promise(r => { const rd=new FileReader(); rd.onload=e=>{ const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); let s={}; w.SheetNames.forEach(n=>s[n]=XLSX.utils.sheet_to_json(w.Sheets[n])); r(s); }; rd.readAsArrayBuffer(file); }); }
         
         function processSheets(sheets) {
-            const sPoles=Object.keys(sheets).find(n=>n.includes("TOA_DO"));
-            const sSegs=Object.keys(sheets).find(n=>n.includes("DM_DOAN"));
-            const sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
+            const sPoles=Object.keys(sheets).find(n=>n.includes("TOA_DO")); const sSegs=Object.keys(sheets).find(n=>n.includes("DM_DOAN")); const sCircs=Object.keys(sheets).find(n=>n.includes("CAU_HINH"));
             if(!sPoles||!sSegs||!sCircs) { log("❌ Thiếu sheet bắt buộc!"); return false; }
-            
             let data = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: appData.areas || [] };
-            
-            sheets[sPoles].forEach(r => {
-                let cMa=getCol(r,["MA_TUYEN"]), cTen=getCol(r,["TEN_TRU"]), cLat=getCol(r,["LAT"]), cLong=getCol(r,["LONG"]), cLoai=getCol(r,["LOAI_DIEM"]), cNguon=getCol(r,["NGUON"]);
-                if(cMa && r[cLat]) {
-                    let l=String(r[cMa]).trim(), n=String(r[cTen]).trim(); if(!data.poles[l]) data.poles[l]=[];
-                    let p = { name: n, lat: parseFloat(r[cLat]), lng: parseFloat(r[cLong]), type: cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO", sourceVoltage: cNguon ? String(r[cNguon]).trim() : "" };
-                    data.poles[l].push(p); if(p.type.includes('MC')) data.mcStates[n] = true;
-                }
-            });
-            sheets[sSegs].forEach(r => {
-                let cId=getCol(r,["MA_DOAN"]), cT1=getCol(r,["TUYEN_TU"]), cTr1=getCol(r,["TRU_TU"]), cT2=getCol(r,["TUYEN_DEN"]), cTr2=getCol(r,["TRU_DEN"]), cL=getCol(r,["LOAI_DIEM","LOAI"]);
-                if(cId && r[cId]) { data.segments[r[cId]] = { id: r[cId], type: (cL&&String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom: r[cT1], poleFrom: String(r[cTr1]).trim(), lineTo: r[cT2], poleTo: String(r[cTr2]).trim() }; }
-            });
-
-            // --- FIX LỖI UNDEFINED TRONG MẠCH ---
-            sheets[sCircs].forEach(r => {
-                let cCid=getCol(r,["MA_DUONG_DAY"]), cSid=getCol(r,["MA_DOAN"]), cStt=getCol(r,["STT"]);
-                // Kiểm tra kỹ r[cSid] có giá trị không
-                if(cCid && r[cCid] && cSid && r[cSid]) { 
-                    let cid=r[cCid]; 
-                    if(!data.circuits[cid]) data.circuits[cid]=[]; 
-                    data.circuits[cid].push({
-                        segId: String(r[cSid]).trim(), // Ép kiểu string để tránh undefined
-                        order: parseInt(r[cStt]||999)
-                    }); 
-                }
-            });
-            // ------------------------------------
-
+            sheets[sPoles].forEach(r => { let cMa=getCol(r,["MA_TUYEN"]), cTen=getCol(r,["TEN_TRU"]), cLat=getCol(r,["LAT"]), cLong=getCol(r,["LONG"]), cLoai=getCol(r,["LOAI_DIEM"]), cNguon=getCol(r,["NGUON"]); if(cMa && r[cLat]) { let l=String(r[cMa]).trim(), n=String(r[cTen]).trim(); if(!data.poles[l]) data.poles[l]=[]; let p = { name: n, lat: parseFloat(r[cLat]), lng: parseFloat(r[cLong]), type: cLoai ? String(r[cLoai]).trim().toUpperCase() : "TRU_DO", sourceVoltage: cNguon ? String(r[cNguon]).trim() : "" }; data.poles[l].push(p); if(p.type.includes('MC')) data.mcStates[n] = true; } });
+            sheets[sSegs].forEach(r => { let cId=getCol(r,["MA_DOAN"]), cT1=getCol(r,["TUYEN_TU"]), cTr1=getCol(r,["TRU_TU"]), cT2=getCol(r,["TUYEN_DEN"]), cTr2=getCol(r,["TRU_DEN"]), cL=getCol(r,["LOAI_DIEM","LOAI"]); if(cId && r[cId]) { data.segments[r[cId]] = { id: r[cId], type: (cL&&String(r[cL]).includes("NGAM")?"NGAM":"NOI"), lineFrom: r[cT1], poleFrom: String(r[cTr1]).trim(), lineTo: r[cT2], poleTo: String(r[cTr2]).trim() }; } });
+            sheets[sCircs].forEach(r => { let cCid=getCol(r,["MA_DUONG_DAY"]), cSid=getCol(r,["MA_DOAN"]), cStt=getCol(r,["STT"]); if(cCid && r[cCid] && cSid && r[cSid]) { let cid=r[cCid]; if(!data.circuits[cid]) data.circuits[cid]=[]; data.circuits[cid].push({segId: String(r[cSid]).trim(), order: parseInt(r[cStt]||999)}); } });
             for(let k in data.circuits) data.circuits[k].sort((a,b)=>a.order-b.order);
-            window.stagingData = data; document.getElementById('upload-actions').style.display = "block"; 
-            window.refreshPanelHeight('panel-update');
-            return true;
+            window.stagingData = data; document.getElementById('upload-actions').style.display = "block"; window.refreshPanelHeight('panel-update'); return true;
         }
         
-        window.showUploadConfirm = function(mode) {
-            document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?";
-            window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex';
-        }
-
+        window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
+
+        // --- CẬP NHẬT: onElementClick TỰ ĐỘNG SWITCH TAB ---
         window.onElementClick = function(type, name, route, lat, lng, srcVal) {
             if (isEditMode()) {
-                switchTab('tab-pole'); document.getElementById('inp-pole-route').value = route || ""; document.getElementById('inp-pole-name').value = name; document.getElementById('inp-pole-type').value = type; document.getElementById('inp-pole-src').value = srcVal || ""; document.getElementById('inp-lat').value = lat; document.getElementById('inp-lng').value = lng; openSidebar();
+                window.switchTab('tab-pole'); // Tự động mở tab trụ
+                document.getElementById('inp-pole-route').value = route || ""; 
+                document.getElementById('inp-pole-name').value = name; 
+                document.getElementById('inp-pole-type').value = type; 
+                document.getElementById('inp-pole-src').value = srcVal || ""; 
+                document.getElementById('inp-lat').value = lat; 
+                document.getElementById('inp-lng').value = lng; 
+                openSidebar();
             } else {
                 if (type.includes('MC')) {
                     let currentState = appData.mcStates[name] !== false; 
@@ -282,24 +288,14 @@
         window.confirmAction = function() {
             if (!window.pendingAction) { closeWinDialog(); return; }
             let btn = document.getElementById('win-btn-yes');
-
-            if (window.pendingAction.type === 'mc') {
-                window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [window.pendingAction.name]: !(appData.mcStates[window.pendingAction.name] !== false) });
-                closeWinDialog();
-            } else if (window.pendingAction.type === 'upload') {
+            if (window.pendingAction.type === 'mc') { window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), { [window.pendingAction.name]: !(appData.mcStates[window.pendingAction.name] !== false) }); closeWinDialog(); } 
+            else if (window.pendingAction.type === 'upload') {
                 if(window.stagingData) {
                     btn.innerText = "Đang xử lý..."; btn.disabled = true;
                     const rootRef = window.ref(window.db, 'he_thong_luoi_dien');
                     const d = window.stagingData;
-                    
                     let sequence = Promise.resolve();
-                    if(window.pendingAction.mode === 'replace') {
-                        sequence = sequence.then(() => window.set(window.child(rootRef, 'poles'), null))
-                                           .then(() => window.set(window.child(rootRef, 'segments'), null))
-                                           .then(() => window.set(window.child(rootRef, 'circuits'), null))
-                                           .then(() => window.set(window.child(rootRef, 'mcStates'), d.mcStates));
-                    }
-
+                    if(window.pendingAction.mode === 'replace') { sequence = sequence.then(() => window.set(window.child(rootRef, 'poles'), null)).then(() => window.set(window.child(rootRef, 'segments'), null)).then(() => window.set(window.child(rootRef, 'circuits'), null)).then(() => window.set(window.child(rootRef, 'mcStates'), d.mcStates)); }
                     sequence.then(() => { log("1/4: Đang ghi dữ liệu Trụ..."); return window.update(window.child(rootRef, 'poles'), d.poles); })
                             .then(() => { log("2/4: Đang ghi dữ liệu Đoạn..."); return window.update(window.child(rootRef, 'segments'), d.segments); })
                             .then(() => { log("3/4: Đang ghi dữ liệu Mạch..."); return window.update(window.child(rootRef, 'circuits'), d.circuits); })
@@ -310,13 +306,7 @@
             }
         };
 
-        window.savePole = function() {
-            let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim();
-            if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!");
-            let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) };
-            let path=`he_thong_luoi_dien/poles/${line}`;
-            window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); });
-        }
+        window.savePole = function() { let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim(); if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!"); let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) }; let path=`he_thong_luoi_dien/poles/${line}`; window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); }); }
         window.saveSegment = function() { let id=document.getElementById('inp-seg-id').value.trim(); if(!id) return alert("Thiếu ID!"); window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:document.getElementById('sel-seg-line1').value, poleFrom:document.getElementById('sel-seg-pole1').value, lineTo:document.getElementById('sel-seg-line2').value, poleTo:document.getElementById('sel-seg-pole2').value}).then(()=>alert("Đã lưu!")); }
         window.saveCircuitItem = function() { let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value; if(!cid||!sid) return; window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{ let list=snap.val()||[]; list.push({segId:sid, order:list.length+1}); window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>alert("Đã thêm!")); }); }
         window.saveArea = function() { if(tempAreaPoints.length<3) return alert("Cần 3 điểm!"); window.get(window.child(window.ref(window.db), 'he_thong_luoi_dien/areas')).then(snap => { let areas = snap.val() || []; areas.push({ name:document.getElementById('inp-area-name').value, type:document.getElementById('inp-area-type').value, points: tempAreaPoints }); window.set(window.ref(window.db, 'he_thong_luoi_dien/areas'), areas).then(() => { alert("Đã lưu vùng!"); pickingMode = null; if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints = []; }); }); }
@@ -349,7 +339,21 @@
             let color = '#000000', statusText = "MẤT ĐIỆN";
             if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } 
             else if (activeVoltage) { if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } else if (activeVoltage.includes('220')) { color = '#d32f2f'; statusText = "CÓ ĐIỆN (220kV)"; } else if (activeVoltage.includes('500')) { color = '#0d47a1'; statusText = "CÓ ĐIỆN (500kV)"; } }
-            if(calcPath) { document.getElementById('status-text').innerHTML = `<span style="color:${color}">${statusText}</span>`; let btnG = document.getElementById('btn-grounding'); btnG.style.display = 'block'; btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; currentPath=[]; currentPathTotalDist=0; }
+            
+            if(calcPath) { 
+                document.getElementById('status-text').innerHTML = `<span style="color:${color}">${statusText}</span>`; 
+                let btnG = document.getElementById('btn-grounding'); 
+                // LOGIC NÚT TIẾP ĐỊA: Chỉ hiện khi Mất điện (activeVoltage null) HOẶC Đã tiếp địa (isGrounded true)
+                if(!activeVoltage || isGrounded) {
+                    btnG.style.display = 'block'; 
+                    btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; 
+                    btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; 
+                } else {
+                    btnG.style.display = 'none';
+                }
+                currentPath=[]; currentPathTotalDist=0; 
+            }
+            
             segs.forEach(item => {
                 let def = appData.segments[item.segId]; if(!def) return; let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo); if(!p1||!p2) return;
                 let pts = []; let r1=p1.foundRoute||def.lineFrom, r2=p2.foundRoute||def.lineTo; let offset = 0, key = getSegmentKey(p1, p2), list = segmentCounts[key]; if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
@@ -366,13 +370,50 @@
         function getDist(lat1,lon1,lat2,lon2) { const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180; const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
-        window.findFault = function() { layers.fault.clearLayers(); document.getElementById('result').style.display='none'; let kmInput = parseFloat(document.getElementById('faultKm').value); let direction = document.querySelector('input[name="faultDir"]:checked').value; let cName = document.getElementById('circuitSelect').value; let res = document.getElementById('result'); if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } for(let i=1; i<currentPath.length; i++) { let p1=currentPath[i-1], p2=currentPath[i]; if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) { let ratio = (p2.accDist > p1.accDist) ? (targetDist-p1.accDist)/(p2.accDist-p1.accDist) : 0; let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`; document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; } } }
+        
+        // --- SỬA LỖI 3: TÌM KIẾM & CẢNH BÁO ---
+        window.findFault = function() { 
+            layers.fault.clearLayers(); 
+            document.getElementById('result').style.display='none'; 
+            let kmInput = parseFloat(document.getElementById('faultKm').value); 
+            let direction = document.querySelector('input[name="faultDir"]:checked').value; 
+            let cName = document.getElementById('circuitSelect').value; 
+            let res = document.getElementById('result'); 
+
+            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } 
+            
+            // CẢNH BÁO KHOẢNG CÁCH
+            let totalKm = currentPathTotalDist / 1000;
+            if(kmInput > totalKm) {
+                 res.style.display='block'; res.className='warning-msg'; 
+                 res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
+                 return; 
+            }
+
+            let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
+            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
+            
+            for(let i=1; i<currentPath.length; i++) { 
+                let p1=currentPath[i-1], p2=currentPath[i]; 
+                if(targetDist>=(p1.accDist-0.1) && targetDist<=(p2.accDist+0.1)) { 
+                    let ratio = (p2.accDist > p1.accDist) ? (targetDist-p1.accDist)/(p2.accDist-p1.accDist) : 0; 
+                    let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
+                    document.getElementById('fault-info-box').style.display='block'; 
+                    document.getElementById('fi-name').innerText=cName; 
+                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                    document.getElementById('fi-seg').innerHTML=`${p1.name} <i class="fas fa-arrow-right"></i> ${p2.name}`; 
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                    L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); 
+                    map.setView([lat,lng], 16); closeSidebar(); return; 
+                } 
+            } 
+        }
         
         window.listenCloud = function() { window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => { let val = snap.val(); if(val) { appData = val; if(!appData.mcStates) appData.mcStates={}; if(!appData.grounded) appData.grounded={}; updateUI(); calculateOffsets(); renderGlobalMap(); window.refreshDropdowns(); if(document.getElementById('circuitSelect').value) window.zoomToCircuit(); } }); }
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
         window.updatePoleSelect = function(lid, pid) { let line=document.getElementById(lid).value, poles=appData.poles[line]||[]; document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); }
-        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v161.xlsx"); }
+        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v162.xlsx"); }
     </script>
 </body>
 </html>
