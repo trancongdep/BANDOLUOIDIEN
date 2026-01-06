@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.63</title>
+    <title>Hệ Thống Lưới Điện - Version 1.64</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -13,7 +13,7 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* UI ELEMENTS */
+        /* UI COMPONENTS */
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
         #sidebar { position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; bottom: calc(30px + env(safe-area-inset-bottom, 10px)); background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
         #sidebar.active { left: 0; }
@@ -21,51 +21,49 @@
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
         .footer { position: fixed; bottom: 0; left: 0; width: 100%; min-height: 30px; padding-top: 5px; padding-bottom: env(safe-area-inset-bottom, 10px); background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
         
-        /* ACCORDION & PANELS */
+        /* ACCORDION */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* INPUTS */
+        /* FORM ELEMENTS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
         
-        /* BUTTONS COLORS */
+        /* BUTTON COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
         .btn-find { background: #d32f2f; }
         .btn-add { background: #1565c0; margin-top: 10px; margin-bottom: 25px !important; }
+        .btn-save-cir { background: #d84315; margin-top: 5px; margin-bottom: 20px !important; } /* Nút lưu mạch mới */
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
         .btn-ground { background: #0288d1; margin-top: 5px; }
         
-        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
         
-        /* Circuit Edit List */
+        /* Circuit List */
         #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
         .cir-item-row:nth-child(even) { background: #f9f9f9; }
         .btn-del-seg { background: #ef5350; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
 
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
-        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; } }
         
-        /* LEGEND & POPUPS */
+        /* OTHER */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
-        
-        /* DIALOG */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -74,8 +72,6 @@
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
-        
-        /* FAULT & ICONS */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
@@ -114,7 +110,7 @@
                 <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions">
-                    <div class="upload-btn-row">
+                    <div style="display:flex;gap:10px;width:100%;margin-bottom:10px;">
                         <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
                         <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
                     </div>
@@ -131,6 +127,7 @@
                     <button class="tab-btn" onclick="switchTab('tab-cir')">Mạch</button>
                     <button class="tab-btn" onclick="switchTab('tab-area')">Vùng</button>
                 </div>
+                
                 <div id="tab-pole" class="edit-section active">
                     <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT, AKHTTN" oninput="this.value=this.value.toUpperCase()">
                     <label>Tên Trụ/MC:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_171">
@@ -139,29 +136,39 @@
                     <select id="inp-pole-src"><option value="">-- Không phải nguồn --</option><option value="110kV">110kV (Xanh lá)</option><option value="220kV">220kV (Đỏ)</option><option value="500kV">500kV (Xanh dương)</option></select>
                     <label>Tọa độ: <button class="btn-pick" onclick="enableMapPick('pole')">📍 Chấm bản đồ</button></label>
                     <div style="display:flex;gap:5px;"><input type="number" id="inp-lat" placeholder="Lat"><input type="number" id="inp-lng" placeholder="Lng"></div>
-                    <button class="action-btn btn-add" onclick="window.savePole()">LƯU / CẬP NHẬT</button>
+                    <button class="action-btn btn-add" onclick="window.savePole()">LƯU / CẬP NHẬT TRỤ</button>
                 </div>
+
                 <div id="tab-seg" class="edit-section">
-                    <label>Mã Đoạn:</label><input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
+                    <label>Mã Đoạn (Chọn trên bản đồ):</label><input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
                     <label>Điểm ĐẦU:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"></select><select id="sel-seg-pole1"></select></div>
                     <label>Điểm CUỐI:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"></select><select id="sel-seg-pole2"></select></div>
                     <label>Loại:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
-                    <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU ĐOẠN</button>
+                    <button class="action-btn btn-add" onclick="window.saveSegment()">LƯU / CẬP NHẬT ĐOẠN</button>
                 </div>
+
                 <div id="tab-cir" class="edit-section">
-                    <label>Tên Mạch (Chọn trên bản đồ để sửa):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
-                    <label>Danh sách đoạn trong mạch:</label>
+                    <label>Tên Mạch (Chọn trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
+                    
+                    <label>Danh sách đoạn trong mạch (Kéo xuống xem):</label>
                     <div id="circuit-segment-list"></div>
                     
-                    <label>Thêm Đoạn:</label><select id="sel-cir-seg"></select>
-                    <button class="action-btn btn-add" onclick="window.saveCircuitItem()">THÊM ĐOẠN</button>
+                    <label>Thêm đoạn mới:</label><select id="sel-cir-seg"></select>
+                    <button class="action-btn btn-add" onclick="window.addSegToCir()">THÊM ĐOẠN VÀO DS</button>
+                    
+                    <hr>
+                    <button class="action-btn btn-save-cir" onclick="window.saveCircuitStructure()">💾 LƯU CẤU TRÚC MẠCH</button>
                 </div>
+
                 <div id="tab-area" class="edit-section">
                     <label>Tên Vùng:</label><input type="text" id="inp-area-name" placeholder="VD: Trạm TBA 110kV">
                     <label>Loại:</label><select id="inp-area-type"><option value="TBA">Trạm Biến Áp (Cam)</option><option value="BUILDING">Nhà/Công trình (Xám)</option><option value="CONSTRUCTION">Khu vực thi công (Vàng)</option><option value="FOUNDATION">Móng/Hầm (Nâu)</option></select>
-                    <div style="margin: 10px 0;"><button class="action-btn btn-draw-control" onclick="startAreaDraw()">✏️ Bắt đầu vẽ</button><button class="action-btn btn-draw-control" style="background:#fbc02d; color:black;" onclick="undoAreaPoint()">↩️ Xóa điểm cuối</button></div>
+                    <div style="margin: 10px 0;">
+                        <button class="action-btn btn-draw-control" onclick="startAreaDraw()">✏️ Bắt đầu vẽ</button>
+                        <button class="action-btn btn-draw-control" style="background:#fbc02d; color:black;" onclick="undoAreaPoint()">↩️ Xóa điểm cuối</button>
+                    </div>
                     <div id="draw-status" style="font-size:0.8rem; color:red; margin-bottom:5px;"></div>
-                    <button class="action-btn btn-add" onclick="saveArea()">LƯU VÙNG</button>
+                    <button class="action-btn btn-add" onclick="saveArea()">LƯU / CẬP NHẬT VÙNG</button>
                 </div>
             </div>
 
@@ -183,7 +190,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.63</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.64</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -215,11 +222,12 @@
         new L.Control.Extent({ position: 'topright' }).addTo(map);
 
         map.createPane('areaPane'); map.getPane('areaPane').style.zIndex = 200;
-        let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), important: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map) };
+        let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), important: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map), editHighlight: L.layerGroup().addTo(map) };
         
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, grounded: {}, areas: [] }; 
         window.stagingData = null; window.pendingAction = null;
         let currentPath = []; let currentPathTotalDist = 0; let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null;
+        let currentEditingCircuit = []; // Lưu danh sách đoạn đang sửa tạm thời
         
         map.on('zoomend', () => { if (map.getZoom() < 15) { if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor); } else { if(!map.hasLayer(layers.minor)) map.addLayer(layers.minor); } });
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
@@ -243,12 +251,19 @@
             let btns = document.querySelectorAll('.tab-btn');
             for(let b of btns) { if(b.getAttribute('onclick').includes(tabId)) b.classList.add('active'); }
             window.refreshDropdowns(); window.refreshPanelHeight('panel-entry');
+            layers.editHighlight.clearLayers(); // Xóa highlight cũ
         }
 
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) { acc[i].addEventListener("click", function() { for (var j = 0; j < acc.length; j++) { if (acc[j] !== this && acc[j].classList.contains("active")) { acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; } } this.classList.toggle("active"); var panel = this.nextElementSibling; if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 100) + "px"; }); }
 
-        map.on('click', function(e) { if (pickingMode === 'pole') { document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6); document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6); pickingMode = null; let btn = document.querySelector('.btn-pick'); btn.innerText = "📍 Chấm bản đồ"; btn.style.background = "#ff9800"; openSidebar(); } else if (pickingMode === 'area') { tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); } });
+        map.on('click', function(e) { 
+            if (pickingMode === 'pole') { 
+                document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6); document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6); pickingMode = null; let btn = document.querySelector('.btn-pick'); btn.innerText = "📍 Chấm bản đồ"; btn.style.background = "#ff9800"; openSidebar(); 
+            } else if (pickingMode === 'area') { 
+                tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); 
+            } 
+        });
 
         window.zoomToExtent = function() { let bounds = L.latLngBounds([]); let hasData = false; if(appData.poles) { for(let l in appData.poles) { appData.poles[l].forEach(p => { bounds.extend([p.lat, p.lng]); hasData=true; }); } } if(hasData) map.fitBounds(bounds, {padding: [50,50]}); else map.setView([10.762, 106.660], 12); }
 
@@ -276,12 +291,14 @@
         window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
 
-        // --- HÀM XỬ LÝ CLICK THÔNG MINH (Smart Handler) ---
+        // --- HÀM XỬ LÝ CLICK ---
         window.onElementClick = function(type, data) {
+            // NẾU ĐANG VẼ VÙNG THÌ KHÔNG BẮT SỰ KIỆN KHÁC
+            if(pickingMode === 'area') return; 
+
             if (isEditMode()) {
                 let tab = getActiveTab();
                 
-                // 1. Nếu đang ở Tab TRỤ -> Click Trụ -> Fill Form
                 if (tab === 'pole' && type === 'pole') {
                     document.getElementById('inp-pole-route').value = data.route || ""; 
                     document.getElementById('inp-pole-name').value = data.name; 
@@ -290,44 +307,36 @@
                     document.getElementById('inp-lat').value = data.lat; 
                     document.getElementById('inp-lng').value = data.lng; 
                 }
-
-                // 2. Nếu đang ở Tab ĐOẠN -> Click Đoạn -> Fill Form
                 else if (tab === 'seg' && type === 'segment') {
                     let seg = appData.segments[data.id];
                     if(seg) {
                         document.getElementById('inp-seg-id').value = seg.id;
                         document.getElementById('inp-seg-type').value = seg.type;
                         
-                        // Fill Dropdown phức tạp
-                        let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; 
-                        window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); 
-                        document.getElementById('sel-seg-pole1').value = seg.poleFrom;
-
-                        let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; 
-                        window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); 
-                        document.getElementById('sel-seg-pole2').value = seg.poleTo;
+                        let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
+                        let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
+                        
+                        // HIGHLIGHT ĐOẠN ĐANG SỬA (NO OFFSET)
+                        layers.editHighlight.clearLayers();
+                        let p1=getPoleExact(seg.lineFrom, seg.poleFrom)||getPoleGlobal(seg.poleFrom);
+                        let p2=getPoleExact(seg.lineTo, seg.poleTo)||getPoleGlobal(seg.poleTo);
+                        if(p1&&p2) L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]], {color: 'cyan', weight: 6, dashArray: '10, 5', opacity: 0.8}).addTo(layers.editHighlight);
                     }
                 }
-
-                // 3. Nếu đang ở Tab MẠCH -> Click Mạch/Đoạn -> Chọn Mạch đó & Load List
                 else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) {
-                    // Nếu click vào đoạn, tìm mạch chứa nó
                     let cid = data.circuitId; 
                     if(cid) {
                         document.getElementById('inp-cir-id').value = cid;
-                        window.renderCircuitSegments(cid);
+                        currentEditingCircuit = [...(appData.circuits[cid] || [])]; // Clone ra list tạm
+                        window.renderCircuitSegments();
                     }
                 }
-
-                // 4. Nếu đang ở Tab VÙNG -> Click Vùng -> Fill Form
                 else if (tab === 'area' && type === 'area') {
                     document.getElementById('inp-area-name').value = data.name;
                     document.getElementById('inp-area-type').value = data.type;
                 }
-                
                 openSidebar();
             } else {
-                // CHẾ ĐỘ VẬN HÀNH
                 if (type === 'pole' && data.type.includes('MC')) {
                     let currentState = appData.mcStates[data.name] !== false; 
                     document.getElementById('win-msg').innerHTML = `Điều khiển máy cắt <b>${data.name}</b>?<br><br>Trạng thái hiện tại: <b>${currentState?"ĐANG ĐÓNG":"ĐANG MỞ"}</b>`;
@@ -336,28 +345,45 @@
             }
         }
 
-        window.renderCircuitSegments = function(cid) {
-            let list = appData.circuits[cid] || [];
-            let html = list.map((item, index) => {
+        // --- QUẢN LÝ DANH SÁCH MẠCH (CLIENT SIDE) ---
+        window.renderCircuitSegments = function() {
+            let html = currentEditingCircuit.map((item, index) => {
                 return `<div class="cir-item-row">
                     <span>${index+1}. ${item.segId}</span>
-                    <button class="btn-del-seg" onclick="window.delSegFromCir('${cid}', ${index})">X</button>
+                    <button class="btn-del-seg" onclick="window.delSegFromTemp(${index})">X</button>
                 </div>`;
             }).join('');
             if(html === '') html = '<div style="padding:5px;color:#999">Chưa có đoạn nào</div>';
             document.getElementById('circuit-segment-list').innerHTML = html;
         }
 
-        window.delSegFromCir = function(cid, index) {
-            if(!confirm("Xóa đoạn này khỏi mạch?")) return;
-            let list = appData.circuits[cid];
-            list.splice(index, 1); // Xóa
-            // Cập nhật lại STT
-            list.forEach((item, i) => item.order = i + 1);
-            window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>{ 
-                alert("Đã xóa!"); 
-                window.renderCircuitSegments(cid); // Render lại list
-                renderGlobalMap(); // Vẽ lại map
+        window.delSegFromTemp = function(index) {
+            currentEditingCircuit.splice(index, 1);
+            window.renderCircuitSegments();
+        }
+
+        window.addSegToCir = function() {
+            let segId = document.getElementById('sel-cir-seg').value;
+            if(!segId) return alert("Chưa chọn đoạn!");
+            currentEditingCircuit.push({segId: segId, order: currentEditingCircuit.length + 1});
+            window.renderCircuitSegments();
+        }
+
+        window.saveCircuitStructure = function() {
+            let cid = document.getElementById('inp-cir-id').value.trim();
+            if(!cid) return alert("Chưa có tên mạch!");
+            if(!confirm("Lưu thay đổi cho mạch này?")) return;
+            
+            // Re-order
+            currentEditingCircuit.forEach((item, i) => item.order = i + 1);
+            
+            window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), currentEditingCircuit).then(()=>{ 
+                alert("Đã lưu cấu trúc mạch!"); 
+                layers.editHighlight.clearLayers();
+                // Update local data manually so map updates immediately
+                if(!appData.circuits) appData.circuits = {};
+                appData.circuits[cid] = currentEditingCircuit;
+                renderGlobalMap();
             });
         }
 
@@ -382,18 +408,16 @@
         };
 
         window.savePole = function() { let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim(); if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!"); let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) }; let path=`he_thong_luoi_dien/poles/${line}`; window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); }); }
-        window.saveSegment = function() { let id=document.getElementById('inp-seg-id').value.trim(); if(!id) return alert("Thiếu ID!"); window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:document.getElementById('sel-seg-line1').value, poleFrom:document.getElementById('sel-seg-pole1').value, lineTo:document.getElementById('sel-seg-line2').value, poleTo:document.getElementById('sel-seg-pole2').value}).then(()=>alert("Đã lưu!")); }
-        window.saveCircuitItem = function() { 
-            let cid=document.getElementById('inp-cir-id').value.trim(), sid=document.getElementById('sel-cir-seg').value; 
-            if(!cid||!sid) return; 
-            window.get(window.child(window.ref(window.db), `he_thong_luoi_dien/circuits/${cid}`)).then(snap=>{ 
-                let list=snap.val()||[]; list.push({segId:sid, order:list.length+1}); 
-                window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), list).then(()=>{
-                    alert("Đã thêm!"); 
-                    window.renderCircuitSegments(cid); // Refresh list
-                }); 
-            }); 
+        
+        window.saveSegment = function() { 
+            let id=document.getElementById('inp-seg-id').value.trim(); if(!id) return alert("Thiếu ID!"); 
+            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:document.getElementById('sel-seg-line1').value, poleFrom:document.getElementById('sel-seg-pole1').value, lineTo:document.getElementById('sel-seg-line2').value, poleTo:document.getElementById('sel-seg-pole2').value})
+            .then(()=>{ alert("Đã lưu đoạn!"); layers.editHighlight.clearLayers(); }); 
         }
+        
+        window.startAreaDraw = function() { pickingMode = 'area'; tempAreaPoints = []; if(tempAreaPoly) map.removeLayer(tempAreaPoly); closeSidebar(); document.getElementById('draw-status').innerText = "Đang vẽ..."; }
+        window.undoAreaPoint = function() { tempAreaPoints.pop(); drawTempPoly(); }
+        function drawTempPoly() { if(tempAreaPoly) map.removeLayer(tempAreaPoly); if(tempAreaPoints.length > 0) tempAreaPoly = L.polygon(tempAreaPoints, {color: 'red', dashArray: '5,5'}).addTo(map); }
         window.saveArea = function() { if(tempAreaPoints.length<3) return alert("Cần 3 điểm!"); window.get(window.child(window.ref(window.db), 'he_thong_luoi_dien/areas')).then(snap => { let areas = snap.val() || []; areas.push({ name:document.getElementById('inp-area-name').value, type:document.getElementById('inp-area-type').value, points: tempAreaPoints }); window.set(window.ref(window.db, 'he_thong_luoi_dien/areas'), areas).then(() => { alert("Đã lưu vùng!"); pickingMode = null; if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints = []; }); }); }
         window.toggleGrounding = function() { let cid = document.getElementById('circuitSelect').value; if(!cid) return; let currentG = appData.grounded ? appData.grounded[cid] : false; window.update(window.ref(window.db, 'he_thong_luoi_dien/grounded'), { [cid]: !currentG }); }
 
@@ -485,7 +509,22 @@
         function updateUI() { const s = document.getElementById('circuitSelect'); let cur = s.value; s.innerHTML = '<option value="">-- Toàn cảnh --</option>'; if(appData.circuits) Object.keys(appData.circuits).forEach(k => { let o=document.createElement('option'); o.value=k; o.text=k; s.add(o); }); s.value = cur; }
         window.refreshDropdowns = function() { let routes=Object.keys(appData.poles||{}), circs=Object.keys(appData.circuits||{}), segs=Object.keys(appData.segments||{}); document.getElementById('sel-seg-line1').innerHTML='<option value="">Chọn Tuyến...</option>'+routes.map(r=>`<option value="${r}">${r}</option>`).join(''); document.getElementById('sel-seg-line2').innerHTML=document.getElementById('sel-seg-line1').innerHTML; document.getElementById('list-circuits').innerHTML=circs.map(c=>`<option value="${c}">`).join(''); document.getElementById('sel-cir-seg').innerHTML='<option value="">-- Chọn đoạn --</option>'+segs.map(s=>`<option value="${s}">${s}</option>`).join(''); }
         window.updatePoleSelect = function(lid, pid) { let line=document.getElementById(lid).value, poles=appData.poles[line]||[]; document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); }
-        window.exportToExcel = function() { if(!appData.poles) return alert("Không có dữ liệu!"); let d1=[], d2=[], d3=[]; for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.writeFile(wb,"DuLieuLuoiDien_v163.xlsx"); }
+        window.exportToExcel = function() { 
+            if(!appData.poles) return alert("Không có dữ liệu!"); 
+            let d1=[], d2=[], d3=[], d4=[]; 
+            for(let l in appData.poles) appData.poles[l].forEach(p=>d1.push({"MA_TUYEN":l,"TEN_TRU":p.name,"LAT":p.lat,"LONG":p.lng,"LOAI_DIEM":p.type,"NGUON":p.sourceVoltage})); 
+            if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
+            if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
+            // EXPORT VUNG
+            if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
+
+            let wb=XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_v164.xlsx"); 
+        }
     </script>
 </body>
 </html>
