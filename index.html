@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.69</title>
+    <title>Hệ Thống Lưới Điện - Version 1.70</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -49,6 +49,7 @@
         .btn-ground { background: #0288d1; margin-top: 5px; }
         .btn-export { background: #2e7d32; margin-top: 5px; width: 100%; }
         
+        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
         .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; }
@@ -68,9 +69,7 @@
 
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
         
-        /* LEGEND */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
@@ -96,7 +95,14 @@
         
         .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
         .leaflet-control-custom:hover { background: #f4f4f4; }
-        .warning-msg { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2; margin-top: 10px; font-size: 0.9rem; font-weight: bold; }
+        
+        /* ALERT BOX FIX */
+        .warning-msg { 
+            color: #d32f2f; background: #ffebee; padding: 10px; 
+            border-radius: 4px; border: 1px solid #ffcdd2; 
+            margin-top: 10px; font-size: 0.9rem; font-weight: bold; 
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -155,11 +161,18 @@
                 </div>
 
                 <div id="tab-seg" class="edit-section">
-                    <label>Mã Đoạn (Chọn trên bản đồ):</label><input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
+                    <label>Mã Đoạn (Chọn trên bản đồ):</label>
+                    <input type="text" id="inp-seg-id" placeholder="VD: SEG_01">
+                    <input type="hidden" id="inp-seg-id-old"> 
+                    
                     <label>Điểm ĐẦU:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line1" onchange="updatePoleSelect('sel-seg-line1','sel-seg-pole1')"></select><select id="sel-seg-pole1"></select></div>
                     <label>Điểm CUỐI:</label><div style="display:flex;gap:5px;"><select id="sel-seg-line2" onchange="updatePoleSelect('sel-seg-line2','sel-seg-pole2')"></select><select id="sel-seg-pole2"></select></div>
                     <label>Loại:</label><select id="inp-seg-type"><option value="NOI">Dây Nổi</option><option value="NGAM">Cáp Ngầm</option></select>
-                    <button class="action-btn btn-add" id="btn-save-segment" onclick="window.saveSegment()">LƯU / CẬP NHẬT ĐOẠN</button>
+                    
+                    <div style="display:flex;gap:10px;">
+                        <button class="action-btn btn-add" id="btn-save-segment" onclick="window.saveSegment()">LƯU ĐOẠN</button>
+                        <button class="action-btn btn-pick" onclick="window.resetSegmentForm()">➕ THÊM MỚI</button>
+                    </div>
                 </div>
 
                 <div id="tab-cir" class="edit-section">
@@ -194,15 +207,22 @@
 
                 <div id="circuit-info" style="font-size:0.8rem; color:#00695c; margin-top:5px; font-weight:bold;"></div>
                 <div style="border-top:1px dashed #ccc; margin:15px 0;"></div>
-                <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01" />
-                <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label><label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
+                
+                <label>Nhập Km sự cố:</label>
+                <input type="number" id="faultKm" step="0.01" />
+                
+                <div class="radio-group">
+                    <label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label>
+                    <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                </div>
+                
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
-                <div id="result" style="display:none;"></div>
+                <div id="result" class="warning-msg"></div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.69</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.70</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -268,25 +288,18 @@
             if(tab === 'seg') renderGlobalMap('segment_edit'); else renderGlobalMap('normal');
         }
 
-        // --- UPDATED ACCORDION EVENT LISTENER ---
         var acc = document.getElementsByClassName("accordion");
         for (var i = 0; i < acc.length; i++) { 
             acc[i].addEventListener("click", function() { 
-                for (var j = 0; j < acc.length; j++) { 
-                    if (acc[j] !== this && acc[j].classList.contains("active")) { 
-                        acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; 
-                    } 
-                } 
+                for (var j = 0; j < acc.length; j++) { if (acc[j] !== this && acc[j].classList.contains("active")) { acc[j].classList.remove("active"); acc[j].nextElementSibling.style.maxHeight = null; } } 
                 this.classList.toggle("active"); 
                 var panel = this.nextElementSibling; 
                 if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 100) + "px"; 
                 
-                // AUTO SWITCH MAP VIEW
                 if (this.id === 'acc-entry' && this.classList.contains('active')) {
                     if(getActiveTab() === 'seg') renderGlobalMap('segment_edit'); else renderGlobalMap('normal');
                 } else {
-                    renderGlobalMap('normal'); // Revert to normal/offset view for Operation
-                    layers.editHighlight.clearLayers();
+                    renderGlobalMap('normal'); layers.editHighlight.clearLayers();
                 }
             }); 
         }
@@ -298,8 +311,7 @@
                 tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); 
             } else {
                 if (isEditMode() && getActiveTab() === 'area') {
-                    document.getElementById('inp-area-name').value = '';
-                    document.getElementById('inp-area-type').value = 'TBA';
+                    document.getElementById('inp-area-name').value = ''; document.getElementById('inp-area-type').value = 'TBA';
                 }
             }
         });
@@ -335,6 +347,7 @@
 
             if (isEditMode()) {
                 let tab = getActiveTab();
+                
                 if (tab === 'pole' && type === 'pole') {
                     document.getElementById('inp-pole-route').value = data.route || ""; 
                     document.getElementById('inp-pole-name').value = data.name; 
@@ -347,6 +360,7 @@
                     let seg = appData.segments[data.id];
                     if(seg) {
                         document.getElementById('inp-seg-id').value = seg.id;
+                        document.getElementById('inp-seg-id-old').value = seg.id; // SAVE OLD ID
                         document.getElementById('inp-seg-type').value = seg.type;
                         let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
                         let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
@@ -464,10 +478,23 @@
 
         window.savePole = function() { let line=document.getElementById('inp-pole-route').value.trim(), name=document.getElementById('inp-pole-name').value.trim(); if(!line||!name) return alert("Thiếu tên Tuyến hoặc Trụ!"); let p = { name: name, type: document.getElementById('inp-pole-type').value, sourceVoltage: document.getElementById('inp-pole-src').value, lat: parseFloat(document.getElementById('inp-lat').value), lng: parseFloat(document.getElementById('inp-lng').value) }; let path=`he_thong_luoi_dien/poles/${line}`; window.get(window.child(window.ref(window.db), path)).then(snap=>{ let list=snap.val()||[], idx=list.findIndex(x=>x.name===name); if(idx>=0) list[idx]=p; else list.push(p); window.set(window.ref(window.db, path), list).then(()=>{ alert("Đã lưu!"); if(p.type==='MC') window.update(window.ref(window.db, 'he_thong_luoi_dien/mcStates'), {[name]:true}); }); }); }
         
-        // --- FIX: ADD LOADING & ERROR HANDLING FOR SAVE SEGMENT ---
+        // --- RESET FORM ---
+        window.resetSegmentForm = function() {
+            document.getElementById('inp-seg-id').value = '';
+            document.getElementById('inp-seg-id-old').value = ''; // Reset hidden old ID
+            document.getElementById('sel-seg-line1').value = ''; 
+            document.getElementById('sel-seg-pole1').innerHTML = ''; 
+            document.getElementById('sel-seg-line2').value = ''; 
+            document.getElementById('sel-seg-pole2').innerHTML = '';
+            layers.editHighlight.clearLayers();
+        }
+
+        // --- UPDATED SAVE SEGMENT (RENAME LOGIC) ---
         window.saveSegment = function() { 
             let id = document.getElementById('inp-seg-id').value.trim(); 
+            let oldId = document.getElementById('inp-seg-id-old').value.trim();
             if(!id) return alert("Thiếu ID!"); 
+            
             let btn = document.getElementById('btn-save-segment');
             let oldText = btn.innerText;
             btn.innerText = "Đang lưu..."; btn.disabled = true;
@@ -481,10 +508,24 @@
                 poleTo: document.getElementById('sel-seg-pole2').value
             };
 
-            window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), data)
+            let updates = {};
+            updates[`he_thong_luoi_dien/segments/${id}`] = data;
+            
+            // If renaming (oldId exists and is different), delete old ID
+            if(oldId && oldId !== id) {
+                updates[`he_thong_luoi_dien/segments/${oldId}`] = null;
+            }
+
+            window.update(window.ref(window.db), updates)
             .then(()=>{ 
                 alert("Đã lưu đoạn!"); 
+                document.getElementById('inp-seg-id-old').value = id; // Update old ID to current
                 layers.editHighlight.clearLayers(); 
+                // Manual update local data to ensure refresh
+                if(appData.segments) {
+                    if(oldId && oldId !== id) delete appData.segments[oldId];
+                    appData.segments[id] = data;
+                }
                 renderGlobalMap('segment_edit'); 
                 btn.innerText = oldText; btn.disabled = false;
             })
@@ -562,8 +603,8 @@
                     let poly = L.polyline(pts, { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
                     poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
                     poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    // FIX: calcPath Logic for Array of Arrays
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat:p[0], lng:p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
+                    // FIX: calcPath with Array Coords [lat, lng]
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
                 }
             });
         }
@@ -577,27 +618,48 @@
         
         window.zoomToCircuit = function() { let id = document.getElementById('circuitSelect').value; layers.main.clearLayers(); renderGlobalMap(); document.getElementById('btn-grounding').style.display = 'none'; if(!id) { document.getElementById('status-text').innerText = "---"; return; } drawSingleCircuit(id, true); document.getElementById('circuit-info').innerText = `Tổng dài: ${(currentPathTotalDist/1000).toFixed(3)} km`; if(currentPath.length) map.fitBounds(currentPath.map(p=>[p.lat,p.lng])); }
         
+        // --- FIX FIND FAULT (Refresh Panel + Z-Index) ---
         window.findFault = function() { 
-            layers.fault.clearLayers(); document.getElementById('result').style.display='none'; 
+            layers.fault.clearLayers(); 
+            let res = document.getElementById('result'); 
+            res.style.display='none'; 
+            
             let kmInput = parseFloat(document.getElementById('faultKm').value); 
             let direction = document.querySelector('input[name="faultDir"]:checked').value; 
             let cName = document.getElementById('circuitSelect').value; 
-            let res = document.getElementById('result'); 
 
-            if(isNaN(kmInput) || currentPath.length<2) { res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; return; } 
+            if(isNaN(kmInput) || currentPath.length<2) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            } 
+            
             let totalKm = currentPathTotalDist / 1000;
-            if(kmInput > totalKm) { res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; return; }
+            if(kmInput > totalKm) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            }
+            
             let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; return; } 
+            if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
+                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
+                window.refreshPanelHeight('panel-opt'); return; 
+            } 
+            
             for(let i=1; i<currentPath.length; i++) { 
                 let p1=currentPath[i-1], p2=currentPath[i]; 
                 let d1=p1.accDist, d2=p2.accDist;
                 if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
                     let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
                     let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                    document.getElementById('fault-info-box').style.display='block'; document.getElementById('fi-name').innerText=cName; document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                    document.getElementById('fault-info-box').style.display='block'; 
+                    document.getElementById('fi-name').innerText=cName; 
+                    document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                     document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; L.marker([lat,lng], {icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); map.setView([lat,lng], 16); closeSidebar(); return; 
+                    document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                    
+                    // MARKER Z-INDEX HIGH
+                    L.marker([lat,lng], {zIndexOffset: 2000, icon: L.divIcon({html:'<i class="fas fa-bolt" style="color:red;font-size:32px;"></i>', className:'d'})}).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup(); 
+                    map.setView([lat,lng], 16); closeSidebar(); return; 
                 } 
             } 
         }
@@ -613,7 +675,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v169.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v170.xlsx"); 
         }
     </script>
 </body>
