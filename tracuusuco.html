@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.3</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.4</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -24,7 +24,7 @@
         .app-title { font-weight: bold; color: #004d40; font-size: 1rem; }
         .btn-menu { border: none; background: none; font-size: 1.2rem; color: #333; padding: 10px; cursor: pointer; }
 
-        /* CONTROLS PANEL (BOTTOM SHEET STYLE) */
+        /* CONTROLS PANEL */
         #control-panel {
             position: fixed; bottom: -100%; left: 0; width: 100%; 
             background: white; z-index: 3000; border-top-left-radius: 15px; border-top-right-radius: 15px;
@@ -51,7 +51,7 @@
         .btn-find { background: #d32f2f; }
         .btn-ground { background: #0288d1; }
         
-        /* GPS BUTTON MOVED TO TOP RIGHT */
+        /* GPS BUTTON (TOP RIGHT) */
         .btn-gps { 
             position: absolute; top: 70px; right: 10px; z-index: 2000; 
             background: white; width: 40px; height: 40px; border-radius: 50%; 
@@ -110,7 +110,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.3</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.4</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -456,7 +456,7 @@
                                 document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
                                 document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
                                 fetchWeather(lat, lng);
-                                fetchAddress(lat, lng); // Reverse Geocoding
+                                fetchAddress(lat, lng); // New function v1.4
                             }
                             
                             L.marker([lat,lng], {
@@ -476,15 +476,15 @@
             }, 50); 
         }
 
-        // --- NEW: REVERSE GEOCODING (NOMINATIM) ---
+        // --- NEW: REVERSE GEOCODING (v1.4) ---
         async function fetchAddress(lat, lng) {
             const el = document.getElementById('fi-addr-text');
             if(!el) {
-                // Insert placeholder if not exists
+                // Insert placeholder
                 let row = document.createElement('div'); row.className = 'fault-row';
                 row.innerHTML = '<span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">⏳ Đang lấy...</span>';
-                // Insert before the last row (link map)
                 let container = document.getElementById('fault-info-box');
+                // Insert before the last row (which is the map link)
                 container.insertBefore(row, container.lastElementChild);
             } else {
                 el.innerText = '⏳ Đang lấy...';
@@ -494,17 +494,30 @@
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
                 const res = await fetch(url);
                 const data = await res.json();
+                
                 if(data && data.address) {
                     let a = data.address;
                     let parts = [];
+                    // Logic to prioritize Vietnamese address format
                     if(a.house_number) parts.push(a.house_number);
                     if(a.road) parts.push(a.road);
-                    if(a.village) parts.push(a.village);
-                    if(a.suburb) parts.push(a.suburb);
-                    if(a.city_district) parts.push(a.city_district);
-                    if(a.town) parts.push(a.town);
-                    
-                    document.getElementById('fi-addr-text').innerText = parts.length > 0 ? parts.join(", ") : "Chưa xác định rõ tên đường";
+                    else if(a.pedestrian) parts.push(a.pedestrian); // Walking street?
+
+                    // Ward/Village logic
+                    let ward = a.quarter || a.village || a.neighbourhood || a.hamlet;
+                    if(ward) parts.push(ward);
+                    else if(a.suburb) parts.push(a.suburb); // Sometimes suburb is ward
+
+                    // District
+                    let district = a.city_district || a.district || a.county;
+                    if(district) parts.push(district);
+
+                    // City
+                    let city = a.city || a.state;
+                    if(city) parts.push(city);
+
+                    let fullAddr = parts.length > 0 ? parts.join(", ") : "Không xác định được địa chỉ cụ thể";
+                    document.getElementById('fi-addr-text').innerText = fullAddr;
                 }
             } catch(e) { 
                 document.getElementById('fi-addr-text').innerText = "Không lấy được địa chỉ"; 
@@ -531,7 +544,7 @@
                     if(isStorm) condition = "Dông sét";
                     
                     let windDeg = data.current.wind_direction_10m;
-                    // Rotate icon: 0deg in CSS is Up (North). Wind from North (0) blows South (180).
+                    // Rotate icon: 0deg is North. If wind blows FROM North (0), it points TO South (180).
                     let iconRotation = windDeg + 180; 
 
                     let html = `<div class="weather-row">
