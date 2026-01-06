@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.64</title>
+    <title>Hệ Thống Lưới Điện - Version 1.65</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -13,7 +13,7 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* UI COMPONENTS */
+        /* UI ELEMENTS */
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
         #sidebar { position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; bottom: calc(30px + env(safe-area-inset-bottom, 10px)); background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
         #sidebar.active { left: 0; }
@@ -28,21 +28,22 @@
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* FORM ELEMENTS */
+        /* INPUTS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
         
-        /* BUTTON COLORS */
+        /* COLORS */
         .btn-check { background: #00796b; } 
         .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } 
         .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
         .btn-find { background: #d32f2f; }
         .btn-add { background: #1565c0; margin-top: 10px; margin-bottom: 25px !important; }
-        .btn-save-cir { background: #d84315; margin-top: 5px; margin-bottom: 20px !important; } /* Nút lưu mạch mới */
+        .btn-save-cir { background: #d84315; margin-top: 5px; margin-bottom: 20px !important; }
         .btn-pick { background: #ff9800; color: white; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-left: 5px; }
         .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
         .btn-ground { background: #0288d1; margin-top: 5px; }
+        .btn-export { background: #2e7d32; margin-top: 5px; width: 100%; }
         
         .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
         .tab-btn { flex: 1; padding: 8px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.8rem; }
@@ -50,16 +51,22 @@
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
         
-        /* Circuit List */
-        #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
-        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
+        /* CIRCUIT LIST STYLES */
+        #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
+        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
+        .cir-item-row:hover { background: #e3f2fd; }
         .cir-item-row:nth-child(even) { background: #f9f9f9; }
-        .btn-del-seg { background: #ef5350; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .cir-controls { display: flex; gap: 2px; }
+        .btn-mini { border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; }
+        .btn-up { background: #607d8b; }
+        .btn-down { background: #607d8b; }
+        .btn-del-seg { background: #ef5350; }
 
         #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 100px; overflow-y: auto; margin-bottom: 10px; }
-        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; } }
+        #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
         
-        /* OTHER */
+        /* LEGEND & DIALOG */
         .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .legend h4 { margin: 0 0 5px 0; color: #004d40; font-size: 0.85rem; border-bottom: 2px solid #b2dfdb; padding-bottom: 3px; font-weight: bold; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
@@ -72,6 +79,8 @@
         .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
         .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
+        
+        /* ICONS */
         .fault-box { display: none; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 260px; font-size: 0.9rem; margin-right: 10px; margin-bottom: calc(45px + env(safe-area-inset-bottom, 10px)) !important; }
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
@@ -110,7 +119,7 @@
                 <button class="action-btn btn-check" onclick="window.analyzeFiles()">Kiểm tra</button>
                 <div id="console">Chờ file...</div>
                 <div id="upload-actions">
-                    <div style="display:flex;gap:10px;width:100%;margin-bottom:10px;">
+                    <div class="upload-btn-row">
                         <button class="action-btn btn-merge" onclick="window.showUploadConfirm('merge')">GỘP DỮ LIỆU</button>
                         <button class="action-btn btn-replace" onclick="window.showUploadConfirm('replace')">XÓA & GHI MỚI</button>
                     </div>
@@ -150,7 +159,7 @@
                 <div id="tab-cir" class="edit-section">
                     <label>Tên Mạch (Chọn trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
                     
-                    <label>Danh sách đoạn trong mạch (Kéo xuống xem):</label>
+                    <label>Danh sách đoạn (Kéo/Bấm để sửa):</label>
                     <div id="circuit-segment-list"></div>
                     
                     <label>Thêm đoạn mới:</label><select id="sel-cir-seg"></select>
@@ -190,7 +199,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.64</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.65</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -251,7 +260,9 @@
             let btns = document.querySelectorAll('.tab-btn');
             for(let b of btns) { if(b.getAttribute('onclick').includes(tabId)) b.classList.add('active'); }
             window.refreshDropdowns(); window.refreshPanelHeight('panel-entry');
-            layers.editHighlight.clearLayers(); // Xóa highlight cũ
+            layers.editHighlight.clearLayers(); 
+            // Nếu đang edit đoạn nào đó, khi chuyển tab sẽ clear highlight và vẽ lại map đầy đủ
+            renderGlobalMap();
         }
 
         var acc = document.getElementsByClassName("accordion");
@@ -262,7 +273,13 @@
                 document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6); document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6); pickingMode = null; let btn = document.querySelector('.btn-pick'); btn.innerText = "📍 Chấm bản đồ"; btn.style.background = "#ff9800"; openSidebar(); 
             } else if (pickingMode === 'area') { 
                 tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); 
-            } 
+            } else {
+                // CLEAR NẾU CLICK RA NGOÀI (Cho Vùng)
+                if (isEditMode() && getActiveTab() === 'area') {
+                    document.getElementById('inp-area-name').value = '';
+                    document.getElementById('inp-area-type').value = 'TBA';
+                }
+            }
         });
 
         window.zoomToExtent = function() { let bounds = L.latLngBounds([]); let hasData = false; if(appData.poles) { for(let l in appData.poles) { appData.poles[l].forEach(p => { bounds.extend([p.lat, p.lng]); hasData=true; }); } } if(hasData) map.fitBounds(bounds, {padding: [50,50]}); else map.setView([10.762, 106.660], 12); }
@@ -291,9 +308,8 @@
         window.showUploadConfirm = function(mode) { document.getElementById('win-msg').innerHTML = mode==='merge' ? "GỘP dữ liệu mới?" : "CẢNH BÁO: XÓA TOÀN BỘ cũ?"; window.pendingAction = { type: 'upload', mode: mode }; document.getElementById('custom-confirm').style.display = 'flex'; }
         window.closeWinDialog = function() { document.getElementById('custom-confirm').style.display = 'none'; window.pendingAction = null; }
 
-        // --- HÀM XỬ LÝ CLICK ---
+        // --- SMART CLICK HANDLER ---
         window.onElementClick = function(type, data) {
-            // NẾU ĐANG VẼ VÙNG THÌ KHÔNG BẮT SỰ KIỆN KHÁC
             if(pickingMode === 'area') return; 
 
             if (isEditMode()) {
@@ -312,22 +328,26 @@
                     if(seg) {
                         document.getElementById('inp-seg-id').value = seg.id;
                         document.getElementById('inp-seg-type').value = seg.type;
-                        
                         let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
                         let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
                         
-                        // HIGHLIGHT ĐOẠN ĐANG SỬA (NO OFFSET)
+                        // HIGHLIGHT ĐOẠN ĐANG SỬA (NO OFFSET) + ẨN ĐƯỜNG CŨ
                         layers.editHighlight.clearLayers();
+                        
                         let p1=getPoleExact(seg.lineFrom, seg.poleFrom)||getPoleGlobal(seg.poleFrom);
                         let p2=getPoleExact(seg.lineTo, seg.poleTo)||getPoleGlobal(seg.poleTo);
-                        if(p1&&p2) L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]], {color: 'cyan', weight: 6, dashArray: '10, 5', opacity: 0.8}).addTo(layers.editHighlight);
+                        if(p1&&p2) {
+                            L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]], {color: 'cyan', weight: 6, dashArray: '10, 5', opacity: 0.8}).addTo(layers.editHighlight);
+                            // Vẽ lại map nhưng ẩn segment này (để tránh bị trùng)
+                            renderGlobalMap(seg.id); 
+                        }
                     }
                 }
                 else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) {
                     let cid = data.circuitId; 
                     if(cid) {
                         document.getElementById('inp-cir-id').value = cid;
-                        currentEditingCircuit = [...(appData.circuits[cid] || [])]; // Clone ra list tạm
+                        currentEditingCircuit = [...(appData.circuits[cid] || [])]; 
                         window.renderCircuitSegments();
                     }
                 }
@@ -345,16 +365,39 @@
             }
         }
 
-        // --- QUẢN LÝ DANH SÁCH MẠCH (CLIENT SIDE) ---
+        // --- CIRCUIT LIST MANAGEMENT ---
         window.renderCircuitSegments = function() {
             let html = currentEditingCircuit.map((item, index) => {
-                return `<div class="cir-item-row">
+                return `<div class="cir-item-row" onclick="window.highlightSegment('${item.segId}')">
                     <span>${index+1}. ${item.segId}</span>
-                    <button class="btn-del-seg" onclick="window.delSegFromTemp(${index})">X</button>
+                    <div class="cir-controls">
+                        <button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button>
+                        <button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button>
+                        <button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">X</button>
+                    </div>
                 </div>`;
             }).join('');
             if(html === '') html = '<div style="padding:5px;color:#999">Chưa có đoạn nào</div>';
             document.getElementById('circuit-segment-list').innerHTML = html;
+        }
+
+        window.highlightSegment = function(segId) {
+            layers.editHighlight.clearLayers();
+            let seg = appData.segments[segId];
+            if(seg) {
+                let p1=getPoleExact(seg.lineFrom, seg.poleFrom)||getPoleGlobal(seg.poleFrom);
+                let p2=getPoleExact(seg.lineTo, seg.poleTo)||getPoleGlobal(seg.poleTo);
+                if(p1&&p2) L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]], {color: 'yellow', weight: 8, opacity: 0.8}).addTo(layers.editHighlight);
+            }
+        }
+
+        window.moveSeg = function(index, dir) {
+            if (dir === -1 && index > 0) {
+                [currentEditingCircuit[index], currentEditingCircuit[index - 1]] = [currentEditingCircuit[index - 1], currentEditingCircuit[index]];
+            } else if (dir === 1 && index < currentEditingCircuit.length - 1) {
+                [currentEditingCircuit[index], currentEditingCircuit[index + 1]] = [currentEditingCircuit[index + 1], currentEditingCircuit[index]];
+            }
+            window.renderCircuitSegments();
         }
 
         window.delSegFromTemp = function(index) {
@@ -373,14 +416,10 @@
             let cid = document.getElementById('inp-cir-id').value.trim();
             if(!cid) return alert("Chưa có tên mạch!");
             if(!confirm("Lưu thay đổi cho mạch này?")) return;
-            
-            // Re-order
             currentEditingCircuit.forEach((item, i) => item.order = i + 1);
-            
             window.set(window.ref(window.db, `he_thong_luoi_dien/circuits/${cid}`), currentEditingCircuit).then(()=>{ 
                 alert("Đã lưu cấu trúc mạch!"); 
                 layers.editHighlight.clearLayers();
-                // Update local data manually so map updates immediately
                 if(!appData.circuits) appData.circuits = {};
                 appData.circuits[cid] = currentEditingCircuit;
                 renderGlobalMap();
@@ -412,7 +451,7 @@
         window.saveSegment = function() { 
             let id=document.getElementById('inp-seg-id').value.trim(); if(!id) return alert("Thiếu ID!"); 
             window.set(window.ref(window.db, `he_thong_luoi_dien/segments/${id}`), {id, type:document.getElementById('inp-seg-type').value, lineFrom:document.getElementById('sel-seg-line1').value, poleFrom:document.getElementById('sel-seg-pole1').value, lineTo:document.getElementById('sel-seg-line2').value, poleTo:document.getElementById('sel-seg-pole2').value})
-            .then(()=>{ alert("Đã lưu đoạn!"); layers.editHighlight.clearLayers(); }); 
+            .then(()=>{ alert("Đã lưu đoạn!"); layers.editHighlight.clearLayers(); renderGlobalMap(); }); 
         }
         
         window.startAreaDraw = function() { pickingMode = 'area'; tempAreaPoints = []; if(tempAreaPoly) map.removeLayer(tempAreaPoly); closeSidebar(); document.getElementById('draw-status').innerText = "Đang vẽ..."; }
@@ -427,7 +466,8 @@
             else if (type.includes('NEO')) cls = 'my-icon icon-tru-neo'; else if (type.includes('MOC')) { cls = 'my-icon icon-moc'; sz = [8,8]; }
             return L.divIcon({ className: cls, html: label, iconSize: sz });
         }
-        function renderGlobalMap() {
+        
+        function renderGlobalMap(excludeSegId = null) {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.important.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
             if(appData.areas) appData.areas.forEach(a => { 
                 let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; 
@@ -440,10 +480,10 @@
                 let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isClosed, p.sourceVoltage), zIndexOffset: isMC ? 1000 : 0 }).addTo(target);
                 marker.on('click', () => window.onElementClick('pole', {type:p.type, name:p.name, route:l, lat:p.lat, lng:p.lng, srcVal:p.sourceVoltage})); if(!isMC) marker.bindPopup(`<b>${p.name}</b><br>${l}`);
             });
-            if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
+            if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false, excludeSegId));
         }
 
-        function drawSingleCircuit(circuitId, calcPath) {
+        function drawSingleCircuit(circuitId, calcPath, excludeSegId) {
             const segs = appData.circuits[circuitId]; if(!segs) return;
             let connectedMCs = []; segs.forEach(item => { let def = appData.segments[item.segId]; if(def) { let p1 = getPoleExact(def.lineFrom, def.poleFrom), p2 = getPoleExact(def.lineTo, def.poleTo); if(p1 && p1.type.includes('MC')) connectedMCs.push(p1); if(p2 && p2.type.includes('MC')) connectedMCs.push(p2); } });
             let activeVoltage = null; let isGrounded = appData.grounded ? appData.grounded[circuitId] : false;
@@ -459,6 +499,7 @@
                 currentPath=[]; currentPathTotalDist=0; 
             }
             segs.forEach(item => {
+                if(excludeSegId && item.segId === excludeSegId) return; // SKIP IF EDITING
                 let def = appData.segments[item.segId]; if(!def) return; let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo); if(!p1||!p2) return;
                 let pts = []; let r1=p1.foundRoute||def.lineFrom, r2=p2.foundRoute||def.lineTo; let offset = 0, key = getSegmentKey(p1, p2), list = segmentCounts[key]; if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
                 if(r1!==r2) pts=[p1,p2]; else { let d=appData.poles[r1], i1=d.findIndex(p=>p.name===p1.name), i2=d.findIndex(p=>p.name===p2.name); pts=(i1<=i2)?d.slice(i1,i2+1):d.slice(i2,i1+1).reverse(); }
@@ -466,9 +507,7 @@
                     let isCable=def.type.includes("NGAM"); 
                     let poly = L.polyline(pts.map(p=>[p.lat,p.lng]), { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
                     poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
-                    // BẮT SỰ KIỆN CLICK ĐỂ SỬA ĐOẠN/MẠCH
                     poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    
                     if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1].lat,pts[i-1].lng,p.lat,p.lng); currentPath.push({...p, accDist:currentPathTotalDist}); }); 
                 }
             });
@@ -523,7 +562,7 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
-            XLSX.writeFile(wb,"DuLieuLuoiDien_v164.xlsx"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_v165.xlsx"); 
         }
     </script>
 </body>
