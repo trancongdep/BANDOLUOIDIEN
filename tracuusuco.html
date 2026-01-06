@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vận Hành Lưới Điện - Mobile v1.8</title>
+    <title>Vận Hành Lưới Điện - Mobile v1.9</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -46,25 +46,25 @@
         .btn-no { background: #ddd; color: #333; }
 
         /* FAULT & WEATHER BOX */
-        .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.3); border-left: 5px solid #d32f2f; width: 90%; max-width: 340px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 70vh; overflow: hidden; transition: all 0.3s; }
+        .fault-box { display: none; background: white; padding: 0; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); border-left: 5px solid #d32f2f; width: 90%; max-width: 350px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; font-size: 0.9rem; max-height: 75vh; display: flex; flex-direction: column; transition: all 0.3s; }
         .fault-box.minimized { height: 45px; overflow: hidden; }
         
-        .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; }
-        .fault-body { padding: 15px; overflow-y: auto; max-height: calc(70vh - 45px); }
+        .fault-header { padding: 10px 15px; background: #ffebee; color: #d32f2f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffcdd2; height: 25px; flex-shrink: 0; }
+        .fault-body { padding: 15px; overflow-y: auto; flex: 1; background: white; } /* Ensure scrolling */
 
         .header-actions { display: flex; gap: 10px; }
         .header-btn { border: none; background: none; cursor: pointer; font-size: 1rem; color: #d32f2f; padding: 2px 5px; }
 
         .fault-label { font-weight: bold; color: #555; }
-        .fault-row { margin-bottom: 6px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
+        .fault-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        
+        /* ROUTE & WEATHER STYLE */
+        .route-info-box { background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ffb74d; color: #e65100; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         
         .weather-info { background: #e3f2fd; padding: 8px; border-radius: 4px; margin-top: 5px; font-size: 0.85rem; border: 1px solid #90caf9; }
         .weather-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
         .weather-flood { color: #0d47a1; font-weight: bold; margin-top: 4px; border-top: 1px dashed #0d47a1; padding-top: 4px; display: flex; align-items: center; gap: 5px; }
-        
-        /* ROUTE INFO */
-        .route-info-box { background: #fff3e0; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #ffb74d; color: #e65100; font-size: 0.9rem; }
 
         /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
@@ -86,7 +86,7 @@
     <div id="map"></div>
     
     <div class="app-bar">
-        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.8</div>
+        <div class="app-title">⚡ VẬN HÀNH LƯỚI ĐIỆN v1.9</div>
         <button class="btn-menu" onclick="togglePanel()"><i class="fas fa-bars"></i></button>
     </div>
 
@@ -173,7 +173,7 @@
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('incidentTime').value = now.toISOString().slice(0,16);
         }
-        setNowToInput(); // Set default time on load
+        setNowToInput();
 
         function togglePanel() { document.getElementById('control-panel').classList.toggle('active'); }
         function locateUser() { map.locate({setView: true, maxZoom: 16}); }
@@ -257,15 +257,20 @@
             let btn = document.getElementById('btn-find-fault');
             let oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tính toán...'; btn.disabled = true;
-
-            // Trigger locate if not yet found
             if (!userLocation) { map.locate({setView: false, maxZoom: 16}); }
 
             setTimeout(() => {
                 try {
                     layers.fault.clearLayers(); 
                     let res = document.getElementById('result'); res.style.display='none'; 
-                    let faultBox = document.getElementById('fault-info-box'); if(faultBox) faultBox.style.display='none'; 
+                    let faultBox = document.getElementById('fault-info-box'); 
+                    if(faultBox) {
+                        faultBox.style.display='none';
+                        // Clear old route info if exists to avoid dupes
+                        let oldRoute = document.getElementById('route-info');
+                        if(oldRoute) oldRoute.remove();
+                    }
+
                     let kmInput = parseFloat(document.getElementById('faultKm').value); 
                     let direction = document.querySelector('input[name="faultDir"]:checked').value; 
                     let cName = document.getElementById('circuitSelect').value; 
@@ -289,31 +294,23 @@
                             for (let j = i-1; j >= 0; j--) { if (currentPath[j].name) { n1 = currentPath[j].name; break; } }
                             for (let j = i; j < currentPath.length; j++) { if (currentPath[j].name) { n2 = currentPath[j].name; break; } }
 
-                            // SHOW FAULT BOX
                             if(faultBox) {
-                                faultBox.style.display='block'; 
-                                faultBox.classList.remove('minimized'); // Expand if hidden
+                                faultBox.style.display='flex'; // Flex to support new structure
+                                faultBox.classList.remove('minimized');
                                 
                                 document.getElementById('fi-name').innerText=cName; 
                                 document.getElementById('fi-dist').innerText=`${kmInput} km`; 
                                 document.getElementById('fi-seg').innerHTML=`Giữa: <b>${n1}</b> <i class="fas fa-arrow-right"></i> <b>${n2}</b>`; 
                                 document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
                                 
-                                // FORMAT DATE
-                                let timeVal = document.getElementById('incidentTime').value;
-                                let timeStr = timeVal ? timeVal.replace('T', ' ') : "N/A";
-                                
-                                // ADD TIME INFO ROW
-                                let timeRow = document.getElementById('fi-time-row');
-                                if(!timeRow) {
-                                    timeRow = document.createElement('div'); timeRow.id='fi-time-row'; timeRow.className='fault-row';
-                                    document.querySelector('.fault-body').insertBefore(timeRow, document.querySelector('.fault-body').firstChild);
-                                }
-                                timeRow.innerHTML = `<span class="fault-label">Thời gian:</span> <b>${timeStr}</b>`;
+                                // Reset fields before fetching
+                                document.getElementById('fi-addr-text').innerText = '⏳ Đang lấy...';
 
+                                // INSERT ROUTE BOX AT TOP
+                                if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
+                                
                                 fetchWeather(lat, lng);
                                 fetchAddress(lat, lng);
-                                if(userLocation) fetchRoute(userLocation.lat, userLocation.lng, lat, lng);
                             }
                             L.marker([lat,lng], { zIndexOffset: 9999, icon: L.divIcon({ html:'<i class="fas fa-bolt fault-marker"></i>', className:'d', iconSize: [30, 30], iconAnchor: [15, 30] }) }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
                             map.setView([lat, lng], 18); togglePanel(); break; 
@@ -325,13 +322,19 @@
         }
 
         async function fetchRoute(lat1, lng1, lat2, lng2) {
-            let infoBox = document.getElementById('route-info');
-            if(!infoBox) {
-                let div = document.createElement('div'); div.id = 'route-info'; div.className = 'route-info-box';
-                document.querySelector('.fault-body').appendChild(div); infoBox = div;
-            }
-            infoBox.style.display = 'block';
-            infoBox.innerHTML = '<i>⏳ Đang tính lộ trình...</i>';
+            // REMOVE OLD ROUTE BOX FIRST to ensure correct order
+            let oldRoute = document.getElementById('route-info');
+            if(oldRoute) oldRoute.remove();
+
+            let div = document.createElement('div'); 
+            div.id = 'route-info'; 
+            div.className = 'route-info-box';
+            div.innerHTML = '<i>⏳ Đang tính lộ trình...</i>';
+            
+            // Insert AFTER header (index 0) so it appears top of body
+            let body = document.querySelector('.fault-body');
+            body.insertBefore(div, body.firstChild);
+
             try {
                 const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
                 const res = await fetch(url);
@@ -340,18 +343,59 @@
                     let route = data.routes[0];
                     let distKm = (route.distance / 1000).toFixed(1);
                     let durationMin = Math.round(route.duration / 60);
-                    infoBox.innerHTML = `<div><i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b> (từ vị trí của bạn)</div>`;
-                } else { infoBox.innerHTML = 'Không tìm thấy đường đi.'; }
-            } catch(e) { infoBox.innerHTML = 'Lỗi tính lộ trình.'; }
+                    div.innerHTML = `<span><i class="fas fa-motorcycle"></i> <b>${distKm} km</b> - ⏱️ <b>${durationMin} phút</b></span>`;
+                } else { div.innerHTML = 'Không tìm thấy đường đi.'; }
+            } catch(e) { div.innerHTML = 'Lỗi tính lộ trình.'; }
         }
+
+        // --- NEW FEATURES V1.7 ---
+        window.toggleFaultBox = function() {
+            let box = document.getElementById('fault-info-box');
+            box.classList.toggle('minimized');
+            let icon = box.querySelector('.toggle-icon');
+            if(box.classList.contains('minimized')) {
+                icon.classList.remove('fa-minus'); icon.classList.add('fa-plus');
+            } else {
+                icon.classList.remove('fa-plus'); icon.classList.add('fa-minus');
+            }
+        }
+        
+        window.closeFaultBox = function() {
+            document.getElementById('fault-info-box').style.display = 'none';
+        }
+
+        window.captureInfo = function() {
+            let box = document.getElementById('fault-info-box');
+            box.classList.remove('minimized');
+            let btns = box.querySelector('.header-actions');
+            btns.style.display = 'none';
+            
+            // Fallback for download
+            html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+                btns.style.display = 'flex';
+                let link = document.createElement('a');
+                link.download = 'bao_cao_su_co.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }).catch(err => {
+                alert("Lỗi chụp ảnh: " + err.message);
+                btns.style.display = 'flex';
+            });
+        }
+        // -------------------------
 
         async function fetchAddress(lat, lng) {
             const el = document.getElementById('fi-addr-text');
+            // If doesn't exist (initial load), insert it
             if(!el) {
                 let row = document.createElement('div'); row.className = 'fault-row';
                 row.innerHTML = '<span class="fault-label">Địa chỉ:</span> <span id="fi-addr-text">⏳ Đang lấy...</span>';
-                let container = document.querySelector('.fault-body'); container.insertBefore(row, container.children[4]);
+                // Find anchor link to map and insert before it
+                let container = document.querySelector('.fault-body');
+                let mapLink = document.getElementById('fi-addr').parentNode;
+                container.insertBefore(row, mapLink);
             } else { el.innerText = '⏳ Đang lấy...'; }
+
             try {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
                 const res = await fetch(url);
@@ -366,7 +410,7 @@
                     if(district) parts.push(district);
                     let city = a.city || a.state;
                     if(city) parts.push(city);
-                    let fullAddr = parts.length > 0 ? parts.join(", ") : "Chưa xác định";
+                    let fullAddr = parts.length > 0 ? parts.join(", ") : "Không xác định được địa chỉ cụ thể";
                     document.getElementById('fi-addr-text').innerText = fullAddr;
                 }
             } catch(e) { document.getElementById('fi-addr-text').innerText = "Không lấy được địa chỉ"; }
@@ -400,38 +444,6 @@
                     infoBox.innerHTML = html;
                 }
             } catch (e) { infoBox.innerHTML = 'Lỗi lấy thời tiết.'; }
-        }
-
-        // --- BUTTON ACTIONS ---
-        window.toggleFaultBox = function() {
-            let box = document.getElementById('fault-info-box');
-            box.classList.toggle('minimized');
-            let icon = box.querySelector('.toggle-icon');
-            if(box.classList.contains('minimized')) {
-                icon.classList.remove('fa-minus'); icon.classList.add('fa-plus');
-            } else {
-                icon.classList.remove('fa-plus'); icon.classList.add('fa-minus');
-            }
-        }
-        
-        window.closeFaultBox = function() {
-            document.getElementById('fault-info-box').style.display = 'none';
-        }
-
-        window.captureInfo = function() {
-            let box = document.getElementById('fault-info-box');
-            box.classList.remove('minimized');
-            let btns = box.querySelector('.header-actions');
-            btns.style.display = 'none';
-            html2canvas(box, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
-                btns.style.display = 'flex';
-                canvas.toBlob(blob => {
-                    try {
-                        const item = new ClipboardItem({ "image/png": blob });
-                        navigator.clipboard.write([item]).then(() => { alert("✅ Đã copy ảnh! Mở Zalo và Dán."); }).catch(err => { alert("⚠️ Lỗi copy: Trình duyệt không hỗ trợ."); });
-                    } catch (e) { alert("⚠️ Thiết bị này không hỗ trợ copy ảnh trực tiếp."); }
-                });
-            });
         }
 
         window.confirmAction = function() {
