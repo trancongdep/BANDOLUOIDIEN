@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hệ Thống Lưới Điện - Version 1.75</title>
+    <title>Hệ Thống Lưới Điện - Version 1.76</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -223,7 +223,7 @@
         </div>
     </div>
 
-    <div class="footer">Copyright TCD software @2026 - Version 1.75</div>
+    <div class="footer">Copyright TCD software @2026 - Version 1.76</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-polylineoffset@1.1.1/leaflet.polylineoffset.js"></script>
@@ -606,7 +606,8 @@
             }
         }
 
-        function drawSingleCircuit(circuitId, calcPath) {
+        // --- NEW: SIMULATION MODE FOR PATH CALC ---
+        function drawSingleCircuit(circuitId, calcPath, excludeSegId, simulationOnly = false) {
             const segs = appData.circuits[circuitId]; if(!segs) return;
             let connectedMCs = []; segs.forEach(item => { let def = appData.segments[item.segId]; if(def) { let p1 = getPoleExact(def.lineFrom, def.poleFrom), p2 = getPoleExact(def.lineTo, def.poleTo); if(p1 && p1.type.includes('MC')) connectedMCs.push(p1); if(p2 && p2.type.includes('MC')) connectedMCs.push(p2); } });
             let activeVoltage = null; let isGrounded = appData.grounded ? appData.grounded[circuitId] : false;
@@ -615,28 +616,36 @@
             let color = '#000000', statusText = "MẤT ĐIỆN";
             if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } 
             else if (activeVoltage) { if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } else if (activeVoltage.includes('220')) { color = '#d32f2f'; statusText = "CÓ ĐIỆN (220kV)"; } else if (activeVoltage.includes('500')) { color = '#0d47a1'; statusText = "CÓ ĐIỆN (500kV)"; } }
+            
             if(calcPath) { 
-                document.getElementById('status-text').innerHTML = `<span style="color:${color}">${statusText}</span>`; 
-                let btnG = document.getElementById('btn-grounding'); 
-                if(!activeVoltage || isGrounded) { btnG.style.display = 'block'; btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; } else { btnG.style.display = 'none'; }
+                if(!simulationOnly) {
+                    document.getElementById('status-text').innerHTML = `<span style="color:${color}">${statusText}</span>`; 
+                    let btnG = document.getElementById('btn-grounding'); 
+                    if(!activeVoltage || isGrounded) { btnG.style.display = 'block'; btnG.innerHTML = isGrounded ? "🔓 MỞ TIẾP ĐỊA" : "🔒 ĐÓNG TIẾP ĐỊA"; btnG.style.background = isGrounded ? "#7cb342" : "#0288d1"; } else { btnG.style.display = 'none'; }
+                }
                 currentPath=[]; currentPathTotalDist=0; 
             }
             segs.forEach(item => {
                 let def = appData.segments[item.segId]; if(!def) return; 
                 let pts = getPointsForSegment(def); 
-                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom), p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
+                
+                // OFFSET LOGIC (Only in Normal Mode)
+                let p1=getPoleExact(def.lineFrom, def.poleFrom)||getPoleGlobal(def.poleFrom);
+                let p2=getPoleExact(def.lineTo, def.poleTo)||getPoleGlobal(def.poleTo);
                 let offset = 0;
-                if(p1 && p2) {
+                if(p1 && p2 && !simulationOnly) {
                     let key = getSegmentKey(p1, p2); let list = segmentCounts[key];
                     if (list && list.length > 1) { let idx = list.indexOf(circuitId); if (idx !== -1) { let center = (list.length - 1) / 2; offset = (idx - center) * 6; } }
                 }
+
                 if(pts.length) { 
-                    let isCable=def.type.includes("NGAM"); 
-                    let poly = L.polyline(pts, { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
-                    poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
-                    poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
-                    // FIX: calcPath Logic for Array of Arrays
-                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat:p[0], lng:p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
+                    if (!simulationOnly) {
+                        let isCable=def.type.includes("NGAM"); 
+                        let poly = L.polyline(pts, { color: color, weight: calcPath?5:3, opacity: calcPath?1:0.8, dashArray: isCable?"5,5":null, offset: offset }).addTo(layers.main); 
+                        poly.bindPopup(`<b>${circuitId}</b><br>${statusText}<br>${isCable?'Cáp ngầm':'Dây nổi'}`); 
+                        poly.on('click', () => window.onElementClick(isEditMode() && getActiveTab()==='seg' ? 'segment' : 'circuit', {id:item.segId, circuitId: circuitId}));
+                    }
+                    if(calcPath) pts.forEach((p,i)=>{ if(i>0) currentPathTotalDist+=getDist(pts[i-1][0],pts[i-1][1],p[0],p[1]); currentPath.push({lat: p[0], lng: p[1], accDist:currentPathTotalDist, name: i==0?p1.name:(i==pts.length-1?p2.name:'')}); }); 
                 }
             });
         }
@@ -657,73 +666,82 @@
             btn.innerText = "Đang tính toán..."; btn.disabled = true;
 
             setTimeout(() => {
-                layers.fault.clearLayers(); 
-                let res = document.getElementById('result'); 
-                res.style.display='none'; 
-                document.getElementById('fault-info-box').style.display='none'; // Reset box
+                try {
+                    layers.fault.clearLayers(); 
+                    let res = document.getElementById('result'); 
+                    res.style.display='none'; 
+                    document.getElementById('fault-info-box').style.display='none'; // Reset box
 
-                let kmInput = parseFloat(document.getElementById('faultKm').value); 
-                let direction = document.querySelector('input[name="faultDir"]:checked').value; 
-                let cName = document.getElementById('circuitSelect').value; 
+                    let kmInput = parseFloat(document.getElementById('faultKm').value); 
+                    let direction = document.querySelector('input[name="faultDir"]:checked').value; 
+                    let cName = document.getElementById('circuitSelect').value; 
 
-                // FORCE RE-CALC to ensure currentPath is fresh!
-                currentPath = []; 
-                if(cName) drawSingleCircuit(cName, true);
+                    // FORCE RE-CALC to ensure currentPath is fresh!
+                    currentPath = []; 
+                    if(cName) drawSingleCircuit(cName, true, null, true); // true for SIMULATION MODE
 
-                if(isNaN(kmInput) || currentPath.length<2) { 
-                    res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
-                    window.refreshPanelHeight('panel-opt'); 
-                    btn.innerText = oldText; btn.disabled = false; return; 
-                } 
-                
-                let totalKm = currentPathTotalDist / 1000;
-                if(kmInput > totalKm) { 
-                    res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
-                    window.refreshPanelHeight('panel-opt'); 
-                    btn.innerText = oldText; btn.disabled = false; return; 
-                }
-                
-                let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
-                if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
-                    res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
-                    window.refreshPanelHeight('panel-opt'); 
-                    btn.innerText = oldText; btn.disabled = false; return; 
-                } 
-                
-                for(let i=1; i<currentPath.length; i++) { 
-                    let p1=currentPath[i-1], p2=currentPath[i]; 
-                    let d1=p1.accDist, d2=p2.accDist;
-                    
-                    if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
-                        let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
-                        let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
-                        
-                        document.getElementById('fault-info-box').style.display='block'; 
-                        document.getElementById('fi-name').innerText=cName; 
-                        document.getElementById('fi-dist').innerText=`${kmInput} km`; 
-                        document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
-                        document.getElementById('fi-addr').innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
-                        
-                        L.marker([lat,lng], {
-                            zIndexOffset: 9999, 
-                            icon: L.divIcon({
-                                html:'<i class="fas fa-bolt fault-marker"></i>', 
-                                className:'d', 
-                                iconSize: [30, 30], 
-                                iconAnchor: [15, 30] 
-                            })
-                        }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
-                        
-                        map.setView([lat, lng], 18); // ZOOM SÂU
-                        closeSidebar(); 
-                        btn.innerText = oldText; btn.disabled = false;
-                        return; 
+                    if(isNaN(kmInput) || currentPath.length<2) { 
+                        res.style.display='block'; res.className='warning-msg'; res.innerHTML='Vui lòng chọn mạch trước!'; 
+                        window.refreshPanelHeight('panel-opt'); 
+                        btn.innerText = oldText; btn.disabled = false; return; 
                     } 
+                    
+                    let totalKm = currentPathTotalDist / 1000;
+                    if(kmInput > totalKm) { 
+                        res.style.display='block'; res.className='warning-msg'; res.innerHTML=`⚠️ Km nhập (${kmInput}) > Chiều dài mạch (${totalKm.toFixed(3)} km)!`; 
+                        window.refreshPanelHeight('panel-opt'); 
+                        btn.innerText = oldText; btn.disabled = false; return; 
+                    }
+                    
+                    let targetDist = direction==='end' ? currentPathTotalDist-(kmInput*1000) : kmInput*1000; 
+                    if (targetDist < -10 || targetDist > currentPathTotalDist + 10) { 
+                        res.style.display='block'; res.className='warning-msg'; res.innerHTML = `⚠️ Ngoài phạm vi!`; 
+                        window.refreshPanelHeight('panel-opt'); 
+                        btn.innerText = oldText; btn.disabled = false; return; 
+                    } 
+                    
+                    let found = false;
+                    for(let i=1; i<currentPath.length; i++) { 
+                        let p1=currentPath[i-1], p2=currentPath[i]; 
+                        let d1=p1.accDist, d2=p2.accDist;
+                        
+                        if(targetDist>=(d1-0.1) && targetDist<=(d2+0.1)) { 
+                            found = true;
+                            let ratio = (d2 > d1) ? (targetDist-d1)/(d2-d1) : 0; 
+                            let lat = p1.lat + (p2.lat-p1.lat)*ratio, lng = p1.lng + (p2.lng-p1.lng)*ratio; 
+                            
+                            document.getElementById('fault-info-box').style.display='block'; 
+                            document.getElementById('fi-name').innerText=cName; 
+                            document.getElementById('fi-dist').innerText=`${kmInput} km`; 
+                            document.getElementById('fi-seg').innerHTML=`${p1.name||'Điểm'} <i class="fas fa-arrow-right"></i> ${p2.name||'Điểm'}`; 
+                            document.getElementById('fi-addr').innerHTML=`<a href="http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`; 
+                            
+                            L.marker([lat,lng], {
+                                zIndexOffset: 9999, 
+                                icon: L.divIcon({
+                                    html:'<i class="fas fa-bolt fault-marker"></i>', 
+                                    className:'d', 
+                                    iconSize: [30, 30], 
+                                    iconAnchor: [15, 30] 
+                                })
+                            }).addTo(layers.fault).bindPopup("<b>SỰ CỐ TẠI ĐÂY</b>").openPopup(); 
+                            
+                            map.setView([lat, lng], 18); // ZOOM SÂU
+                            closeSidebar(); 
+                            break; 
+                        } 
+                    }
+                    if(!found) {
+                         res.style.display='block'; res.className='warning-msg'; res.innerHTML = `Không tìm thấy điểm (Lỗi dữ liệu)`; 
+                         window.refreshPanelHeight('panel-opt');
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert("Lỗi tính toán: " + e.message);
+                } finally {
+                    btn.innerText = oldText; btn.disabled = false;
                 }
-                // Nếu không tìm thấy trong vòng lặp (lỗi dữ liệu)
-                res.style.display='block'; res.className='warning-msg'; res.innerHTML = `Không tìm thấy điểm (Lỗi dữ liệu)`; 
-                btn.innerText = oldText; btn.disabled = false;
-            }, 100); // Set timeout để UI cập nhật chữ "Đang tính..."
+            }, 50); // Small delay to let UI show "Calculating..."
         }
         
         window.listenCloud = function() { window.onValue(window.ref(window.db, 'he_thong_luoi_dien'), snap => { let val = snap.val(); if(val) { appData = val; if(!appData.mcStates) appData.mcStates={}; if(!appData.grounded) appData.grounded={}; updateUI(); calculateOffsets(); renderGlobalMap(); window.refreshDropdowns(); if(document.getElementById('circuitSelect').value) window.zoomToCircuit(); } }); }
@@ -737,7 +755,7 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v175.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_v176.xlsx"); 
         }
     </script>
 </body>
