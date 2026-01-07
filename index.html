@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Quản Lý Lưới Điện (Admin) - v1.87</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.88</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -12,10 +12,8 @@
         /* --- CORE CSS --- */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         
-        /* MAP: Leave space for footer (30px) */
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 30px; width: 100%; z-index: 1; }
         
-        /* FOOTER: Overlay at bottom */
         .footer { 
             position: fixed; bottom: 0; left: 0; width: 100%; height: 30px; 
             background: #212121; color: #eceff1; 
@@ -24,14 +22,11 @@
             z-index: 4000;
         }
 
-        /* UI COMPONENTS */
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
         
-        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: -100%; width: 90%; max-width: 450px; 
-            bottom: 30px; /* Above footer */
-            background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
+            bottom: 30px; background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             transition: left 0.3s ease-in-out; display: flex; flex-direction: column; 
         }
         #sidebar.active { left: 0; }
@@ -39,14 +34,12 @@
         .header { background: #004d40; color: white; padding: 15px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
         
-        /* ACCORDION */
         .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .accordion.active, .accordion:hover { background-color: #ccc; }
         .accordion:after { content: '\002B'; font-weight: bold; float: right; margin-left: 5px; }
         .accordion.active:after { content: "\2212"; }
         .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
         
-        /* FORM & BUTTONS */
         label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
         input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
@@ -68,13 +61,14 @@
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
 
+        /* USER LOG TABLE */
         #user-log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #333; }
         #user-log-table th, #user-log-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         #user-log-table th { background-color: #f2f2f2; font-weight: bold; color: #004d40; }
         #user-log-table tr:nth-child(even) { background-color: #f9f9f9; }
-        #user-log-table tr:hover { background-color: #e0f2f1; }
         .log-time { color: #d32f2f; font-weight: bold; white-space: nowrap; }
 
+        /* FAULT INFO BOX */
         #fault-result-panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .fault-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; color: #d32f2f; font-weight: bold; }
         .fault-row { margin-bottom: 5px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 3px; line-height: 1.4; }
@@ -98,7 +92,7 @@
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
 
-        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 40px !important; }
+        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 30px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
         
@@ -133,7 +127,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v1.87</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.88</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
@@ -293,58 +287,28 @@
         import { getDatabase, ref, set, update, push, child, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         const firebaseConfig = { apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", authDomain: "tavietnam-78ae8.firebaseapp.com", projectId: "tavietnam-78ae8", storageBucket: "tavietnam-78ae8.firebasestorage.app", messagingSenderId: "670121705534", appId: "1:670121705534:web:1027ad98550573ad37116f" };
         const app = initializeApp(firebaseConfig);
-        
-        // EXPORT TO WINDOW FOR GLOBAL USE
-        window.db = getDatabase(app); 
-        window.set = set; 
-        window.update = update; 
-        window.ref = ref; 
-        window.onValue = onValue; 
-        window.push = push; 
-        window.child = child; 
-        window.get = get; 
-        window.remove = remove;
-        
+        window.db = getDatabase(app); window.set = set; window.update = update; window.ref = ref; window.onValue = onValue; window.push = push; window.child = child; window.get = get; window.remove = remove;
         window.listenCloud();
         
-        // --- ADMIN: LOAD USER LOGS ---
         window.loadUserLogs = async function() {
             const tbody = document.querySelector('#user-log-table tbody');
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>';
-            
             try {
                 const logsRef = window.ref(window.db, 'system_logs/logins');
                 const snapshot = await window.get(logsRef);
                 if (snapshot.exists()) {
                     let logs = [];
-                    snapshot.forEach(child => {
-                        logs.push(child.val());
-                    });
-                    
-                    // Sort DESC by time
+                    snapshot.forEach(child => { logs.push(child.val()); });
                     logs.sort((a, b) => new Date(b.time) - new Date(a.time));
-                    
                     let html = '';
                     logs.forEach(log => {
                         let date = new Date(log.time);
                         let timeStr = date.toLocaleString('vi-VN');
-                        html += `
-                            <tr>
-                                <td class="log-time">${timeStr}</td>
-                                <td><b>${log.name || 'N/A'}</b></td>
-                                <td>${log.phone || '-'}</td>
-                                <td><small>${log.email || '-'}</small></td>
-                            </tr>
-                        `;
+                        html += `<tr><td class="log-time">${timeStr}</td><td><b>${log.name || 'N/A'}</b></td><td>${log.phone || '-'}</td><td><small>${log.email || '-'}</small></td></tr>`;
                     });
                     tbody.innerHTML = html;
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có dữ liệu.</td></tr>';
-                }
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Lỗi tải dữ liệu. (Xem Console)</td></tr>';
-            }
+                } else { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có dữ liệu.</td></tr>'; }
+            } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Lỗi tải dữ liệu.</td></tr>'; }
         };
     </script>
 
@@ -379,21 +343,17 @@
         }
         setNowToInput();
 
-        // Auto locate (Silent)
         map.locate({setView: false, maxZoom: 16});
         map.on('locationfound', function(e) { userLocation = e.latlng; });
 
-        // --- UPDATED ZOOM LEVEL LOGIC (v1.87) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            
-            // 1. Luôn hiện Đường dây (Main) và Trụ Néo/Quan trọng (Important) + Areas
-            if (!map.hasLayer(layers.main)) map.addLayer(layers.main);
-            if (!map.hasLayer(layers.important)) map.addLayer(layers.important);
-            if (!map.hasLayer(layers.areas)) map.addLayer(layers.areas);
-            
-            // 2. Ẩn hiện Trụ đỡ (Minor) và Máy cắt (MC) theo zoom
-            if (z < 15) {
+            // FIX: Ensure Main Lines & Areas are ALWAYS added
+            if(!map.hasLayer(layers.main)) map.addLayer(layers.main);
+            if(!map.hasLayer(layers.important)) map.addLayer(layers.important);
+            if(!map.hasLayer(layers.areas)) map.addLayer(layers.areas);
+
+            if (z < 16) {
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
             } else {
@@ -436,26 +396,14 @@
                 this.classList.toggle("active"); 
                 var panel = this.nextElementSibling; 
                 if (panel.style.maxHeight) panel.style.maxHeight = null; else panel.style.maxHeight = (panel.scrollHeight + 500) + "px"; 
-                
-                // Mode switching
-                if (this.id === 'acc-entry' && this.classList.contains('active')) {
-                    if(getActiveTab() === 'seg') renderGlobalMap('segment_edit'); else renderGlobalMap('normal');
-                } else {
-                    renderGlobalMap('normal'); layers.editHighlight.clearLayers();
-                }
+                if (this.id === 'acc-entry' && this.classList.contains('active')) { if(getActiveTab() === 'seg') renderGlobalMap('segment_edit'); else renderGlobalMap('normal'); } else { renderGlobalMap('normal'); layers.editHighlight.clearLayers(); }
             }); 
         }
 
         map.on('click', function(e) { 
-            if (pickingMode === 'pole') { 
-                document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6); document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6); pickingMode = null; let btn = document.querySelector('.btn-pick'); btn.innerText = "📍 Chấm bản đồ"; btn.style.background = "#ff9800"; openSidebar(); 
-            } else if (pickingMode === 'area') { 
-                tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); 
-            } else {
-                if (isEditMode() && getActiveTab() === 'area') {
-                    document.getElementById('inp-area-name').value = ''; document.getElementById('inp-area-type').value = 'TBA';
-                }
-            }
+            if (pickingMode === 'pole') { document.getElementById('inp-lat').value = e.latlng.lat.toFixed(6); document.getElementById('inp-lng').value = e.latlng.lng.toFixed(6); pickingMode = null; let btn = document.querySelector('.btn-pick'); btn.innerText = "📍 Chấm bản đồ"; btn.style.background = "#ff9800"; openSidebar(); } 
+            else if (pickingMode === 'area') { tempAreaPoints.push([e.latlng.lat, e.latlng.lng]); drawTempPoly(); } 
+            else { if (isEditMode() && getActiveTab() === 'area') { document.getElementById('inp-area-name').value = ''; document.getElementById('inp-area-type').value = 'TBA'; } }
         });
 
         window.zoomToExtent = function() { let bounds = L.latLngBounds([]); let hasData = false; if(appData.poles) { for(let l in appData.poles) { appData.poles[l].forEach(p => { bounds.extend([p.lat, p.lng]); hasData=true; }); } } if(hasData) map.fitBounds(bounds, {padding: [50,50]}); else map.setView([10.762, 106.660], 12); }
@@ -491,71 +439,26 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-
-            let wb=XLSX.utils.book_new(); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
-            XLSX.writeFile(wb,"DuLieuLuoiDien_Full.xlsx"); 
+            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_Full.xlsx"); 
         }
 
         window.onElementClick = function(type, data) {
             if(pickingMode === 'area') return; 
-
             if (isEditMode()) {
                 let tab = getActiveTab();
-                if (tab === 'pole' && type === 'pole') {
-                    document.getElementById('inp-pole-route').value = data.route || ""; 
-                    document.getElementById('inp-pole-name').value = data.name; 
-                    document.getElementById('inp-pole-type').value = data.type; 
-                    document.getElementById('inp-pole-src').value = data.srcVal || ""; 
-                    document.getElementById('inp-lat').value = data.lat; 
-                    document.getElementById('inp-lng').value = data.lng; 
-                }
-                else if (tab === 'seg' && type === 'segment') {
-                    let seg = appData.segments[data.id];
-                    if(seg) {
-                        document.getElementById('inp-seg-id').value = seg.id;
-                        document.getElementById('inp-seg-id-old').value = seg.id; 
-                        document.getElementById('inp-seg-type').value = seg.type;
-                        let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom;
-                        let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo;
-                        window.highlightSegment(seg.id, 'black'); 
-                    }
-                }
-                else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) {
-                    let cid = data.circuitId; 
-                    if(cid) {
-                        document.getElementById('inp-cir-id').value = cid;
-                        currentEditingCircuit = [...(appData.circuits[cid] || [])]; 
-                        window.renderCircuitSegments();
-                    }
-                }
-                else if (tab === 'area' && type === 'area') {
-                    document.getElementById('inp-area-name').value = data.name;
-                    document.getElementById('inp-area-type').value = data.type;
-                }
+                if (tab === 'pole' && type === 'pole') { document.getElementById('inp-pole-route').value = data.route || ""; document.getElementById('inp-pole-name').value = data.name; document.getElementById('inp-pole-type').value = data.type; document.getElementById('inp-pole-src').value = data.srcVal || ""; document.getElementById('inp-lat').value = data.lat; document.getElementById('inp-lng').value = data.lng; }
+                else if (tab === 'seg' && type === 'segment') { let seg = appData.segments[data.id]; if(seg) { document.getElementById('inp-seg-id').value = seg.id; document.getElementById('inp-seg-id-old').value = seg.id; document.getElementById('inp-seg-type').value = seg.type; let s1 = document.getElementById('sel-seg-line1'); s1.value = seg.lineFrom; window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); document.getElementById('sel-seg-pole1').value = seg.poleFrom; let s2 = document.getElementById('sel-seg-line2'); s2.value = seg.lineTo; window.updatePoleSelect('sel-seg-line2','sel-seg-pole2'); document.getElementById('sel-seg-pole2').value = seg.poleTo; window.highlightSegment(seg.id, 'black'); } }
+                else if (tab === 'cir' && (type === 'circuit' || type === 'segment')) { let cid = data.circuitId; if(cid) { document.getElementById('inp-cir-id').value = cid; currentEditingCircuit = [...(appData.circuits[cid] || [])]; window.renderCircuitSegments(); } }
+                else if (tab === 'area' && type === 'area') { document.getElementById('inp-area-name').value = data.name; document.getElementById('inp-area-type').value = data.type; }
                 openSidebar();
             } else {
-                if (type === 'pole' && data.type.includes('MC')) {
-                    let currentState = appData.mcStates[data.name] !== false; 
-                    document.getElementById('win-msg').innerHTML = `Điều khiển máy cắt <b>${data.name}</b>?<br><br>Trạng thái hiện tại: <b>${currentState?"ĐANG ĐÓNG":"ĐANG MỞ"}</b>`;
-                    window.pendingAction = { type: 'mc', name: data.name }; document.getElementById('custom-confirm').style.display = 'flex';
-                }
+                if (type === 'pole' && data.type.includes('MC')) { let currentState = appData.mcStates[data.name] !== false; document.getElementById('win-msg').innerHTML = `Điều khiển máy cắt <b>${data.name}</b>?<br><br>Trạng thái hiện tại: <b>${currentState?"ĐANG ĐÓNG":"ĐANG MỞ"}</b>`; window.pendingAction = { type: 'mc', name: data.name }; document.getElementById('custom-confirm').style.display = 'flex'; }
             }
         }
 
         window.renderCircuitSegments = function() {
             let html = currentEditingCircuit.map((item, index) => {
-                return `<div class="cir-item-row" onclick="window.highlightSegment('${item.segId}')">
-                    <span>${index+1}. ${item.segId}</span>
-                    <div class="cir-controls">
-                        <button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button>
-                        <button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button>
-                        <button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">X</button>
-                    </div>
-                </div>`;
+                return `<div class="cir-item-row" onclick="window.highlightSegment('${item.segId}')"><span>${index+1}. ${item.segId}</span><div class="cir-controls"><button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button><button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button><button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">X</button></div></div>`;
             }).join('');
             if(html === '') html = '<div style="padding:5px;color:#999">Chưa có đoạn nào</div>';
             document.getElementById('circuit-segment-list').innerHTML = html;
@@ -676,7 +579,11 @@
             updateLayerVisibility();
             if(appData.areas) appData.areas.forEach(a => { let c='#9e9e9e'; if(a.type==='TBA') c='#ff9800'; else if(a.type==='CONSTRUCTION') c='#ffeb3b'; else if(a.type==='FOUNDATION') c='#795548'; L.polygon(a.points, {color:c, fillColor:c, fillOpacity:0.3, weight:1}).addTo(layers.areas).bindPopup(`<b>${a.name}</b><br>${a.type}`); });
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
-                let isMC = p.type.includes('MC'), isMinor = p.type === 'TRU_DO' || p.type === 'MOC'; let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.important);
+                let type = p.type.trim().toUpperCase();
+                let isMC = type.includes('MC');
+                let isMinor = type === 'TRU_DO' || type === 'MOC'; // Fixed MOC visibility
+                let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.important);
+                
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
                 let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isClosed, p.sourceVoltage), zIndexOffset: isMC ? 1000 : 0 }).addTo(target);
                 marker.on('click', () => window.onElementClick('pole', {type:p.type, name:p.name, route:l, lat:p.lat, lng:p.lng, srcVal:p.sourceVoltage})); if(!isMC) marker.bindPopup(`<b>${p.name}</b><br>${l}`);
@@ -690,6 +597,7 @@
                     }
                 });
             } else {
+                // FORCE DRAW ALL CIRCUITS ON LOAD
                 if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid, false));
             }
         }
@@ -846,18 +754,17 @@
         }
         setNowToInput();
 
-        // --- UPDATED ZOOM LEVEL LOGIC (v1.87) ---
+        // --- UPDATED ZOOM LEVEL LOGIC (v1.88) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            
-            // 1. Luôn hiện Đường dây (Main) và Trụ Néo/Quan trọng (Important) + Areas + Fault
-            if (!map.hasLayer(layers.main)) map.addLayer(layers.main);
-            if (!map.hasLayer(layers.important)) map.addLayer(layers.important);
-            if (!map.hasLayer(layers.areas)) map.addLayer(layers.areas);
-            if (!map.hasLayer(layers.fault)) map.addLayer(layers.fault);
-            
-            // 2. Ẩn hiện Trụ đỡ (Minor) và Máy cắt (MC) theo zoom
-            if (z < 15) {
+            // 1. ALWAYS SHOW MAIN LINES & AREAS
+            if(!map.hasLayer(layers.main)) map.addLayer(layers.main);
+            if(!map.hasLayer(layers.important)) map.addLayer(layers.important);
+            if(!map.hasLayer(layers.areas)) map.addLayer(layers.areas);
+            if(!map.hasLayer(layers.fault)) map.addLayer(layers.fault);
+
+            // 2. TOGGLE MINOR ITEMS
+            if (z < 16) {
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
             } else {
