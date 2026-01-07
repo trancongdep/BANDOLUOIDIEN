@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Lưới Điện (Admin) - v1.98</title>
+    <title>Quản Lý Lưới Điện (Admin) - v2.0</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -14,85 +14,105 @@
         
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 30px; width: 100%; z-index: 1; }
         
-        .footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 30px; background: #212121; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; }
-        #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
-        
+        .footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 30px; background: #263238; color: #eceff1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-top: 3px solid #ff6f00; z-index: 4000; letter-spacing: 1px; }
+        #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #00695c; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; transition: 0.3s; }
+        #menu-toggle:hover { background: #004d40; }
+
         #sidebar { position: fixed; top: 0; left: -100%; width: 420px; bottom: 30px; background: white; z-index: 3000; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transition: left 0.3s ease-in-out; display: flex; flex-direction: column; }
         #sidebar.active { left: 0; }
         
-        .header { background: #004d40; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .content { padding: 10px; overflow-y: auto; flex: 1; background: #fafafa; }
+        .header { background: #00695c; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .content { padding: 10px; overflow-y: auto; flex: 1; background: #f5f5f5; }
         
-        .accordion { background-color: #eee; color: #444; cursor: pointer; padding: 12px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.9rem; font-weight: bold; transition: 0.4s; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
-        .accordion.active, .accordion:hover { background-color: #ccc; }
-        .accordion:after { content: '\002B'; font-weight: bold; }
+        .accordion { background-color: #fff; color: #37474f; cursor: pointer; padding: 14px; width: 100%; border: none; text-align: left; outline: none; font-size: 0.95rem; font-weight: 600; transition: 0.3s; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .accordion:hover { background-color: #f1f8e9; color: #2e7d32; }
+        .accordion.active { background-color: #e8f5e9; color: #2e7d32; border-left: 4px solid #2e7d32; }
+        .accordion:after { content: '\002B'; font-weight: bold; font-size: 1.1rem; }
         .accordion.active:after { content: "\2212"; }
-        .panel { padding: 0 10px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
+        
+        .panel { padding: 0 12px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; border-bottom: 1px solid #e0e0e0; }
         
         /* FORM ELEMENTS */
-        label { font-weight: 600; font-size: 0.85rem; display: block; margin: 8px 0 4px; color: #333; }
-        input, select { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.9rem; }
-        button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; }
+        label { font-weight: 600; font-size: 0.85rem; display: block; margin: 10px 0 4px; color: #455a64; }
+        input, select { width: 100%; padding: 8px 10px; margin-bottom: 5px; border: 1px solid #cfd8dc; border-radius: 4px; box-sizing: border-box; font-size: 0.9rem; transition: border 0.2s; }
+        input:focus, select:focus { border-color: #009688; outline: none; }
         
-        .btn-check { background: #00796b; } .btn-merge { background: #2e7d32; flex: 1; margin-bottom: 0 !important; } .btn-replace { background: #c62828; flex: 1; margin-bottom: 0 !important; } 
-        .btn-find { background: #d32f2f; } .btn-add { background: #1565c0; margin-bottom: 20px !important; } .btn-save-cir { background: #d84315; margin-bottom: 20px !important; }
-        .btn-pick { background: #ff9800; color: white; width: auto; padding: 4px 10px; font-size: 0.8rem; margin-left: 5px; }
-        .btn-draw-control { background: #607d8b; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
-        .btn-ground { background: #0288d1; margin-top: 5px; }
-        .btn-export { background: #2e7d32; margin-top: 5px; }
+        button.action-btn { padding: 10px; width: 100%; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white; box-shadow: 0 2px 2px rgba(0,0,0,0.1); }
+        button.action-btn:active { transform: translateY(1px); box-shadow: none; }
+        
+        .btn-check { background: #00897b; } .btn-merge { background: #43a047; flex: 1; margin-bottom: 0 !important; } .btn-replace { background: #e53935; flex: 1; margin-bottom: 0 !important; } 
+        .btn-find { background: #d32f2f; } .btn-add { background: #1976d2; margin-bottom: 20px !important; } .btn-save-cir { background: #f57c00; margin-bottom: 20px !important; }
+        .btn-pick { background: #ffa000; color: white; width: auto; padding: 4px 12px; font-size: 0.8rem; margin-left: 5px; border-radius: 12px; }
+        .btn-draw-control { background: #546e7a; width: 48%; display: inline-block; margin-right: 2%; font-size: 0.85rem; }
+        .btn-ground { background: #039be5; margin-top: 5px; }
+        .btn-export { background: #388e3c; margin-top: 5px; }
 
-        .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ddd; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 0.9rem; }
-        .tab-btn.active { color: #004d40; border-bottom: 3px solid #004d40; background: #e0f2f1; }
-        .edit-section { display: none; padding-top: 10px; }
+        .tab-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #cfd8dc; background: #eceff1; border-radius: 4px 4px 0 0; overflow: hidden; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: 600; color: #78909c; font-size: 0.9rem; transition: 0.3s; }
+        .tab-btn:hover { background: #e0f2f1; color: #00695c; }
+        .tab-btn.active { color: #00695c; border-bottom: 3px solid #00695c; background: white; }
+        
+        .edit-section { display: none; padding-top: 5px; }
         .edit-section.active { display: block; }
 
-        #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
-        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #eee; font-size: 0.85rem; cursor: pointer; }
+        #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; border-radius: 4px; }
+        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; cursor: pointer; }
         .cir-item-row:hover { background: #e3f2fd; }
-        .cir-controls .btn-mini { border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; margin-left: 2px; }
-        .btn-up, .btn-down { background: #607d8b; } .btn-del-seg { background: #ef5350; }
+        .cir-controls .btn-mini { border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; margin-left: 2px; }
+        .btn-up, .btn-down { background: #78909c; } .btn-del-seg { background: #ef5350; }
 
-        #console { background: #212121; color: #00e676; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-bottom: 10px; }
+        #console { background: #263238; color: #69f0ae; font-family: 'Consolas', monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #37474f; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
 
-        #result { color: #d32f2f; font-weight: bold; margin-top: 10px; padding: 10px; background: #ffebee; border-radius: 4px; display: none; }
+        #result { color: #c62828; font-weight: bold; margin-top: 10px; padding: 10px; background: #ffebee; border-radius: 4px; display: none; border: 1px solid #ffcdd2; }
         #user-log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #333; }
-        #user-log-table th, #user-log-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-        #user-log-table th { background-color: #f2f2f2; font-weight: bold; color: #004d40; }
-        #user-log-table tr:nth-child(even) { background-color: #f9f9f9; }
+        #user-log-table th, #user-log-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        #user-log-table th { background-color: #e0f2f1; font-weight: bold; color: #00695c; }
+        #user-log-table tr:nth-child(even) { background-color: #fafafa; }
 
-        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; white-space: nowrap; }
+        /* MAP ICONS */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; white-space: nowrap; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; font-size: 10px; line-height: 16px; background: #555; }
         .icon-mc-on { background: #d32f2f; } .icon-mc-off { background: #388e3c; }
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
+        
         .fault-marker { font-size: 40px; color: red; text-shadow: 0 0 5px yellow; animation: flash 0.5s infinite; }
         @keyframes flash { from {opacity: 1;} to {opacity: 0.3;} }
-        .radio-group { display: flex; gap: 20px; margin-bottom: 10px; align-items: center; }
+        
+        .radio-group { display: flex; gap: 20px; margin-bottom: 10px; align-items: center; background: #f5f5f5; padding: 5px; border-radius: 4px; }
         
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 4px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); animation: popIn 0.2s ease-out; }
-        .win-header { background: white; padding: 10px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; font-weight: bold; }
-        .win-body { padding: 20px; background: white; display: flex; align-items: center; gap: 15px; }
-        .win-footer { padding: 10px 15px; background: #f3f3f3; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
-        .win-btn { padding: 6px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 2px; }
+        .win-dialog { background: #f0f0f0; width: 90%; max-width: 400px; border-radius: 6px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: popIn 0.2s ease-out; }
+        .win-header { background: white; padding: 12px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; font-weight: bold; color: #333; }
+        .win-body { padding: 25px 20px; background: white; display: flex; align-items: center; gap: 15px; color: #444; }
+        .win-footer { padding: 10px 15px; background: #f5f5f5; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; }
+        .win-btn { padding: 8px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; font-weight: 600; transition: 0.2s; }
         .win-btn.primary { background: #0078d7; color: white; border-color: #005a9e; }
-        .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 30px; height: 30px; line-height: 30px; border-radius: 2px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; }
-        .leaflet-control-custom:hover { background: #f4f4f4; }
+        .win-btn.primary:hover { background: #005a9e; }
+        
+        .leaflet-control-custom { background: white; padding: 5px; cursor: pointer; text-align: center; width: 34px; height: 34px; line-height: 34px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.65); transition: background 0.2s; color: #333; }
+        .leaflet-control-custom:hover { background: #f4f4f4; color: #000; }
+        
+        /* LEGEND CSS */
+        .legend { background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-size: 0.8rem; line-height: 1.6; color: #333; min-width: 150px; }
+        .legend h4 { margin: 0 0 8px 0; font-size: 0.85rem; border-bottom: 2px solid #00695c; padding-bottom: 4px; color: #00695c; text-transform: uppercase; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .legend-icon { width: 18px; height: 4px; border-radius: 2px; display: inline-block; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v1.98</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v2.0</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
-            <div class="win-header"><span>Thông báo</span><button style="border:none;background:none;font-size:1.2rem;cursor:pointer;" onclick="closeWinDialog()">×</button></div>
+            <div class="win-header"><span>Xác nhận</span><button style="border:none;background:none;font-size:1.2rem;cursor:pointer;color:#999" onclick="closeWinDialog()">×</button></div>
             <div class="win-body"><i class="fas fa-question-circle" style="font-size:2rem;color:#0078d7"></i><span id="win-msg">...</span></div>
             <div class="win-footer"><button class="win-btn primary" id="win-btn-yes" onclick="window.confirmAction()">Đồng ý</button><button class="win-btn" onclick="closeWinDialog()">Hủy</button></div>
         </div>
@@ -131,7 +151,7 @@
                 </div>
                 
                 <div id="tab-pole" class="edit-section active">
-                    <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: MAYCAT">
+                    <label>Tên Tuyến:</label><input type="text" id="inp-pole-route" placeholder="VD: TUYEN_1">
                     <label>Tên Trụ/MC:</label><input type="text" id="inp-pole-name" placeholder="VD: MC_472">
                     <label>Loại:</label><select id="inp-pole-type"><option value="TRU_DO">Trụ Đỡ</option><option value="TRU_NEO">Trụ Néo</option><option value="MC">Máy Cắt</option><option value="MOC">Mốc Cáp</option><option value="HAM_CAP">Hầm Cáp</option></select>
                     <label>Nguồn (MC):</label><select id="inp-pole-src"><option value="">-- Không --</option><option value="220kV">220kV</option><option value="110kV">110kV</option><option value="500kV">500kV</option></select>
@@ -154,8 +174,8 @@
                 </div>
 
                 <div id="tab-cir" class="edit-section">
-                    <label>Tên Mạch (Click trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
-                    <div id="circuit-segment-list"><div style="padding:10px;text-align:center;color:#999">Chưa có dữ liệu</div></div>
+                    <label>Tên Mạch (Click trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits" placeholder="Nhập hoặc chọn..."><datalist id="list-circuits"></datalist>
+                    <div id="circuit-segment-list"><div style="padding:15px;text-align:center;color:#999;font-style:italic">Chưa có dữ liệu</div></div>
                     <label>Thêm đoạn:</label><select id="sel-cir-seg"></select>
                     <button class="action-btn btn-add" onclick="window.addSegToCir()">Thêm vào danh sách</button>
                     <button class="action-btn btn-save-cir" onclick="window.saveCircuitStructure()">LƯU CẤU TRÚC MẠCH</button>
@@ -168,7 +188,7 @@
                         <button class="action-btn btn-draw-control" onclick="startAreaDraw()">✏️ Bắt đầu vẽ</button>
                         <button class="action-btn btn-draw-control" style="background:#fbc02d; color:black;" onclick="undoAreaPoint()">↩️ Xóa điểm cuối</button>
                     </div>
-                    <div id="draw-status" style="font-size:0.8rem; color:red; margin-bottom:5px;"></div>
+                    <div id="draw-status" style="font-size:0.8rem; color:#d32f2f; margin-bottom:5px; font-weight:bold;"></div>
                     <button class="action-btn btn-add" onclick="saveArea()">LƯU VÙNG</button>
                 </div>
             </div>
@@ -177,12 +197,19 @@
             <div class="panel" id="panel-opt">
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Chọn --</option></select>
-                <div style="margin:10px 0;padding:10px;background:#f5f5f5;">Trạng thái: <span id="status-text" style="font-weight:bold;">---</span><div id="circuit-info" style="font-size:0.85rem;color:#00695c;margin-top:5px"></div></div>
+                <div style="margin:10px 0;padding:12px;background:#e0f7fa;border-radius:4px;border:1px solid #b2ebf2;">
+                    Trạng thái: <span id="status-text" style="font-weight:bold;">---</span>
+                    <div id="circuit-info" style="font-size:0.85rem;color:#006064;margin-top:5px"></div>
+                </div>
                 
                 <button class="action-btn btn-ground" id="btn-grounding" onclick="toggleGrounding()" style="display:none;">🔒 ĐÓNG TIẾP ĐỊA</button>
 
-                <label>Nhập Km sự cố:</label><input type="number" id="faultKm" step="0.01">
-                <div class="radio-group"><label><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label> <label><input type="radio" name="faultDir" value="end"> Từ Cuối</label></div>
+                <label>Nhập Km sự cố (Tính từ điểm nguồn/đầu):</label>
+                <input type="number" id="faultKm" step="0.001" placeholder="Ví dụ: 5.23">
+                <div class="radio-group">
+                    <label style="margin:0;cursor:pointer"><input type="radio" name="faultDir" value="start" checked> Từ Đầu</label> 
+                    <label style="margin:0;cursor:pointer"><input type="radio" name="faultDir" value="end"> Từ Cuối</label>
+                </div>
                 <button class="action-btn btn-find" onclick="window.findFault()">TÌM VỊ TRÍ</button>
                 <div id="result" style="display:none;"></div>
             </div>
@@ -227,7 +254,7 @@
         L.control.zoom({ position: 'topright' }).addTo(map);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.4 }).addTo(map);
-        L.Control.Extent = L.Control.extend({ onAdd: function(map) { var c = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom'); c.innerHTML = '🏠'; c.style.backgroundColor='white'; c.style.width='30px'; c.style.height='30px'; c.style.lineHeight='30px'; c.style.textAlign='center'; c.style.cursor='pointer'; c.style.fontSize='18px'; c.onclick = function(){window.zoomToExtent()}; return c; } }); new L.Control.Extent({ position: 'topright' }).addTo(map);
+        L.Control.Extent = L.Control.extend({ onAdd: function(map) { var c = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom'); c.innerHTML = '<i class="fas fa-home"></i>'; c.title="Về toàn cảnh"; c.onclick = function(){window.zoomToExtent()}; return c; } }); new L.Control.Extent({ position: 'topright' }).addTo(map);
 
         map.createPane('areaPane'); map.getPane('areaPane').style.zIndex = 200;
         let layers = { areas: L.layerGroup().addTo(map), main: L.layerGroup().addTo(map), minor: L.layerGroup().addTo(map), mc: L.layerGroup().addTo(map), fault: L.layerGroup().addTo(map), editHighlight: L.layerGroup().addTo(map) };
@@ -301,9 +328,19 @@
         });
         
         window.enableMapPick = function(mode) { pickingMode = mode; closeSidebar(); let btn = document.querySelector('.btn-pick'); btn.innerText = "Đang chọn..."; btn.style.background = "#4caf50"; }
-        window.startAreaDraw = function() { pickingMode = 'area'; tempAreaPoints = []; if(tempAreaPoly) map.removeLayer(tempAreaPoly); closeSidebar(); document.getElementById('draw-status').innerText = "Đang vẽ..."; }
+        window.startAreaDraw = function() { pickingMode = 'area'; tempAreaPoints = []; if(tempAreaPoly) map.removeLayer(tempAreaPoly); closeSidebar(); document.getElementById('draw-status').innerText = "Đang vẽ... (Click bản đồ)"; }
         window.undoAreaPoint = function() { tempAreaPoints.pop(); if(tempAreaPoly) map.removeLayer(tempAreaPoly); if(tempAreaPoints.length>0) tempAreaPoly=L.polygon(tempAreaPoints,{color:'red',dashArray:'5,5'}).addTo(map); }
-        window.saveArea = function() { if(tempAreaPoints.length<3) return alert("Cần 3 điểm!"); window.get(window.child(window.ref(window.db), 'he_thong_luoi_dien/areas')).then(snap => { let areas = snap.val() || []; areas.push({ name:document.getElementById('inp-area-name').value, type:document.getElementById('inp-area-type').value, points: tempAreaPoints }); window.set(window.ref(window.db, 'he_thong_luoi_dien/areas'), areas).then(() => { alert("Đã lưu vùng!"); pickingMode = null; if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints = []; }); }); }
+        window.saveArea = function() { 
+            if(tempAreaPoints.length<3) return alert("Cần tối thiểu 3 điểm để tạo vùng!"); 
+            window.get(window.child(window.ref(window.db), 'he_thong_luoi_dien/areas')).then(snap => { 
+                let areas = snap.val() || []; 
+                areas.push({ name:document.getElementById('inp-area-name').value || 'Vùng Mới', type:document.getElementById('inp-area-type').value, points: tempAreaPoints }); 
+                window.set(window.ref(window.db, 'he_thong_luoi_dien/areas'), areas).then(() => { 
+                    alert("Đã lưu vùng!"); pickingMode = null; document.getElementById('draw-status').innerText = "";
+                    if(tempAreaPoly) map.removeLayer(tempAreaPoly); tempAreaPoints = []; 
+                }); 
+            }); 
+        }
         
         window.zoomToExtent = function() { let bounds = L.latLngBounds([]); let hasData = false; if(appData.poles) { for(let l in appData.poles) { appData.poles[l].forEach(p => { bounds.extend([p.lat, p.lng]); hasData=true; }); } } if(hasData) map.fitBounds(bounds, {padding: [50,50]}); else map.setView([10.762, 106.660], 12); }
         
@@ -441,7 +478,7 @@
         }
 
         // --- DRAW SINGLE CIRCUIT ---
-        function drawSingleCircuit(circuitId, calcPath, excludeSegId, simulationOnly = false) {
+        function drawSingleCircuit(circuitId, calcPath = false, excludeSegId, simulationOnly = false) {
             const segs = appData.circuits[circuitId]; if(!segs) return;
             
             // 1. Color Logic
@@ -463,7 +500,7 @@
                 activeVoltage = activeSources[0].sourceVoltage; 
             }
             
-            let color = '#000000', statusText = "MẤT ĐIỆN";
+            let color = '#000000', statusText = "MẤT ĐIỆN / CÔ LẬP";
             if (isGrounded) { color = '#2196f3'; statusText = "ĐANG TIẾP ĐỊA"; } 
             else if (activeVoltage) { 
                 if (activeVoltage.includes('110')) { color = '#388e3c'; statusText = "CÓ ĐIỆN (110kV)"; } 
@@ -499,9 +536,9 @@
                              }
                         }
 
-                        if (!isCalc) {
+                        if (!calcPath) {
                             let poly = L.polyline(latLngs, {
-                                color: color, weight: 2, 
+                                color: color, weight: 3, 
                                 dashArray: isCable?"5,5":null, 
                                 offset: offset 
                             }).addTo(layers.main).bindPopup(`<b>${circuitId}</b><br>${statusText}`);
@@ -514,7 +551,7 @@
                             });
                         }
                         
-                        if(isCalc) {
+                        if(calcPath) {
                              ptsObj.forEach((p, i) => {
                                 if (i > 0) {
                                     let d = getDist(ptsObj[i-1].lat, ptsObj[i-1].lng, p.lat, p.lng);
@@ -684,7 +721,7 @@
             let html = currentEditingCircuit.map((item, index) => {
                 return `<div class="cir-item-row" onclick="window.highlightSegment('${item.segId}')"><span>${index+1}. ${item.segId}</span><div class="cir-controls"><button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button><button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button><button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">X</button></div></div>`;
             }).join('');
-            if(html === '') html = '<div style="padding:5px;color:#999">Chưa có đoạn nào</div>';
+            if(html === '') html = '<div style="padding:15px;text-align:center;color:#999;font-style:italic">Chưa có đoạn nào</div>';
             document.getElementById('circuit-segment-list').innerHTML = html;
         }
 
@@ -708,21 +745,23 @@
         // --- FAULT FINDING ---
         window.zoomToCircuit = function() {
             let cid = document.getElementById('circuitSelect').value;
-            layers.main.clearLayers(); 
-            renderMap(); 
+            // Clear main layer to focus or restore
             if(cid) {
-                drawCircuit(cid, true);
+                layers.main.clearLayers(); 
+                drawSingleCircuit(cid, true);
                 let km = (currentPathTotalDist / 1000).toFixed(3);
-                document.getElementById('circuit-info').innerText = `Tổng dài: ${km} km`;
+                document.getElementById('circuit-info').innerHTML = `<i class="fas fa-ruler"></i> Tổng chiều dài: <b>${km} km</b>`;
             } else {
+                renderGlobalMap('normal');
                 document.getElementById('circuit-info').innerText = "";
+                document.getElementById('status-text').innerText = "---";
             }
         }
 
         window.findFault = function() {
             let km = parseFloat(document.getElementById('faultKm').value);
             let dir = document.querySelector('input[name="faultDir"]:checked').value;
-            if(!currentPath.length || isNaN(km)) return alert("Chọn mạch và nhập Km!");
+            if(!currentPath.length || isNaN(km)) return alert("Vui lòng chọn mạch và nhập số Km!");
 
             let targetDist = (dir === 'start') ? km * 1000 : currentPathTotalDist - (km * 1000);
             
@@ -751,11 +790,23 @@
                     break;
                 }
             }
-            if(!found) document.getElementById('result').innerText = "Không tìm thấy trong phạm vi.";
+            if(!found) document.getElementById('result').innerText = "Không tìm thấy vị trí trong phạm vi mạch.";
         }
         
         var legendControl = L.control({position: 'bottomright'});
-        legendControl.onAdd = function (map) { var div = L.DomUtil.create('div', 'legend'); div.innerHTML = `<h4>CHÚ THÍCH</h4><div class="legend-item"><span class="legend-icon" style="background:#ff0000;"></span> Dây Đóng</div><div class="legend-item"><span class="legend-icon" style="background:#388e3c;"></span> Dây Cắt</div>`; return div; };
+        legendControl.onAdd = function (map) { 
+            var div = L.DomUtil.create('div', 'legend'); 
+            div.innerHTML = `
+                <h4>TRẠNG THÁI & CẤP ĐIỆN</h4>
+                <div class="legend-item"><span class="legend-dot" style="background:#d32f2f"></span> Có điện 220kV</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#388e3c"></span> Có điện 110kV</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#0d47a1"></span> Có điện 500kV</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#2196f3"></span> Đang Tiếp Địa</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#000000"></span> Mất điện / Cô lập</div>
+                <div class="legend-item" style="margin-top:5px;border-top:1px solid #ddd;padding-top:5px"><span class="legend-icon" style="background:#424242;border-bottom:1px dashed white"></span> Cáp ngầm</div>
+            `; 
+            return div; 
+        };
         legendControl.addTo(map);
 
     </script>
