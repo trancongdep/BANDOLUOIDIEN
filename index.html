@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Lưới Điện (Admin) - v1.92</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.93</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -76,7 +76,6 @@
         .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         
-        /* FAULT MARKER */
         .fault-marker { font-size: 35px; color: red; text-shadow: 0 0 5px yellow; animation: flash 0.5s infinite; }
         @keyframes flash { from {opacity: 1;} to {opacity: 0.3;} }
     </style>
@@ -85,7 +84,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v1.92</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.93</div>
 
     <div id="sidebar">
         <div class="header">
@@ -145,7 +144,6 @@
             <div class="panel" id="panel-opt">
                 <label>Chọn Mạch:</label>
                 <select id="circuitSelect" onchange="window.zoomToCircuit()"><option value="">-- Chọn --</option></select>
-                
                 <div style="margin:10px 0;padding:10px;background:#f5f5f5;border-radius:4px;">
                     Trạng thái: <span id="status-text" style="font-weight:bold;">---</span>
                     <div id="circuit-info" style="margin-top:5px; color:#00695c; font-weight:bold;"></div>
@@ -183,13 +181,12 @@
         let layers = { 
             areas: L.layerGroup().addTo(map), 
             main: L.layerGroup().addTo(map), 
-            minor: L.layerGroup().addTo(map), // Trụ đỡ
-            mc: L.layerGroup().addTo(map),    // Máy cắt
+            minor: L.layerGroup().addTo(map), 
+            mc: L.layerGroup().addTo(map),    
             fault: L.layerGroup().addTo(map) 
         };
         
         let appData = { poles: {}, segments: {}, circuits: {}, mcStates: {}, areas: [] };
-        let currentEditingCircuit = []; 
         let currentPath = []; let currentPathTotalDist = 0;
 
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
@@ -234,12 +231,10 @@
         function renderMap() {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
             
-            // Areas
             if(appData.areas) appData.areas.forEach(a => { 
                 L.polygon(a.points, {color:'#9e9e9e', fillColor:'#9e9e9e', fillOpacity:0.3, weight:1}).addTo(layers.areas); 
             });
 
-            // Poles
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC');
                 let target = isMC ? layers.mc : layers.minor;
@@ -257,52 +252,87 @@
                 if(!isMC) marker.bindPopup(p.name);
             });
 
-            // Circuits
             if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawCircuit(cid));
+        }
+
+        // --- CORE: PATH FOLLOWING LOGIC (FIXED v1.93) ---
+        function getPoleExact(line, name) { 
+            if(!appData.poles[line]) return null; 
+            return appData.poles[line].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); 
+        }
+
+        function getPoleGlobal(name) { 
+            for(let l in appData.poles) { 
+                let p=appData.poles[l].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); 
+                if(p) return {...p, foundRoute:l}; 
+            } return null; 
+        }
+
+        // Tìm tất cả trụ giữa 2 điểm (Logic Bám Tuyến)
+        function getPointsForSegment(seg) {
+            if(!seg) return [];
+            let p1 = getPoleExact(seg.lineFrom, seg.poleFrom) || getPoleGlobal(seg.poleFrom);
+            let p2 = getPoleExact(seg.lineTo, seg.poleTo) || getPoleGlobal(seg.poleTo);
+            
+            if(!p1 || !p2) return [];
+
+            let r1 = p1.foundRoute || seg.lineFrom;
+            let r2 = p2.foundRoute || seg.lineTo;
+
+            if (r1 && r2 && r1 === r2) {
+                let routePoles = appData.poles[r1];
+                if (routePoles) {
+                    let i1 = routePoles.findIndex(p => p.name === p1.name);
+                    let i2 = routePoles.findIndex(p => p.name === p2.name);
+                    if (i1 !== -1 && i2 !== -1) {
+                        // Lấy mảng trụ con
+                        let subPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
+                        // Chuyển thành đối tượng có lat/lng
+                        return subPoles.map(p => ({lat: p.lat, lng: p.lng, name: p.name}));
+                    }
+                }
+            }
+            // Nếu không cùng tuyến hoặc lỗi, trả về đường thẳng
+            return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
         }
 
         function drawCircuit(cid, isCalc = false) {
             const segs = appData.circuits[cid]; if(!segs) return;
-            
-            // Default color
             let color = 'black'; 
             
-            // Calculate Path Reset
             if(isCalc) { currentPath = []; currentPathTotalDist = 0; }
 
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(def) {
-                    let p1 = getPole(def.lineFrom, def.poleFrom);
-                    let p2 = getPole(def.lineTo, def.poleTo);
-                    if(p1 && p2) {
-                        let pts = [[p1.lat, p1.lng], [p2.lat, p2.lng]];
-                        // Add line to map if NOT just calculating
+                    // Lấy danh sách điểm (đã bám tuyến)
+                    let ptsObj = getPointsForSegment(def);
+                    
+                    if(ptsObj.length > 0) {
+                        let latLngs = ptsObj.map(p => [p.lat, p.lng]);
+                        
+                        // Vẽ
                         if (!isCalc) {
-                            L.polyline(pts, {color: color, weight: 2}).addTo(layers.main).bindPopup(cid);
+                            L.polyline(latLngs, {color: color, weight: 2}).addTo(layers.main).bindPopup(cid);
                         }
                         
-                        // Calculation Logic (Fixed for v1.92)
+                        // Tính toán
                         if(isCalc) {
-                            let d = getDist(p1.lat, p1.lng, p2.lat, p2.lng);
-                            currentPathTotalDist += d;
-                            currentPath.push({lat: p1.lat, lng: p1.lng, accDist: currentPathTotalDist, name: p1.name});
-                            currentPath.push({lat: p2.lat, lng: p2.lng, accDist: currentPathTotalDist + d, name: p2.name});
+                            ptsObj.forEach((p, i) => {
+                                if (i > 0) {
+                                    let d = getDist(ptsObj[i-1].lat, ptsObj[i-1].lng, p.lat, p.lng);
+                                    currentPathTotalDist += d;
+                                }
+                                currentPath.push({
+                                    lat: p.lat, lng: p.lng, 
+                                    accDist: currentPathTotalDist, 
+                                    name: p.name 
+                                });
+                            });
                         }
                     }
                 }
             });
-        }
-
-        // --- HELPERS ---
-        function getPole(line, name) {
-            if (appData.poles[line]) return appData.poles[line].find(p => p.name == name);
-            // Global search fallback
-            for(let l in appData.poles) {
-                let p = appData.poles[l].find(p => p.name == name);
-                if(p) return p;
-            }
-            return null;
         }
 
         function getDist(lat1,lon1,lat2,lon2) { 
@@ -326,7 +356,7 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
-            XLSX.writeFile(wb,"DuLieuLuoiDien_v1.79.xlsx"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_v1.93.xlsx"); 
         }
 
         // --- UI LOGIC ---
@@ -352,15 +382,14 @@
             document.getElementById(pid).innerHTML='<option value="">Chọn Trụ...</option>'+poles.map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); 
         }
 
-        // --- FAULT FINDING (FIXED v1.92) ---
+        // --- FAULT FINDING ---
         window.zoomToCircuit = function() {
             let cid = document.getElementById('circuitSelect').value;
             layers.main.clearLayers(); 
-            renderMap(); // Redraw base
+            renderMap(); 
             
-            // FIX: Display length immediately
             if(cid) {
-                drawCircuit(cid, true); // Calculate
+                drawCircuit(cid, true); // Tính toán và vẽ
                 let km = (currentPathTotalDist / 1000).toFixed(3);
                 document.getElementById('circuit-info').innerText = `Tổng dài: ${km} km`;
                 document.getElementById('status-text').innerText = "Đã chọn";
@@ -379,12 +408,25 @@
             let targetDist = (dir === 'start') ? km * 1000 : currentPathTotalDist - (km * 1000);
             
             let found = false;
-            for(let i=0; i<currentPath.length; i++) {
+            for(let i=1; i<currentPath.length; i++) {
                 if (currentPath[i].accDist >= targetDist) {
-                    let p = currentPath[i];
-                    L.marker([p.lat, p.lng], { icon: L.divIcon({html:'<i class="fas fa-bolt fault-marker"></i>', className: 'd'}) }).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
-                    map.setView([p.lat, p.lng], 16);
-                    document.getElementById('result').innerText = `Tìm thấy gần: ${p.name}`;
+                    let p1 = currentPath[i-1] || currentPath[i];
+                    let p2 = currentPath[i];
+                    
+                    let distSegment = p2.accDist - p1.accDist;
+                    let distInto = targetDist - p1.accDist;
+                    let ratio = distSegment > 0 ? distInto / distSegment : 0;
+
+                    let lat = p1.lat + (p2.lat - p1.lat) * ratio;
+                    let lng = p1.lng + (p2.lng - p1.lng) * ratio;
+
+                    let name1 = p1.name || "Điểm đầu";
+                    let name2 = p2.name || "Điểm cuối";
+
+                    L.marker([lat, lng], { icon: L.divIcon({html:'<i class="fas fa-bolt fault-marker"></i>', className: 'd'}) }).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+                    map.setView([lat, lng], 18);
+                    
+                    document.getElementById('result').innerHTML = `Vị trí dự kiến: <b>${name1} - ${name2}</b>`;
                     found = true;
                     break;
                 }
