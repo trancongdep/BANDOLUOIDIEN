@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Quản Lý Lưới Điện (Admin) - v1.88</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.89 (Stable)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* --- CORE CSS --- */
+        /* --- CORE CSS (Restored from v1.84) --- */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         
+        /* MAP */
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 30px; width: 100%; z-index: 1; }
         
+        /* FOOTER */
         .footer { 
             position: fixed; bottom: 0; left: 0; width: 100%; height: 30px; 
             background: #212121; color: #eceff1; 
             display: flex; align-items: center; justify-content: center; 
             font-size: 0.75rem; border-top: 3px solid #ff6f00; 
-            z-index: 4000;
+            z-index: 4000; 
         }
 
         #menu-toggle { position: absolute; top: 10px; left: 10px; z-index: 2000; background: #004d40; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; }
@@ -61,14 +63,14 @@
         .edit-section { display: none; padding-bottom: 10px; }
         .edit-section.active { display: block; }
 
-        /* USER LOG TABLE */
         #user-log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #333; }
         #user-log-table th, #user-log-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         #user-log-table th { background-color: #f2f2f2; font-weight: bold; color: #004d40; }
         #user-log-table tr:nth-child(even) { background-color: #f9f9f9; }
+        #user-log-table tr:hover { background-color: #e0f2f1; }
         .log-time { color: #d32f2f; font-weight: bold; white-space: nowrap; }
 
-        /* FAULT INFO BOX */
+        /* FAULT INFO BOX STYLE */
         #fault-result-panel { display: none; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .fault-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; color: #d32f2f; font-weight: bold; }
         .fault-row { margin-bottom: 5px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 3px; line-height: 1.4; }
@@ -81,7 +83,6 @@
         .weather-alert { color: #d32f2f; font-weight: bold; margin-top: 4px; border-top: 1px dashed #d32f2f; padding-top: 4px; }
         .route-info-box { background: #fff3e0; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #ffb74d; color: #e65100; font-size: 0.85rem; font-weight: bold; }
 
-        /* OTHER */
         #circuit-segment-list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; }
         .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
         .cir-item-row:hover { background: #f0f0f0; }
@@ -92,11 +93,10 @@
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .upload-btn-row { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
 
-        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 30px !important; }
+        .legend { background: rgba(255,255,255,0.95); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); font-size: 0.75rem; min-width: 130px; display: block; margin-right: 10px; margin-bottom: 40px !important; }
         .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
         .legend-icon { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; border: 1px solid #999; }
         
-        /* ICONS */
         .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
         .icon-tru-do { background: #1976d2; border-radius: 50%; }
@@ -127,7 +127,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v1.88</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.89</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
@@ -287,9 +287,21 @@
         import { getDatabase, ref, set, update, push, child, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         const firebaseConfig = { apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo", authDomain: "tavietnam-78ae8.firebaseapp.com", projectId: "tavietnam-78ae8", storageBucket: "tavietnam-78ae8.firebasestorage.app", messagingSenderId: "670121705534", appId: "1:670121705534:web:1027ad98550573ad37116f" };
         const app = initializeApp(firebaseConfig);
-        window.db = getDatabase(app); window.set = set; window.update = update; window.ref = ref; window.onValue = onValue; window.push = push; window.child = child; window.get = get; window.remove = remove;
+        
+        // EXPORT TO WINDOW FOR GLOBAL USE
+        window.db = getDatabase(app); 
+        window.set = set; 
+        window.update = update; 
+        window.ref = ref; 
+        window.onValue = onValue; 
+        window.push = push; 
+        window.child = child; 
+        window.get = get; 
+        window.remove = remove;
+        
         window.listenCloud();
         
+        // --- ADMIN: LOAD USER LOGS ---
         window.loadUserLogs = async function() {
             const tbody = document.querySelector('#user-log-table tbody');
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>';
@@ -308,7 +320,7 @@
                     });
                     tbody.innerHTML = html;
                 } else { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có dữ liệu.</td></tr>'; }
-            } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Lỗi tải dữ liệu.</td></tr>'; }
+            } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Lỗi tải dữ liệu. (Xem Console)</td></tr>'; }
         };
     </script>
 
@@ -343,17 +355,21 @@
         }
         setNowToInput();
 
+        // Auto locate (Silent)
         map.locate({setView: false, maxZoom: 16});
         map.on('locationfound', function(e) { userLocation = e.latlng; });
 
+        // --- UPDATED ZOOM LEVEL LOGIC (Reverted for stability & Added Fix) ---
         function updateLayerVisibility() {
             let z = map.getZoom();
-            // FIX: Ensure Main Lines & Areas are ALWAYS added
+            // FIX: Ensure Main Layer and Important Layer are ALWAYS visible
             if(!map.hasLayer(layers.main)) map.addLayer(layers.main);
             if(!map.hasLayer(layers.important)) map.addLayer(layers.important);
             if(!map.hasLayer(layers.areas)) map.addLayer(layers.areas);
+            if(!map.hasLayer(layers.fault)) map.addLayer(layers.fault);
 
-            if (z < 16) {
+            if (z < 15) {
+                // Hide only minor items (poles) when zoomed out
                 if(map.hasLayer(layers.minor)) map.removeLayer(layers.minor);
                 if(map.hasLayer(layers.mc)) map.removeLayer(layers.mc);
             } else {
@@ -439,7 +455,13 @@
             if(appData.segments) Object.values(appData.segments).forEach(s=>d2.push({"MA_DOAN":s.id,"TUYEN_TU":s.lineFrom,"TRU_TU":s.poleFrom,"TUYEN_DEN":s.lineTo,"TRU_DEN":s.poleTo,"LOAI_DIEM":s.type})); 
             if(appData.circuits) for(let c in appData.circuits) appData.circuits[c].forEach(i=>d3.push({"MA_DUONG_DAY":c,"STT":i.order,"MA_DOAN":i.segId})); 
             if(appData.areas) appData.areas.forEach(a => d4.push({NAME: a.name, TYPE: a.type, POINTS: JSON.stringify(a.points)}));
-            let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); XLSX.writeFile(wb,"DuLieuLuoiDien_Full.xlsx"); 
+
+            let wb=XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d1),"TOA_DO"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_Full.xlsx"); 
         }
 
         window.onElementClick = function(type, data) {
@@ -581,7 +603,7 @@
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let type = p.type.trim().toUpperCase();
                 let isMC = type.includes('MC');
-                let isMinor = type === 'TRU_DO' || type === 'MOC'; // Fixed MOC visibility
+                let isMinor = type === 'TRU_DO' || type === 'MOC'; // Corrected MOC logic
                 let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.important);
                 
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
