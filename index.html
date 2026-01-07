@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Lưới Điện (Admin) - v1.97</title>
+    <title>Quản Lý Lưới Điện (Admin) - v1.98</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -88,7 +88,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v1.97</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v1.98</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
@@ -155,11 +155,9 @@
 
                 <div id="tab-cir" class="edit-section">
                     <label>Tên Mạch (Click trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits"><datalist id="list-circuits"></datalist>
-                    <label>Danh sách đoạn:</label>
                     <div id="circuit-segment-list"><div style="padding:10px;text-align:center;color:#999">Chưa có dữ liệu</div></div>
-                    <label>Thêm đoạn mới vào mạch:</label><select id="sel-cir-seg"></select>
+                    <label>Thêm đoạn:</label><select id="sel-cir-seg"></select>
                     <button class="action-btn btn-add" onclick="window.addSegToCir()">Thêm vào danh sách</button>
-                    <hr>
                     <button class="action-btn btn-save-cir" onclick="window.saveCircuitStructure()">LƯU CẤU TRÚC MẠCH</button>
                 </div>
 
@@ -240,7 +238,7 @@
         let currentPath = []; let currentPathTotalDist = 0;
         let pickingMode = null; let tempAreaPoints = []; let tempAreaPoly = null;
         let currentEditingCircuit = [];
-        let segmentCounts = {}; // NEW: For offsets
+        let segmentCounts = {}; // Shared count for offsets
 
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
@@ -333,17 +331,15 @@
                     if(!appData.grounded) appData.grounded={};
                     updateUI(); 
                     calculateOffsets(); 
-                    // Render based on active tab
                     if(isEditMode() && getActiveTab() === 'seg') renderGlobalMap('segment_edit');
                     else renderGlobalMap('normal');
-                    
                     window.refreshDropdowns();
                     if(document.getElementById('circuitSelect').value) window.zoomToCircuit();
                 } 
             }); 
         }
 
-        // --- CALC OFFSETS (FOR CIRCUIT MODE) ---
+        // --- CALC OFFSETS ---
         function getSegmentKey(p1, p2) { let k1=p1.lat+"_"+p1.lng, k2=p2.lat+"_"+p2.lng; return (k1<k2)?(k1+"|"+k2):(k2+"|"+k1); }
         function calculateOffsets() { 
             segmentCounts={}; 
@@ -365,6 +361,7 @@
                 cls = isClosed ? 'my-icon icon-mc-base icon-mc-on' : 'my-icon icon-mc-base icon-mc-off'; 
                 sz = [24, 16]; 
                 if (sourceVoltage && sourceVoltage.length > 0) { cls += ' icon-mc-source'; sz = [26, 20]; }
+                // FIX: Get label
                 let parts = name.split('_'); label = parts.length > 1 ? parts[parts.length-1] : name;
             } else if (type.includes('NEO')) cls = 'my-icon icon-tru-neo';
             else if (type.includes('MOC')) { cls = 'my-icon icon-moc'; sz = [8,8]; }
@@ -381,7 +378,7 @@
 
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC'), isMinor = (p.type==='TRU_DO'||p.type==='MOC');
-                let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.main); // Main always visible
+                let target = isMC ? layers.mc : (isMinor ? layers.minor : layers.main);
                 
                 let isClosed = isMC ? (appData.mcStates[p.name] !== false) : true;
                 let marker = L.marker([p.lat, p.lng], { icon: createIcon(p.type, p.name, isClosed, p.sourceVoltage), zIndexOffset: isMC ? 1000 : 0 }).addTo(target);
@@ -399,7 +396,6 @@
             });
 
             if (mode === 'segment_edit') {
-                // SEGMENT MODE: Draw individual dashed lines
                 if(appData.segments) Object.values(appData.segments).forEach(seg => {
                     let ptsObj = getPointsForSegment(seg);
                     if(ptsObj.length > 0) {
@@ -410,16 +406,45 @@
                     }
                 });
             } else {
-                // NORMAL/CIRCUIT MODE: Draw full circuits with offsets and colors
                 if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawSingleCircuit(cid));
             }
         }
 
-        // --- DRAW SINGLE CIRCUIT (WITH OFFSET & COLOR) ---
+        // --- HELPER FOR POLES & PATH ---
+        function getPole(line, name) {
+            if (appData.poles[line]) return appData.poles[line].find(p => p.name == name);
+            for(let l in appData.poles) { let p = appData.poles[l].find(p => p.name == name); if(p) return {...p, foundRoute: l}; }
+            return null;
+        }
+
+        // PATH FINDING (Restored v1.93 logic)
+        function getPointsForSegment(seg) {
+            let p1 = getPole(seg.lineFrom, seg.poleFrom);
+            let p2 = getPole(seg.lineTo, seg.poleTo);
+            if(!p1 || !p2) return [];
+
+            let r1 = p1.foundRoute || seg.lineFrom;
+            let r2 = p2.foundRoute || seg.lineTo;
+
+            if (r1 && r2 && r1 === r2) {
+                let routePoles = appData.poles[r1];
+                if (routePoles) {
+                    let i1 = routePoles.findIndex(p => p.name === p1.name);
+                    let i2 = routePoles.findIndex(p => p.name === p2.name);
+                    if (i1 !== -1 && i2 !== -1) {
+                        let subPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
+                        return subPoles.map(p => ({lat: p.lat, lng: p.lng, name: p.name}));
+                    }
+                }
+            }
+            return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
+        }
+
+        // --- DRAW SINGLE CIRCUIT ---
         function drawSingleCircuit(circuitId, calcPath, excludeSegId, simulationOnly = false) {
             const segs = appData.circuits[circuitId]; if(!segs) return;
             
-            // 1. Determine Color based on MC state / Voltage
+            // 1. Color Logic
             let connectedMCs = []; 
             segs.forEach(item => { 
                 let def = appData.segments[item.segId]; 
@@ -455,7 +480,7 @@
                 currentPath=[]; currentPathTotalDist=0; 
             }
 
-            // 2. Draw Segments with Offset
+            // 2. Draw with Offset & Path Following
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(def) {
@@ -464,7 +489,6 @@
                         let latLngs = ptsObj.map(p => [p.lat, p.lng]);
                         let isCable = def.type === "NGAM";
                         
-                        // CALCULATE OFFSET
                         let offset = 0;
                         let p1 = ptsObj[0], p2 = ptsObj[ptsObj.length-1];
                         if (p1 && p2 && !simulationOnly) {
@@ -479,12 +503,12 @@
                             let poly = L.polyline(latLngs, {
                                 color: color, weight: 2, 
                                 dashArray: isCable?"5,5":null, 
-                                offset: offset // APPLY OFFSET
+                                offset: offset 
                             }).addTo(layers.main).bindPopup(`<b>${circuitId}</b><br>${statusText}`);
                             
                             poly.on('click', () => {
                                 if(isEditMode()) {
-                                    if(getActiveTab()==='seg') window.onElementClick('seg', def); // Won't happen in normal mode
+                                    if(getActiveTab()==='seg') window.onElementClick('seg', def);
                                     else if(getActiveTab()==='cir') window.onElementClick('cir', {circuitId: circuitId});
                                 }
                             });
@@ -502,35 +526,6 @@
                     }
                 }
             });
-        }
-
-        // --- HELPERS ---
-        function getPole(line, name) {
-            if (appData.poles[line]) return appData.poles[line].find(p => p.name == name);
-            for(let l in appData.poles) { let p = appData.poles[l].find(p => p.name == name); if(p) return {...p, foundRoute: l}; }
-            return null;
-        }
-
-        function getPointsForSegment(seg) {
-            let p1 = getPole(seg.lineFrom, seg.poleFrom);
-            let p2 = getPole(seg.lineTo, seg.poleTo);
-            if(!p1 || !p2) return [];
-
-            let r1 = p1.foundRoute || seg.lineFrom;
-            let r2 = p2.foundRoute || seg.lineTo;
-
-            if (r1 && r2 && r1 === r2) {
-                let routePoles = appData.poles[r1];
-                if (routePoles) {
-                    let i1 = routePoles.findIndex(p => p.name === p1.name);
-                    let i2 = routePoles.findIndex(p => p.name === p2.name);
-                    if (i1 !== -1 && i2 !== -1) {
-                        let subPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
-                        return subPoles.map(p => ({lat: p.lat, lng: p.lng, name: p.name}));
-                    }
-                }
-            }
-            return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
         }
 
         function getDist(lat1,lon1,lat2,lon2) { 
