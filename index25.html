@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Lưới Điện (Admin) - v2.5</title>
+    <title>Quản Lý Lưới Điện (Admin) - v2.6</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -55,11 +55,16 @@
         .edit-section { display: none; padding-top: 5px; }
         .edit-section.active { display: block; }
 
-        #circuit-segment-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 10px; background: #fff; border-radius: 4px; }
-        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; cursor: pointer; }
+        /* CIRCUIT LIST CSS - IMPROVED */
+        #circuit-segment-list { max-height: 250px; overflow-y: auto; border: 1px solid #cfd8dc; margin-bottom: 10px; background: #fff; border-radius: 4px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+        .cir-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; cursor: pointer; transition: background 0.1s; }
         .cir-item-row:hover { background: #e3f2fd; }
-        .cir-controls .btn-mini { border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.7rem; margin-left: 2px; }
-        .btn-up, .btn-down { background: #78909c; } .btn-del-seg { background: #ef5350; }
+        .cir-item-row span { font-weight: 500; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+        .cir-controls { display: flex; gap: 2px; }
+        .cir-controls .btn-mini { border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; color: white; font-size: 0.75rem; transition: 0.2s; }
+        .btn-up { background: #78909c; } .btn-up:hover { background: #546e7a; }
+        .btn-down { background: #78909c; } .btn-down:hover { background: #546e7a; }
+        .btn-del-seg { background: #ef5350; } .btn-del-seg:hover { background: #c62828; }
 
         #console { background: #263238; color: #69f0ae; font-family: 'Consolas', monospace; padding: 10px; border-radius: 4px; font-size: 0.75rem; height: 80px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #37474f; }
         #upload-actions { display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -123,7 +128,7 @@
 
     <div id="map"></div>
     <button id="menu-toggle" onclick="window.openSidebar()"><i class="fas fa-bars"></i> MENU</button>
-    <div class="footer">Copyright TCD software @2026 - Admin v2.5</div>
+    <div class="footer">Copyright TCD software @2026 - Admin v2.6</div>
 
     <div id="custom-confirm">
         <div class="win-dialog">
@@ -208,7 +213,7 @@
                 <div id="tab-cir" class="edit-section">
                     <label>Tên Mạch (Click trên bản đồ):</label><input type="text" id="inp-cir-id" list="list-circuits" placeholder="Nhập hoặc chọn..."><datalist id="list-circuits"></datalist>
                     <div id="circuit-segment-list"><div style="padding:15px;text-align:center;color:#999;font-style:italic">Chưa có dữ liệu</div></div>
-                    <label>Thêm đoạn:</label><select id="sel-cir-seg"></select>
+                    <label>Thêm đoạn vào mạch:</label><select id="sel-cir-seg"></select>
                     <button class="action-btn btn-add" onclick="window.addSegToCir()">Thêm vào danh sách</button>
                     <button class="action-btn btn-save-cir" onclick="window.saveCircuitStructure()">LƯU CẤU TRÚC MẠCH</button>
                 </div>
@@ -505,7 +510,10 @@
                                 dashArray: isCable?"5,5":null, 
                                 offset: offset 
                             }).addTo(layers.main).bindPopup(`<b>${circuitId}</b><br>${statusText}`);
-                            poly.on('click', () => {
+                            
+                            // IMPORTANT: CLICK EVENT FOR CIRCUIT
+                            poly.on('click', (e) => {
+                                L.DomEvent.stop(e); // Stop propagation
                                 if(window.isEditMode()) {
                                     if(window.getActiveTab()==='seg') window.onElementClick('seg', def);
                                     else if(window.getActiveTab()==='cir') window.onElementClick('cir', {circuitId: circuitId});
@@ -582,7 +590,6 @@
                 document.getElementById('inp-seg-id-old').value = data.id;
                 document.getElementById('inp-seg-type').value = data.type;
                 
-                // IMPORTANT: Wait for updatePoleSelect to finish filling options
                 let s1 = document.getElementById('sel-seg-line1'); 
                 s1.value = data.lineFrom; 
                 window.updatePoleSelect('sel-seg-line1','sel-seg-pole1'); 
@@ -598,10 +605,18 @@
             else if (type === 'cir') {
                  let cid = data.circuitId;
                  document.getElementById('inp-cir-id').value = cid;
+                 
+                 // Deep copy circuit array
                  currentEditingCircuit = [...(window.appData.circuits[cid] || [])];
+                 currentEditingCircuit.sort((a,b) => a.order - b.order);
+                 
                  window.renderCircuitSegments();
-                 // Highlight entire circuit lines? optional, but currently we just load list
-                 // To show it's active, maybe flash it
+                 
+                 // Highlight whole circuit
+                 layers.editHighlight.clearLayers();
+                 drawSingleCircuit(cid, false, null, true); // Use draw logic but for highlighting? 
+                 // Actually simpler:
+                 currentEditingCircuit.forEach(item => window.highlightSegment(item.segId, '#00bcd4'));
             }
             else if (type === 'area') {
                 document.getElementById('inp-area-name').value = data.name;
@@ -808,10 +823,20 @@
             layers.editHighlight.clearLayers();
         }
 
+        // --- NEW & IMPROVED CIRCUIT LIST RENDERING ---
         window.renderCircuitSegments = () => {
             let html = currentEditingCircuit.map((item, index) => {
-                return `<div class="cir-item-row" onclick="window.highlightSegment('${item.segId}', 'orange')"><span>${index+1}. ${item.segId}</span><div class="cir-controls"><button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button><button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button><button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">X</button></div></div>`;
+                return `
+                <div class="cir-item-row" onmouseover="window.highlightSegment('${item.segId}', 'orange')" onmouseout="layers.editHighlight.clearLayers()">
+                    <span>${index+1}. ${item.segId}</span>
+                    <div class="cir-controls">
+                        <button class="btn-mini btn-up" onclick="event.stopPropagation(); window.moveSeg(${index}, -1)">▲</button>
+                        <button class="btn-mini btn-down" onclick="event.stopPropagation(); window.moveSeg(${index}, 1)">▼</button>
+                        <button class="btn-mini btn-del-seg" onclick="event.stopPropagation(); window.delSegFromTemp(${index})">🗑</button>
+                    </div>
+                </div>`;
             }).join('');
+            
             if(html === '') html = '<div style="padding:15px;text-align:center;color:#999;font-style:italic">Chưa có đoạn nào</div>';
             document.getElementById('circuit-segment-list').innerHTML = html;
         }
@@ -823,14 +848,27 @@
         }
         
         window.delSegFromTemp = (index) => { currentEditingCircuit.splice(index, 1); window.renderCircuitSegments(); }
-        window.addSegToCir = () => { let segId = document.getElementById('sel-cir-seg').value; if(!segId) return alert("Chưa chọn đoạn!"); currentEditingCircuit.push({segId: segId, order: currentEditingCircuit.length + 1}); window.renderCircuitSegments(); }
+        
+        window.addSegToCir = () => { 
+            let segId = document.getElementById('sel-cir-seg').value; 
+            if(!segId) return alert("Chưa chọn đoạn!"); 
+            // Avoid duplicates? Optional. Let's allow it for complex circuits but maybe warn?
+            currentEditingCircuit.push({segId: segId, order: currentEditingCircuit.length + 1}); 
+            window.renderCircuitSegments(); 
+        }
         
         window.saveCircuitStructure = function() {
             let cid = document.getElementById('inp-cir-id').value.trim(); if(!cid) return alert("Chưa có tên mạch!");
             if(!confirm("Lưu thay đổi cho mạch này?")) return;
+            // Re-index order
             currentEditingCircuit.forEach((item, i) => item.order = i + 1);
             set(ref(db, `he_thong_luoi_dien/circuits/${cid}`), currentEditingCircuit).then(()=>{ 
-                alert("Đã lưu cấu trúc mạch!"); layers.editHighlight.clearLayers(); if(!window.appData.circuits) window.appData.circuits = {}; window.appData.circuits[cid] = currentEditingCircuit; renderGlobalMap('normal');
+                alert("Đã lưu cấu trúc mạch!"); 
+                layers.editHighlight.clearLayers(); 
+                // Local update to reflect immediately without waiting for firebase event (optional optimization)
+                if(!window.appData.circuits) window.appData.circuits = {}; 
+                window.appData.circuits[cid] = currentEditingCircuit; 
+                renderGlobalMap('normal');
             });
         }
 
