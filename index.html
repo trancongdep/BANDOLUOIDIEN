@@ -2,15 +2,15 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Lưới Điện (v1.79)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Quản Lý Lưới Điện (Admin) - v1.91</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     
     <style>
-        /* --- LAYOUT CHUẨN v1.79 --- */
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        /* --- CORE CSS (Giao diện v1.79) --- */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f0f2f5; }
         
         #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
         
@@ -56,13 +56,17 @@
         #upload-actions { display: none; margin-top: 10px; }
 
         /* ICONS & MARKERS */
-        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
-        .icon-tru-do { background: #1976d2; border-radius: 50%; }
+        /* Updated MC Icon Style to show text */
+        .my-icon { border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.6); text-align: center; font-size: 9px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; white-space: nowrap; }
+        .icon-tru-do { background: #1976d2; border-radius: 50%; width: 12px; height: 12px; }
         .icon-tru-neo { background: #ff6f00; transform: rotate(45deg); border-radius: 2px; }
-        .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; }
+        
+        /* MC Icon Styles */
+        .icon-mc-base { border: 2px solid white; border-radius: 2px; z-index: 1000; font-size: 10px; background: #555; } /* Default gray */
+        .icon-mc-on { background: #d32f2f; } /* Red = ON */
+        .icon-mc-off { background: #388e3c; } /* Green = OFF */
         .icon-mc-source { border: 2px solid #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b; z-index: 1001 !important; }
         
-        /* FAULT MARKER */
         .fault-marker { font-size: 35px; color: red; text-shadow: 0 0 5px yellow; animation: flash 0.5s infinite; }
         @keyframes flash { from {opacity: 1;} to {opacity: 0.3;} }
     </style>
@@ -74,7 +78,7 @@
 
     <div id="sidebar">
         <div class="header">
-            <h3>QUẢN LÝ LƯỚI ĐIỆN (v1.79)</h3>
+            <h3>QUẢN LÝ LƯỚI ĐIỆN (v1.91)</h3>
             <button style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;" onclick="closeSidebar()">×</button>
         </div>
         
@@ -154,7 +158,7 @@
     </script>
 
     <script>
-        // --- MAP SETUP (Original v1.79 Logic) ---
+        // --- MAP SETUP ---
         let map = L.map('map', { zoomControl: false }).setView([10.762, 106.660], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
@@ -164,8 +168,8 @@
         let layers = { 
             areas: L.layerGroup().addTo(map), 
             main: L.layerGroup().addTo(map), 
-            minor: L.layerGroup().addTo(map), // Trụ đỡ
-            mc: L.layerGroup().addTo(map),    // Máy cắt
+            minor: L.layerGroup().addTo(map), 
+            mc: L.layerGroup().addTo(map),    
             fault: L.layerGroup().addTo(map) 
         };
         
@@ -176,7 +180,6 @@
         function openSidebar() { document.getElementById('sidebar').classList.add('active'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); }
         
-        // --- ZOOM LOGIC (SIMPLE & ROBUST) ---
         map.on('zoomend', function() {
             let z = map.getZoom();
             // Zoom < 15: Ẩn trụ đỡ & MC
@@ -202,26 +205,33 @@
             }); 
         }
 
-        // --- RENDER MAP ---
+        // --- ICON CREATION (FIXED: SHOW LABELS) ---
         function createIcon(type, name, isClosed, sourceVoltage) {
             let cls = 'my-icon icon-tru-do', sz = [12,12], label = '';
+            
             if (type.includes('MC')) { 
                 cls = isClosed ? 'my-icon icon-mc-base icon-mc-on' : 'my-icon icon-mc-base icon-mc-off'; 
-                sz = [22, 16]; 
-                if (sourceVoltage) { cls += ' icon-mc-source'; sz = [26, 20]; }
-            } else if (type.includes('NEO')) cls = 'my-icon icon-tru-neo';
+                sz = [24, 16]; // Tăng kích thước để hiện chữ
+                if (sourceVoltage) { cls += ' icon-mc-source'; sz = [26, 18]; }
+                
+                // Lấy tên hiển thị (Ví dụ MC_471 -> 471)
+                let parts = name.split('_');
+                label = parts.length > 1 ? parts[parts.length-1] : name;
+                
+            } else if (type.includes('NEO')) {
+                cls = 'my-icon icon-tru-neo';
+            }
+            
             return L.divIcon({ className: cls, html: label, iconSize: sz });
         }
 
         function renderMap() {
             layers.main.clearLayers(); layers.minor.clearLayers(); layers.mc.clearLayers(); layers.areas.clearLayers();
             
-            // Areas
             if(appData.areas) appData.areas.forEach(a => { 
                 L.polygon(a.points, {color:'#9e9e9e', fillColor:'#9e9e9e', fillOpacity:0.3, weight:1}).addTo(layers.areas); 
             });
 
-            // Poles
             if(appData.poles) for(let l in appData.poles) appData.poles[l].forEach(p => {
                 let isMC = p.type.includes('MC');
                 let target = isMC ? layers.mc : layers.minor;
@@ -239,52 +249,85 @@
                 if(!isMC) marker.bindPopup(p.name);
             });
 
-            // Circuits
+            // Draw all circuits on load
             if(appData.circuits) Object.keys(appData.circuits).forEach(cid => drawCircuit(cid));
+        }
+
+        // --- LINE DRAWING (FIXED: FOLLOW PATH) ---
+        function getPoleExact(line, name) { 
+            if(!appData.poles[line]) return null; 
+            return appData.poles[line].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); 
+        }
+
+        function getPoleGlobal(name) { 
+            for(let l in appData.poles) { 
+                let p=appData.poles[l].find(p=>String(p.name).toUpperCase()===String(name).toUpperCase()); 
+                if(p) return {...p, foundRoute:l}; 
+            } return null; 
+        }
+
+        // Logic tìm điểm trung gian để dây bám theo tuyến
+        function getPointsForSegment(seg) {
+            if(!seg) return [];
+            let p1 = getPoleExact(seg.lineFrom, seg.poleFrom) || getPoleGlobal(seg.poleFrom);
+            let p2 = getPoleExact(seg.lineTo, seg.poleTo) || getPoleGlobal(seg.poleTo);
+            
+            if(!p1 || !p2) return [];
+
+            // Nếu 2 trụ cùng 1 tuyến, lấy tất cả trụ ở giữa
+            let r1 = p1.foundRoute || seg.lineFrom;
+            let r2 = p2.foundRoute || seg.lineTo;
+
+            if (r1 && r2 && r1 === r2) {
+                let routePoles = appData.poles[r1];
+                if (routePoles) {
+                    let i1 = routePoles.findIndex(p => p.name === p1.name);
+                    let i2 = routePoles.findIndex(p => p.name === p2.name);
+                    if (i1 !== -1 && i2 !== -1) {
+                        let segmentPoles = (i1 <= i2) ? routePoles.slice(i1, i2 + 1) : routePoles.slice(i2, i1 + 1).reverse();
+                        return segmentPoles.map(p => ({lat: p.lat, lng: p.lng, name: p.name}));
+                    }
+                }
+            }
+            // Khác tuyến hoặc không tìm thấy: vẽ thẳng
+            return [{lat: p1.lat, lng: p1.lng, name: p1.name}, {lat: p2.lat, lng: p2.lng, name: p2.name}];
         }
 
         function drawCircuit(cid, isCalc = false) {
             const segs = appData.circuits[cid]; if(!segs) return;
-            
-            // Check voltage color
             let color = 'black'; 
-            // (Simplified logic for v1.79)
             
             if(isCalc) { currentPath = []; currentPathTotalDist = 0; }
 
             segs.forEach(item => {
                 let def = appData.segments[item.segId];
                 if(def) {
-                    let p1 = getPole(def.lineFrom, def.poleFrom);
-                    let p2 = getPole(def.lineTo, def.poleTo);
-                    if(p1 && p2) {
-                        let pts = [[p1.lat, p1.lng], [p2.lat, p2.lng]];
-                        // Add line to map
+                    let ptsObj = getPointsForSegment(def); // Lấy danh sách điểm bám tuyến
+                    if(ptsObj.length > 0) {
+                        let latLngs = ptsObj.map(p => [p.lat, p.lng]);
+                        
+                        // Vẽ dây
                         if (!isCalc) {
-                            L.polyline(pts, {color: color, weight: 2}).addTo(layers.main).bindPopup(cid);
+                            L.polyline(latLngs, {color: color, weight: 2}).addTo(layers.main).bindPopup(cid);
                         }
                         
-                        // Calc logic
+                        // Tính toán
                         if(isCalc) {
-                            let d = getDist(p1.lat, p1.lng, p2.lat, p2.lng);
-                            currentPathTotalDist += d;
-                            currentPath.push({lat: p1.lat, lng: p1.lng, accDist: currentPathTotalDist, name: p1.name});
-                            currentPath.push({lat: p2.lat, lng: p2.lng, accDist: currentPathTotalDist + d, name: p2.name}); // Approx
+                            ptsObj.forEach((p, i) => {
+                                if (i > 0) {
+                                    let d = getDist(ptsObj[i-1].lat, ptsObj[i-1].lng, p.lat, p.lng);
+                                    currentPathTotalDist += d;
+                                }
+                                currentPath.push({
+                                    lat: p.lat, lng: p.lng, 
+                                    accDist: currentPathTotalDist, 
+                                    name: p.name 
+                                });
+                            });
                         }
                     }
                 }
             });
-        }
-
-        // --- HELPERS ---
-        function getPole(line, name) {
-            if (appData.poles[line]) return appData.poles[line].find(p => p.name == name);
-            // Global search fallback
-            for(let l in appData.poles) {
-                let p = appData.poles[l].find(p => p.name == name);
-                if(p) return p;
-            }
-            return null;
         }
 
         function getDist(lat1,lon1,lat2,lon2) { 
@@ -294,7 +337,7 @@
             return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); 
         }
 
-        // --- EXPORT FUNCTION (Restored) ---
+        // --- EXPORT FUNCTION ---
         window.exportToExcel = function() { 
             if(!appData.poles) return alert("Không có dữ liệu!"); 
             let d1=[], d2=[], d3=[], d4=[]; 
@@ -308,7 +351,7 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d2),"DM_DOAN"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d3),"CAU_HINH"); 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d4),"VUNG"); 
-            XLSX.writeFile(wb,"DuLieuLuoiDien_v1.79.xlsx"); 
+            XLSX.writeFile(wb,"DuLieuLuoiDien_v1.91.xlsx"); 
         }
 
         // --- UI LOGIC ---
@@ -338,8 +381,8 @@
         window.zoomToCircuit = function() {
             let cid = document.getElementById('circuitSelect').value;
             layers.main.clearLayers(); 
-            renderMap(); // Redraw base
-            if(cid) drawCircuit(cid, true); // Draw selected circuit & calculate path
+            renderMap(); 
+            if(cid) drawCircuit(cid, true); 
         }
 
         window.findFault = function() {
@@ -350,16 +393,28 @@
 
             let targetDist = (dir === 'start') ? km * 1000 : currentPathTotalDist - (km * 1000);
             
-            // Simple Linear Search
             let found = false;
-            // Note: This simplified logic assumes linear segments.
-            // For v1.79, we just check cumulative distance.
-            for(let i=0; i<currentPath.length; i++) {
+            for(let i=1; i<currentPath.length; i++) {
                 if (currentPath[i].accDist >= targetDist) {
-                    let p = currentPath[i];
-                    L.marker([p.lat, p.lng], { icon: L.divIcon({html:'<i class="fas fa-bolt fault-marker"></i>', className: 'd'}) }).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
-                    map.setView([p.lat, p.lng], 16);
-                    document.getElementById('result').innerText = `Tìm thấy gần: ${p.name}`;
+                    let p1 = currentPath[i-1] || currentPath[i];
+                    let p2 = currentPath[i];
+                    
+                    // Nội suy vị trí chính xác giữa 2 điểm (Interpolation)
+                    let distSegment = p2.accDist - p1.accDist;
+                    let distInto = targetDist - p1.accDist;
+                    let ratio = distSegment > 0 ? distInto / distSegment : 0;
+
+                    let lat = p1.lat + (p2.lat - p1.lat) * ratio;
+                    let lng = p1.lng + (p2.lng - p1.lng) * ratio;
+
+                    // Tìm tên trụ gần nhất
+                    let name1 = p1.name || "Điểm đầu";
+                    let name2 = p2.name || "Điểm cuối";
+
+                    L.marker([lat, lng], { icon: L.divIcon({html:'<i class="fas fa-bolt fault-marker"></i>', className: 'd'}) }).addTo(layers.fault).bindPopup("SỰ CỐ").openPopup();
+                    map.setView([lat, lng], 18);
+                    
+                    document.getElementById('result').innerHTML = `Vị trí dự kiến: <b>${name1} - ${name2}</b>`;
                     found = true;
                     break;
                 }
